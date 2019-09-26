@@ -1,2 +1,2 @@
-# ups-server
-A server of the semester project application
+# ups
+A repository for the subject KIV/UPS
