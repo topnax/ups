@@ -18,10 +18,11 @@ const ( // iota is reset to 0
 )
 
 type Letter struct {
-	Set   bool
-	Type  int
-	Value string
-	Used  int
+	Set           bool
+	Type          int
+	Value         string
+	Used          int
+	CurrentlyUsed bool
 }
 
 type Word struct {
@@ -33,8 +34,12 @@ type Word struct {
 }
 
 type Desk struct {
-	Letters [deskSize][deskSize]Letter
-	Words   []Word
+	Letters        [deskSize][deskSize]Letter
+	Words          []Word
+	CurrentLetters []Letter
+
+	lastRow int
+	lastCol int
 }
 
 type KrisKrosDesk interface {
@@ -59,19 +64,82 @@ func (desk *Desk) Create() {
 	desk.Letters = letters
 }
 
+func (desk Desk) isWithinBounds(row int, column int) bool {
+	return row >= 0 && row < deskSize && column >= 0 && column < deskSize
+}
+
 func (desk *Desk) SetAt(letter string, row int, column int) error {
 	if (letter != "CH" && len(letter) > 1) || isNumber(letter) {
 		return errors.New("cannot set a letter longer than 1. 'CH' is an exception. Only letters are allowed")
 	}
-	if row >= deskSize || column >= deskSize || row < 0 || column < 0 {
+	if !desk.isWithinBounds(row, column) {
 		return errors.New("cannot set, out of bounds")
 	}
+
+	a := [][] int{
+		{0, 1},
+		{0, -1},
+		{1, 0},
+		{-1, 0},
+	}
+
+	h := 0
+	v := 0
+	for i, c := range a {
+		if desk.isWithinBounds(c[0], c[1]) {
+			if desk.Letters[c[0]][c[1]].Set {
+				if i < 2 {
+					h++
+				} else {
+					v++
+				}
+			}
+		}
+	}
+
+	var usedLetters []string
+
+
+	fmt.Printf("\nSet: %v:%v - %s\n", row, column, letter)
+	for i, c := range a {
+		dx := 0 + c[0]
+		dy := 0 + c[1]
+		found := false
+		for desk.isWithinBounds(row +dx, column +dy) && desk.Letters[row +dx][column+dy].Set {
+			usedLetters = append(usedLetters, desk.Letters[row +dx][column+dy].Value)
+			dx += c[0]
+			dy += c[1]
+			found = true
+		}
+
+		if found {
+
+			fmt.Printf("#%v dx:%v, dy:%v\n", i, dx, dy)
+
+		}
+	}
+
+	fmt.Println("Used letters:")
+	for _, value := range usedLetters {
+		fmt.Println(value)
+	}
+
 	if !desk.Letters[row][column].Set {
 		desk.Letters[row][column].Value = letter
 		desk.Letters[row][column].Set = true
+		desk.CurrentLetters = append(desk.CurrentLetters, desk.Letters[row][column])
 		return nil
 	}
 	return errors.New("letter already set")
+}
+
+func (desk *Desk) ClearCurrentWords() {
+	desk.CurrentLetters = nil
+}
+
+func (desk *Desk) ClearLast() {
+	desk.lastCol = -1
+	desk.lastRow = -1
 }
 
 func (desk *Desk) SetWordAt(rowStart int, columnStart int, rowEnd int, columnEnd int, playerId int) error {
@@ -153,9 +221,17 @@ func (desk Desk) Print() {
 		}
 		for column := 0; column < deskSize; column++ {
 			if desk.Letters[row][column].Set {
-				fmt.Print(strings.ToUpper(desk.Letters[row][column].Value))
+				if desk.Letters[row][column].CurrentlyUsed {
+					fmt.Print(strings.ToUpper(desk.Letters[row][column].Value))
+				} else {
+					fmt.Print(strings.ToLower(desk.Letters[row][column].Value))
+				}
 			} else {
-				fmt.Print("_")
+				if desk.Letters[row][column].CurrentlyUsed {
+					fmt.Print("&")
+				} else {
+					fmt.Print("_")
+				}
 			}
 		}
 		fmt.Print("\n")
