@@ -3,13 +3,12 @@ package game
 import (
 	"errors"
 	"fmt"
-	"ups/sp/server/model"
 )
 
 type Game struct {
-	Desk               model.Desk
-	Players            []model.Player
-	CurrentPlayer      model.Player
+	Desk               Desk
+	Players            []Player
+	CurrentPlayer      Player
 	CurrentPlayerIndex int
 	Round              int
 
@@ -30,7 +29,7 @@ func (game *Game) Start() error {
 
 func (game *Game) AddPlayer(name string) {
 	if len(game.Players) < 4 {
-		game.Players = append(game.Players, model.Player{
+		game.Players = append(game.Players, Player{
 			Name: name,
 			ID:   game.idInc,
 		})
@@ -53,11 +52,6 @@ func (game *Game) Print() {
 
 	game.Desk.Print()
 
-	fmt.Println("Current letters:")
-
-	for index, _ := range game.Desk.CurrentLetters.List {
-		fmt.Println(index.Value, index.Row, index.Column)
-	}
 	fmt.Println()
 	fmt.Println()
 	fmt.Println()
@@ -75,10 +69,10 @@ func (game *Game) Next() {
 	game.Desk.PlacedLetter.Clear()
 }
 
-func (game *Game) HandleSetAtEvent(event SetAtEvent) error {
-	return game.Desk.SetAt(event.Letter, event.Row, event.Column)
+func (game *Game) HandleSetAtEvent(event SetLetterAtEvent) error {
+	return game.Desk.SetAt(event.Letter, event.Row, event.Column, event.PlayerID)
 }
 
-func (game Game) HandleResetAtEvent(event SetAtEvent) error {
-	return game.Desk.SetAt(event.Letter, event.Row, event.Column)
+func (game Game) HandleResetAtEvent(event ResetAtEvent) {
+	game.Desk.Tiles[event.Row][event.Column].Set = false
 }

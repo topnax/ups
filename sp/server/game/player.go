@@ -1,6 +1,6 @@
-package model
+package game
 
 type Player struct {
 	Name string
-	ID int
+	ID   int
 }

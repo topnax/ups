@@ -1,4 +1,4 @@
-package model
+package game
 
 type WordMetaSet struct {
 	List map[WordMeta]struct{}

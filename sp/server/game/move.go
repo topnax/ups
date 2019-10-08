@@ -1,4 +1,4 @@
-package model
+package game
 
 type Move struct {
 	PlayerID       int

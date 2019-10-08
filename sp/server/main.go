@@ -1,7 +1,7 @@
 package main
 
 import (
-	"ups/sp/server/logic/game"
+	"ups/sp/server/game"
 )
 
 func main() {
@@ -13,19 +13,19 @@ func main() {
 
 	currentGame.Start()
 
-	_ = currentGame.HandleSetAtEvent(game.SetAtEvent{
+	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
 		PlayerID: currentGame.CurrentPlayer.ID,
 		Row:      1,
 		Column:   1,
 		Letter:   "S",
 	})
-	_ = currentGame.HandleSetAtEvent(game.SetAtEvent{
+	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
 		PlayerID: currentGame.CurrentPlayer.ID,
 		Row:      2,
 		Column:   1,
 		Letter:   "E",
 	})
-	_ = currentGame.HandleSetAtEvent(game.SetAtEvent{
+	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
 		PlayerID: currentGame.CurrentPlayer.ID,
 		Row:      3,
 		Column:   1,
@@ -34,26 +34,26 @@ func main() {
 	currentGame.Print()
 
 	currentGame.Next()
-	_ = currentGame.HandleSetAtEvent(game.SetAtEvent{
+	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
 		PlayerID: currentGame.CurrentPlayer.ID,
 		Row:      1,
 		Column:   3,
 		Letter:   "P",
 	})
-	_ = currentGame.HandleSetAtEvent(game.SetAtEvent{
+	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
 		PlayerID: currentGame.CurrentPlayer.ID,
 		Row:      2,
 		Column:   3,
 		Letter:   "E",
 	})
-	_ = currentGame.HandleSetAtEvent(game.SetAtEvent{
+	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
 		PlayerID: currentGame.CurrentPlayer.ID,
 		Row:      3,
 		Column:   3,
 		Letter:   "S",
 	})
 
-	_ = currentGame.HandleSetAtEvent(game.SetAtEvent{
+	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
 		PlayerID: currentGame.CurrentPlayer.ID,
 		Row:      2,
 		Column:   2,
@@ -63,18 +63,25 @@ func main() {
 
 	currentGame.Next()
 
-	_ = currentGame.HandleSetAtEvent(game.SetAtEvent{
+	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
 		PlayerID: currentGame.CurrentPlayer.ID,
 		Row:      2,
 		Column:   4,
 		Letter:   "S",
 	})
 
-	_ = currentGame.HandleSetAtEvent(game.SetAtEvent{
+	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
 		PlayerID: currentGame.CurrentPlayer.ID,
 		Row:      4,
 		Column:   1,
 		Letter:   "Y",
+	})
+
+	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+		PlayerID: currentGame.CurrentPlayer.ID,
+		Row:      5,
+		Column:   1,
+		Letter:   "H",
 	})
 
 	currentGame.Print()
