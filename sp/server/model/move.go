@@ -1,10 +1,7 @@
 package model
 
 type Move struct {
-	PlayerID int
-	Words []Word
-	CurrentLetters []Letter
+	PlayerID       int
+	Words          []Word
+	CurrentLetters []Tile
 }
-
-
-
