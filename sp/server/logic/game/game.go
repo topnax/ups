@@ -54,9 +54,11 @@ func (game *Game) Print() {
 	game.Desk.Print()
 
 	fmt.Println("Current letters:")
-	for index, letter := range game.Desk.CurrentLetters {
-		fmt.Println(index, letter.Value)
+
+	for index, _ := range game.Desk.CurrentLetters.List {
+		fmt.Println(index.Value, index.Row, index.Column)
 	}
+	fmt.Println()
 	fmt.Println()
 	fmt.Println()
 }
@@ -70,6 +72,7 @@ func (game *Game) Next() {
 	}
 	game.CurrentPlayer = game.Players[game.CurrentPlayerIndex]
 	game.Desk.ClearCurrentWords()
+	game.Desk.PlacedLetter.Clear()
 }
 
 func (game *Game) HandleSetAtEvent(event SetAtEvent) error {

@@ -12,19 +12,20 @@ func main() {
 	currentGame.AddPlayer("Fanda")
 
 	currentGame.Start()
-	err := currentGame.HandleSetAtEvent(game.SetAtEvent{
+
+	_ = currentGame.HandleSetAtEvent(game.SetAtEvent{
 		PlayerID: currentGame.CurrentPlayer.ID,
 		Row:      1,
 		Column:   1,
 		Letter:   "S",
 	})
-	err = currentGame.HandleSetAtEvent(game.SetAtEvent{
+	_ = currentGame.HandleSetAtEvent(game.SetAtEvent{
 		PlayerID: currentGame.CurrentPlayer.ID,
 		Row:      2,
 		Column:   1,
 		Letter:   "E",
 	})
-	err = currentGame.HandleSetAtEvent(game.SetAtEvent{
+	_ = currentGame.HandleSetAtEvent(game.SetAtEvent{
 		PlayerID: currentGame.CurrentPlayer.ID,
 		Row:      3,
 		Column:   1,
@@ -33,26 +34,26 @@ func main() {
 	currentGame.Print()
 
 	currentGame.Next()
-	err = currentGame.HandleSetAtEvent(game.SetAtEvent{
+	_ = currentGame.HandleSetAtEvent(game.SetAtEvent{
 		PlayerID: currentGame.CurrentPlayer.ID,
 		Row:      1,
 		Column:   3,
 		Letter:   "P",
 	})
-	err = currentGame.HandleSetAtEvent(game.SetAtEvent{
+	_ = currentGame.HandleSetAtEvent(game.SetAtEvent{
 		PlayerID: currentGame.CurrentPlayer.ID,
 		Row:      2,
 		Column:   3,
 		Letter:   "E",
 	})
-	err = currentGame.HandleSetAtEvent(game.SetAtEvent{
+	_ = currentGame.HandleSetAtEvent(game.SetAtEvent{
 		PlayerID: currentGame.CurrentPlayer.ID,
 		Row:      3,
 		Column:   3,
 		Letter:   "S",
 	})
 
-	err = currentGame.HandleSetAtEvent(game.SetAtEvent{
+	_ = currentGame.HandleSetAtEvent(game.SetAtEvent{
 		PlayerID: currentGame.CurrentPlayer.ID,
 		Row:      2,
 		Column:   2,
@@ -60,12 +61,25 @@ func main() {
 	})
 	currentGame.Print()
 
-	if err != nil {
-		println(err)
-	}
+	currentGame.Next()
+
+	_ = currentGame.HandleSetAtEvent(game.SetAtEvent{
+		PlayerID: currentGame.CurrentPlayer.ID,
+		Row:      2,
+		Column:   4,
+		Letter:   "S",
+	})
+
+	_ = currentGame.HandleSetAtEvent(game.SetAtEvent{
+		PlayerID: currentGame.CurrentPlayer.ID,
+		Row:      4,
+		Column:   1,
+		Letter:   "Y",
+	})
+
 	currentGame.Print()
 
-
+	currentGame.Desk.GetTotalPoints()
 
 	////
 	//desk := model.GetDesk()

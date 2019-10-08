@@ -18,11 +18,20 @@ const ( // iota is reset to 0
 )
 
 type Letter struct {
+	Row           int
+	Column        int
 	Set           bool
 	Type          int
 	Value         string
 	Used          int
 	CurrentlyUsed bool
+}
+
+type WordMeta struct {
+	RowStart    int
+	ColumnStart int
+	RowEnd      int
+	ColumnEnd   int
 }
 
 type Word struct {
@@ -36,7 +45,8 @@ type Word struct {
 type Desk struct {
 	Letters        [deskSize][deskSize]Letter
 	Words          []Word
-	CurrentLetters []Letter
+	CurrentLetters *LetterSet
+	PlacedLetter   *LetterSet
 
 	lastRow int
 	lastCol int
@@ -54,14 +64,18 @@ func (desk *Desk) Create() {
 	for row := 0; row < deskSize; row++ {
 		for column := 0; column < deskSize; column++ {
 			letters[row][column] = Letter{
-				Set:   false,
-				Type:  0,
-				Used:  0,
-				Value: "",
+				Set:    false,
+				Type:   0,
+				Used:   0,
+				Value:  "",
+				Row:    row,
+				Column: column,
 			}
 		}
 	}
 	desk.Letters = letters
+	desk.CurrentLetters = NewSet()
+	desk.PlacedLetter = NewSet()
 }
 
 func (desk Desk) isWithinBounds(row int, column int) bool {
@@ -76,65 +90,43 @@ func (desk *Desk) SetAt(letter string, row int, column int) error {
 		return errors.New("cannot set, out of bounds")
 	}
 
-	a := [][] int{
+	if desk.Letters[row][column].Set {
+		return errors.New("letter already set")
+	}
+
+	a := [][]int{
 		{0, 1},
 		{0, -1},
 		{1, 0},
 		{-1, 0},
 	}
 
-	h := 0
-	v := 0
-	for i, c := range a {
-		if desk.isWithinBounds(c[0], c[1]) {
-			if desk.Letters[c[0]][c[1]].Set {
-				if i < 2 {
-					h++
-				} else {
-					v++
-				}
-			}
-		}
-	}
-
-	var usedLetters []string
-
-
 	fmt.Printf("\nSet: %v:%v - %s\n", row, column, letter)
-	for i, c := range a {
+	for _, c := range a {
 		dx := 0 + c[0]
 		dy := 0 + c[1]
-		found := false
-		for desk.isWithinBounds(row +dx, column +dy) && desk.Letters[row +dx][column+dy].Set {
-			usedLetters = append(usedLetters, desk.Letters[row +dx][column+dy].Value)
+		for desk.isWithinBounds(row+dx, column+dy) && desk.Letters[row+dx][column+dy].Set {
+			desk.CurrentLetters.Add(desk.Letters[row+dx][column+dy])
 			dx += c[0]
 			dy += c[1]
-			found = true
-		}
-
-		if found {
-
-			fmt.Printf("#%v dx:%v, dy:%v\n", i, dx, dy)
-
 		}
 	}
 
-	fmt.Println("Used letters:")
-	for _, value := range usedLetters {
-		fmt.Println(value)
-	}
+	//fmt.Println("Used letters:")
+	//for _, value := range usedLetters {
+	//	fmt.Println(value)
+	//}
 
-	if !desk.Letters[row][column].Set {
-		desk.Letters[row][column].Value = letter
-		desk.Letters[row][column].Set = true
-		desk.CurrentLetters = append(desk.CurrentLetters, desk.Letters[row][column])
-		return nil
-	}
-	return errors.New("letter already set")
+	desk.Letters[row][column].Value = letter
+	desk.Letters[row][column].Set = true
+	fmt.Println("setting", desk.Letters[row][column].Value, "at", row, column)
+	desk.CurrentLetters.Add(desk.Letters[row][column])
+	desk.PlacedLetter.Add(desk.Letters[row][column])
+	return nil
 }
 
 func (desk *Desk) ClearCurrentWords() {
-	desk.CurrentLetters = nil
+	desk.CurrentLetters.Clear()
 }
 
 func (desk *Desk) ClearLast() {
@@ -142,64 +134,21 @@ func (desk *Desk) ClearLast() {
 	desk.lastRow = -1
 }
 
-func (desk *Desk) SetWordAt(rowStart int, columnStart int, rowEnd int, columnEnd int, playerId int) error {
-
-	if rowStart == rowEnd && columnStart == columnEnd {
-		return errors.New("word has to have at least one letter")
-	}
-
-	if rowStart != rowEnd && columnStart != columnEnd {
-		return errors.New("a word mustn't be diagonal")
-	}
-
+func (desk *Desk) GetWordAt(rowStart int, columnStart int, rowEnd int, columnEnd int) string {
 	var content []string
 
 	if rowStart == rowEnd {
 		for column := columnStart; column < columnEnd+1; column++ {
-			if desk.Letters[rowStart][column].Used >= 2 {
-				return errors.New("a word cannot be used more than two times ")
-			} else if !desk.Letters[rowStart][column].Set {
-				return errors.New("a letter has to be set everywhere inside the range")
-			}
-		}
-
-		if desk.Letters[rowStart][columnStart-1].Set || desk.Letters[rowStart][columnEnd+1].Set {
-			return errors.New("no letter can't be after or before the word")
-		}
-
-		for column := columnStart; column < columnEnd+1; column++ {
 			content = append(content, desk.Letters[rowStart][column].Value)
-			desk.Letters[rowStart][column].Used++
 		}
 	}
 
 	if columnStart == columnEnd {
 		for row := rowStart; row < rowEnd+1; row++ {
-			if desk.Letters[row][columnStart].Used >= 2 {
-				return errors.New("a word cannot be used more than two times ")
-			} else if !desk.Letters[row][columnStart].Set {
-				return errors.New("a letter has to be set everywhere inside the range")
-			}
-		}
-
-		if desk.Letters[rowEnd+1][columnStart].Set || desk.Letters[rowStart-1][columnStart].Set {
-			return errors.New("no letter can't be after or before the word")
-		}
-
-		for row := rowStart; row < rowEnd+1; row++ {
 			content = append(content, desk.Letters[row][columnStart].Value)
-			desk.Letters[row][columnStart].Used++
 		}
 	}
-
-	desk.Words = append(desk.Words, Word{
-		Start:    [2]int{rowStart, columnStart},
-		End:      [2]int{rowEnd, columnEnd},
-		PlayerID: playerId,
-		Content:  strings.Join(content[:], ""),
-	})
-
-	return nil
+	return strings.Join(content[:], "")
 }
 
 func isNumber(s string) bool {
@@ -209,6 +158,142 @@ func isNumber(s string) bool {
 		}
 	}
 	return true
+}
+
+func (desk *Desk) GetWordsAt(row int, column int) [][]int {
+	a := [][]int{
+		{0, 1},
+		{0, -1},
+		{1, 0},
+		{-1, 0},
+	}
+
+	mincol := -1
+	maxcol := -1
+
+	minrow := -1
+	maxrow := -1
+
+	for index, c := range a {
+		dx := 0 + c[0]
+		dy := 0 + c[1]
+
+		for desk.isWithinBounds(row+dx, column+dy) && desk.Letters[row+dx][column+dy].Set {
+			dx += c[0]
+			dy += c[1]
+		}
+
+		switch index {
+		case 0:
+			maxcol = column + dy - 1
+			break
+		case 1:
+			mincol = column + dy + 1
+			break
+		case 2:
+			maxrow = row + dx - 1
+			break
+		case 3:
+			minrow = row + dx + 1
+			break
+
+		}
+
+	}
+	var words [][]int
+
+	words = append(words, []int{mincol, maxcol, row})
+
+	words = append(words, []int{minrow, maxrow, column})
+
+	println()
+	return words
+}
+
+func (desk Desk) GetTotalPoints() {
+	wordMap := NewWordMetaSet()
+
+	var words []Word
+
+	for letter, _ := range desk.PlacedLetter.List {
+		fmt.Println(letter.Value)
+		for i, positions := range desk.GetWordsAt(letter.Row, letter.Column) {
+			if positions[0] != -1 && positions[1] != -1 && positions[2] != -1 && positions[0] != positions[1] {
+				if i == 0 {
+					wordMeta := WordMeta{
+						RowStart:    positions[2],
+						ColumnStart: positions[0],
+						RowEnd:      positions[2],
+						ColumnEnd:   positions[1],
+					}
+					if !wordMap.Has(wordMeta) {
+						word := desk.GetWordAt(positions[2], positions[0], positions[2], positions[1])
+						words = append(words, Word{
+							Start:    [2]int{positions[1], positions[0]},
+							End:      [2]int{positions[2], positions[0]},
+							PlayerID: 0,
+							Content:  word,
+							Points:   0,
+						})
+						wordMap.Add(wordMeta)
+					}
+				}
+				if i == 1 {
+					wordMeta := WordMeta{
+						RowStart:    positions[0],
+						ColumnStart: positions[2],
+						RowEnd:      positions[1],
+						ColumnEnd:   positions[2],
+					}
+					if !wordMap.Has(wordMeta) {
+						word := desk.GetWordAt(positions[0], positions[2], positions[1], positions[2])
+						words = append(words, Word{
+							Start:    [2]int{positions[0], positions[1]},
+							End:      [2]int{positions[0], positions[2]},
+							PlayerID: 0,
+							Content:  word,
+							Points:   0,
+						})
+						wordMap.Add(wordMeta)
+					}
+
+				}
+			}
+
+		}
+	}
+
+	for _, word := range words {
+		fmt.Println("Word:", word.Content, "at", word.Start[0], word.Start[1], "-", word.End[0], word.End[1])
+	}
+	//multiplicators := map[Letter]int
+	//totalPoints := 0
+	//for letter, _ := range desk.CurrentLetters.List {
+	//	a := [][] int{
+	//		{0, 0},
+	//		{0, 1},
+	//		{0, -1},
+	//		{1, 0},
+	//		{-1, 0},
+	//	}
+	//	row := letter.Row
+	//	column := letter.Column
+	//
+	//	fmt.Printf("\nSet: %v:%v - %s\n", row, column, letter)
+	//	for _, c := range a {
+	//		dx := 0 + c[0]
+	//		dy := 0 + c[1]
+	//		for desk.isWithinBounds(row+dx, column+dy) && desk.Letters[row+dx][column+dy].Set {
+	//			desk.CurrentLetters.Add(desk.Letters[row+dx][column+dy])
+	//			dx += c[0]
+	//			dy += c[1]
+	//		}
+	//	}
+	//
+	//	switch letter.Type {
+	//
+	//	}
+	//}
 }
 
 func (desk Desk) Print() {
