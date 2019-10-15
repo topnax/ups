@@ -1,0 +1,18 @@
+- host -> resolve dns, vrátí ip adresu + mail servery
+- netstat -> všechny spojení "-t" jen tcpip "-u" udp only "-tn" konkrétní adress "-ltnp" long program
+- lsof -i otevreny soubory, tcpip
+- nc -l -p 1337 => listen@1337
+- nc localhost 1337
+- otestovat pipu z /dev/urandom
+- 2^(32-N) - 2 = kolik se vejde do sítě, kde N je maska
+
+
+ZADÁNÍ
+- 1.1.4.16/28
+
+2^4 - sítě po 16 uzlech
+0-15 16-31 32-47 48-63
+
+síť se trefí do 16-31, tj addr net = 1.1.4.16 a bcast = 1.1.4.31
+
+
