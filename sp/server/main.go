@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"ups/sp/server/game"
 )
 
@@ -60,7 +61,9 @@ func main() {
 		Letter:   "Y",
 	})
 	currentGame.Print()
-
+	fmt.Println(currentGame.AcceptTurn(currentGame.Players[0]))
+	fmt.Println(currentGame.AcceptTurn(currentGame.Players[1]))
+	fmt.Println(currentGame.AcceptTurn(currentGame.Players[2]))
 	currentGame.Next()
 
 	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
@@ -84,9 +87,10 @@ func main() {
 		Letter:   "H",
 	})
 
+	fmt.Println(currentGame.AcceptTurn(currentGame.Players[0]))
+	fmt.Println(currentGame.AcceptTurn(currentGame.Players[1]))
+	fmt.Println(currentGame.AcceptTurn(currentGame.Players[2]))
 	currentGame.Print()
-
-	currentGame.Desk.GetTotalPoints()
 
 	////
 	//desk := model.GetDesk()
