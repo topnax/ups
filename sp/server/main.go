@@ -1,96 +1,111 @@
 package main
 
 import (
-	"fmt"
-	"ups/sp/server/game"
+	log "github.com/sirupsen/logrus"
+	"os"
+	"syscall"
+	"ups/sp/server/networking/server"
 )
 
 func main() {
-
-	currentGame := game.Game{}
-	currentGame.AddPlayer("Pavel")
-	currentGame.AddPlayer("Tomáš")
-	currentGame.AddPlayer("Fanda")
-
-	currentGame.Start()
-
-	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
-		PlayerID: currentGame.CurrentPlayer.ID,
-		Row:      1,
-		Column:   1,
-		Letter:   "S",
-	})
-	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
-		PlayerID: currentGame.CurrentPlayer.ID,
-		Row:      2,
-		Column:   1,
-		Letter:   "E",
-	})
-	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
-		PlayerID: currentGame.CurrentPlayer.ID,
-		Row:      3,
-		Column:   1,
-		Letter:   "X",
-	})
-	currentGame.Print()
-
-	currentGame.Next()
-	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
-		PlayerID: currentGame.CurrentPlayer.ID,
-		Row:      1,
-		Column:   3,
-		Letter:   "P",
-	})
-	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
-		PlayerID: currentGame.CurrentPlayer.ID,
-		Row:      2,
-		Column:   3,
-		Letter:   "E",
-	})
-	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
-		PlayerID: currentGame.CurrentPlayer.ID,
-		Row:      3,
-		Column:   3,
-		Letter:   "S",
+	log.SetLevel(log.DebugLevel)
+	log.SetOutput(os.Stdout)
+	serverx := server.Server{}
+	err := serverx.Init(syscall.SockaddrInet4{
+		Addr: [4]byte{byte(127), byte(0), byte(0), byte(1)},
+		Port: 10000,
 	})
 
-	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
-		PlayerID: currentGame.CurrentPlayer.ID,
-		Row:      2,
-		Column:   2,
-		Letter:   "Y",
-	})
-	currentGame.Print()
-	fmt.Println(currentGame.AcceptTurn(currentGame.Players[0]))
-	fmt.Println(currentGame.AcceptTurn(currentGame.Players[1]))
-	fmt.Println(currentGame.AcceptTurn(currentGame.Players[2]))
-	currentGame.Next()
+	if err != nil {
+		log.Errorln(err)
+		return
+	}
 
-	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
-		PlayerID: currentGame.CurrentPlayer.ID,
-		Row:      2,
-		Column:   4,
-		Letter:   "S",
-	})
-
-	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
-		PlayerID: currentGame.CurrentPlayer.ID,
-		Row:      4,
-		Column:   1,
-		Letter:   "Y",
-	})
-
-	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
-		PlayerID: currentGame.CurrentPlayer.ID,
-		Row:      5,
-		Column:   1,
-		Letter:   "H",
-	})
-
-	fmt.Println(currentGame.AcceptTurn(currentGame.Players[0]))
-	fmt.Println(currentGame.AcceptTurn(currentGame.Players[1]))
-	fmt.Println(currentGame.AcceptTurn(currentGame.Players[2]))
-	currentGame.Print()
+	serverx.Start()
+	//currentGame := game.Game{}
+	//currentGame.AddPlayer("Pavel")
+	//currentGame.AddPlayer("Tomáš")
+	//currentGame.AddPlayer("Fanda")
+	//
+	//currentGame.Start()
+	//
+	//_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+	//	PlayerID: currentGame.CurrentPlayer.ID,
+	//	Row:      1,
+	//	Column:   1,
+	//	Letter:   "S",
+	//})
+	//_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+	//	PlayerID: currentGame.CurrentPlayer.ID,
+	//	Row:      2,
+	//	Column:   1,
+	//	Letter:   "E",
+	//})
+	//_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+	//	PlayerID: currentGame.CurrentPlayer.ID,
+	//	Row:      3,
+	//	Column:   1,
+	//	Letter:   "X",
+	//})
+	//currentGame.Print()
+	//
+	//currentGame.Next()
+	//_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+	//	PlayerID: currentGame.CurrentPlayer.ID,
+	//	Row:      1,
+	//	Column:   3,
+	//	Letter:   "P",
+	//})
+	//_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+	//	PlayerID: currentGame.CurrentPlayer.ID,
+	//	Row:      2,
+	//	Column:   3,
+	//	Letter:   "E",
+	//})
+	//_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+	//	PlayerID: currentGame.CurrentPlayer.ID,
+	//	Row:      3,
+	//	Column:   3,
+	//	Letter:   "S",
+	//})
+	//
+	//_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+	//	PlayerID: currentGame.CurrentPlayer.ID,
+	//	Row:      2,
+	//	Column:   2,
+	//	Letter:   "Y",
+	//})
+	//currentGame.Print()
+	//fmt.Println(currentGame.AcceptTurn(currentGame.Players[0]))
+	//fmt.Println(currentGame.AcceptTurn(currentGame.Players[1]))
+	//fmt.Println(currentGame.AcceptTurn(currentGame.Players[2]))
+	//currentGame.Next()
+	//
+	//_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+	//	PlayerID: currentGame.CurrentPlayer.ID,
+	//	Row:      2,
+	//	Column:   4,
+	//	Letter:   "S",
+	//})
+	//
+	//_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+	//	PlayerID: currentGame.CurrentPlayer.ID,
+	//	Row:      4,
+	//	Column:   1,
+	//	Letter:   "Y",
+	//})
+	//
+	//_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+	//	PlayerID: currentGame.CurrentPlayer.ID,
+	//	Row:      5,
+	//	Column:   1,
+	//	Letter:   "H",
+	//})
+	//
+	//fmt.Println(currentGame.AcceptTurn(currentGame.Players[0]))
+	//fmt.Println(currentGame.AcceptTurn(currentGame.Players[1]))
+	//fmt.Println(currentGame.AcceptTurn(currentGame.Players[2]))
+	//currentGame.Print()
 
 	////
 	//desk := model.GetDesk()
