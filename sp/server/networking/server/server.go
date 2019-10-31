@@ -1,29 +1,31 @@
 package server
 
-/*
-#include <sys/select.h>
-void fdclr(int fd, fd_set *set) {
-	FD_CLR(fd, set);
-}
-int fdisset(int fd, fd_set *set) {
-	return FD_ISSET(fd, set);
-}
-void fdset(int fd, fd_set *set) {
-	FD_SET(fd, set);
-}
-void fdzero(fd_set *set) {
-	FD_ZERO(set);
-}
-*/
-import (
-	"C"
-)
+///*
+//#include <sys/select.h>
+//void fdclr(int fd, fd_set *set) {
+//	FD_CLR(fd, set);
+//}
+//int fdisset(int fd, fd_set *set) {
+//	return FD_ISSET(fd, set);
+//}
+//void fdset(int fd, fd_set *set) {
+//	FD_SET(fd, set);
+//}
+//void fdzero(fd_set *set) {
+//	FD_ZERO(set);
+//}
+//*/
+//import (
+//	"C"
+//)
 
+//import "C"
 import (
 	"errors"
 	log "github.com/sirupsen/logrus"
 	"syscall"
 	"unsafe"
+	"ups/sp/server/encoding"
 )
 
 const (
@@ -71,22 +73,22 @@ func (server *Server) Init(addr syscall.SockaddrInet4) error {
 	return nil
 }
 
-func (server *Server) addClient(fd int) {
-	server.Clients = append(server.Clients, Client{
+func (server *Server) addClient(fd int) Client {
+	client := Client{
 		Fd:  fd,
 		UID: server.UID,
-	})
+	}
+	server.Clients = append(server.Clients, client)
 	server.UID++
+	return client
 }
 
-func (server *Server) Start() {
+func (server *Server) Start(reader encoding.MessageReader) {
 
 	readfds := syscall.FdSet{}
 
 	buff := make([]byte, 100)
 	buffs := make(map[int][]byte)
-
-	clientSocket := 0
 
 	FD_ZERO(&readfds)
 
@@ -100,17 +102,19 @@ func (server *Server) Start() {
 
 		maxFd := server.Fd
 		for _, clientFd := range server.Clients {
-			log.Debugln("fd setting:", clientFd)
+			log.Debugln("Fd setting:", clientFd)
 			FD_SET(&readfds, clientFd.Fd)
 			maxFd = clientFd.Fd
 		}
 
-		log.Infoln("readfds: ", readfds)
+		log.Debugln("Readfds for fd", server.Fd, ": ", readfds)
 
 		activeFd, err := syscall.Select(maxFd+1, &readfds, nil, nil, nil)
 
+		log.Debugln("Selected for fd", server.Fd, ": ", readfds)
+
 		if err != nil {
-			log.Errorln("select error:", err)
+			log.Errorln("Select error:", err)
 			continue
 		}
 
@@ -119,11 +123,11 @@ func (server *Server) Start() {
 		}
 
 		if FD_ISSET(&readfds, server.Fd) {
-			clientSocket, _, err = syscall.Accept(server.Fd)
-			if err != nil {
-				log.Infoln("new fd accepted:", clientSocket)
-				server.addClient(clientSocket)
+			client, err := server.acceptClient()
+			if err == nil {
+				log.Infof("Client [%d] of ID %d has joined", client.Fd, client.UID)
 			}
+			client.Send("Welcome to this amazing server :)\n")
 		} else {
 			for i, client := range server.Clients {
 				if FD_ISSET(&readfds, client.Fd) {
@@ -135,14 +139,17 @@ func (server *Server) Start() {
 					}
 
 					if n == 0 {
-						log.Infof("client %d disconnected ",
+						log.Infof("Client %d of id %d disconnected ",
 							client.Fd,
+							client.UID,
 						)
 						server.removeClient(i)
 					} else {
 						buffs[client.Fd] = append(buffs[client.Fd], buff[:n]...)
 						result := string(buff[:n])
-						log.Infof("Received '%s' from %d", result, client.Fd)
+						//json.Un
+						log.Infof("Received '%s' from %d of length %d", result, client.Fd, n)
+						reader.Receive(client.Fd, buff, n)
 					}
 				}
 			}
@@ -154,8 +161,19 @@ func (server *Server) removeClient(i int) {
 	server.Clients = append(server.Clients[:i], server.Clients[i+1:]...)
 }
 
+func (server *Server) acceptClient() (Client, error) {
+	clientSocket, _, err := syscall.Accept(server.Fd)
+	if err != nil {
+		log.Errorln("Failed to accept:", err)
+		return Client{}, errors.New("Failed to accept")
+	} else {
+		log.Debugln("New fd accepted:", clientSocket)
+		return server.addClient(clientSocket), nil
+	}
+}
+
 func FD_SET(p *syscall.FdSet, fd int) {
-	C.fdset(C.int(fd), (*C.fd_set)(unsafe.Pointer(p)))
+	//C.fdset(C.int(fd), (*C.fd_set)(unsafe.Pointer(p)))
 	p.Bits[fd/FD_BITS] |= int64(uint(1) << (uint(fd) % uint(FD_BITS)))
 }
 

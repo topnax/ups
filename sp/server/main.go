@@ -2,14 +2,49 @@ package main
 
 import (
 	log "github.com/sirupsen/logrus"
-	"os"
 	"syscall"
+	"ups/sp/server/encoding"
 	"ups/sp/server/networking/server"
 )
 
 func main() {
-	log.SetLevel(log.DebugLevel)
-	log.SetOutput(os.Stdout)
+
+	//
+	//messageReader := encoding.SimpleMessageReader{}
+	//
+	//messageReader.Receive(1, []byte("#17#1#{'name':'"))
+	//
+	//
+	//messageReader.Receive(2, []byte("#16#2#{'name':'Pavel'}"))
+	//
+	//messageReader.Receive(1, []byte("Standa'}"))
+
+	//
+	////messageReader.Receive(1, []byte("ciao  girls"))
+	//
+	//
+	//fufu := Foo{
+	//	Name: "Stenly",
+	//	Attr: Bar{
+	//		Age: 21,
+	//	},
+	//}
+	//
+	//bubu := Bar{Age:12,}
+	//
+	//eat(fufu, 0)
+	//
+	//eat(bubu, 1)
+
+	//sample := json.Unmarshal(rawMessage.)
+	//
+	//
+	//fmt.Println(sample.Name)
+	//fmt.Println(sample.Number)
+
+	//log.SetLevel(log.DebugLevel)
+	//
+	//log.SetOutput(os.Stdout)
 	serverx := server.Server{}
 	err := serverx.Init(syscall.SockaddrInet4{
 		Addr: [4]byte{byte(127), byte(0), byte(0), byte(1)},
@@ -20,8 +55,9 @@ func main() {
 		log.Errorln(err)
 		return
 	}
+	srdr := encoding.SimpleMessageReader{}
 
-	serverx.Start()
+	serverx.Start(&srdr)
 	//currentGame := game.Game{}
 	//currentGame.AddPlayer("Pavel")
 	//currentGame.AddPlayer("Tomáš")
