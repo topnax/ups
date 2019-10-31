@@ -148,7 +148,7 @@ func (server *Server) Start(reader encoding.MessageReader) {
 						buffs[client.Fd] = append(buffs[client.Fd], buff[:n]...)
 						result := string(buff[:n])
 						//json.Un
-						log.Infof("Received '%s' from %d of length %d", result, client.Fd, n)
+						log.Debugln("Received '%s' from %d of length %d", result, client.Fd, n)
 						reader.Receive(client.Fd, buff, n)
 					}
 				}
