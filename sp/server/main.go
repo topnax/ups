@@ -58,8 +58,11 @@ func main() {
 	//
 	//serverx.Start(&srdr)
 
+	kkmr := &encoding.KrisKrosMessageReader{}
+
 	jsreade := encoding.SimpleJsonReader{}
 	jsreade.Init()
+	jsreade.SetOutput(kkmr)
 
 	msg := encoding.SimpleMessage{
 		ClientUID: 1,

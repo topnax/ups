@@ -16,14 +16,28 @@ type SampleMessage struct {
 	Age  int    `json:"age"`
 }
 
-func (c *CreatedMessageHandler) Handle(message SimpleMessage) {
+func (c *CreatedMessageHandler) Handle(message SimpleMessage, amr *ApplicationMessageReader) {
 	if message.Parse(&c) {
-		logrus.Infof("CreatedMessageReceived, surname %s,name %s, age %d", c.Surname, c.Smr.Name, c.Smr.Age)
+		logrus.Debugf("CreatedMessageReceived, surname %s,name %s, age %d", c.Surname, c.Smr.Name, c.Smr.Age)
 	}
 }
 
-func (s *SampleMessage) Handle(message SimpleMessage) {
+func (s *SampleMessage) Handle(message SimpleMessage, amr *ApplicationMessageReader) {
 	if message.Parse(&s) {
-		logrus.Infof("Simple message received, name %s, age %d", s.Name, s.Age)
+		logrus.Debugf("Simple message received, name %s, age %d", s.Name, s.Age)
 	}
+}
+
+type CreateLobbyMessage struct {
+	ClientID int
+}
+
+func (c *CreateLobbyMessage) Handle(message SimpleMessage, amr ApplicationMessageReader) {
+	if message.Parse(&c) {
+		amr.OnCreateLobby(*c)
+	}
+}
+
+type JoinLobbyMessage struct {
+	LobbyID int `json:"lobby_id"`
 }

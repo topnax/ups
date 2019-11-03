@@ -6,7 +6,7 @@ import (
 )
 
 type MessageHandler interface {
-	Handle(message SimpleMessage)
+	Handle(message SimpleMessage, amr *ApplicationMessageReader)
 }
 
 type JsonReader interface {
@@ -15,7 +15,8 @@ type JsonReader interface {
 }
 
 type SimpleJsonReader struct {
-	handlers map[int]MessageHandler
+	handlers                 map[int]MessageHandler
+	applicationMessageReader *KrisKrosMessageReader
 }
 
 func GetMessageHandlers() map[int]MessageHandler {
@@ -35,15 +36,15 @@ func (simpleMessage SimpleMessage) Parse(messageTemplate interface{}) bool {
 	return true
 }
 
-func (s SimpleJsonReader) Read(message SimpleMessage) {
+func (s *SimpleJsonReader) Read(message SimpleMessage) {
 	handler, ok := s.handlers[message.Type]
 	if !ok {
 		logrus.Errorf("Cannot read message from client %d of type %d\nContent: '%s'", message.ClientUID, message.Type, message.Content)
 	} else {
-		handler.Handle(message)
+		handler.Handle(message, s.applicationMessageReader)
 	}
 }
 
-func (s SimpleJsonReader) SetOutput(reader ApplicationMessageReader) {
-	panic("implement me")
+func (s *SimpleJsonReader) SetOutput(reader *KrisKrosMessageReader) {
+	s.applicationMessageReader = reader
 }
