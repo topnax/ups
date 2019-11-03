@@ -1,7 +1,7 @@
 package encoding
 
 type ApplicationMessageReader interface {
-	Read(message ApplicationMessage)
+	OnCreatedMessageReceived(message Crea)
 }
 
 type ApplicationMessage struct {

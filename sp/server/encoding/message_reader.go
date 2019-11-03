@@ -13,7 +13,7 @@ const (
 
 type MessageReader interface {
 	Receive(UID int, bytes []byte, length int)
-	SetOutput(channel chan SimpleMessage)
+	SetOutput(jsonReader JsonReader)
 }
 
 type SimpleMessageReader struct {

@@ -1,10 +1,8 @@
 package main
 
 import (
-	log "github.com/sirupsen/logrus"
-	"syscall"
+	"github.com/sirupsen/logrus"
 	"ups/sp/server/encoding"
-	"ups/sp/server/networking/server"
 )
 
 func main() {
@@ -45,19 +43,43 @@ func main() {
 	//log.SetLevel(log.DebugLevel)
 	//
 	//log.SetOutput(os.Stdout)
-	serverx := server.Server{}
-	err := serverx.Init(syscall.SockaddrInet4{
-		Addr: [4]byte{byte(127), byte(0), byte(0), byte(1)},
-		Port: 10000,
-	})
 
-	if err != nil {
-		log.Errorln(err)
-		return
+	//serverx := server.Server{}
+	//err := serverx.Init(syscall.SockaddrInet4{
+	//	Addr: [4]byte{byte(127), byte(0), byte(0), byte(1)},
+	//	Port: 10000,
+	//})
+	//
+	//if err != nil {
+	//	log.Errorln(err)
+	//	return
+	//}
+	//srdr := encoding.SimpleMessageReader{}
+	//
+	//serverx.Start(&srdr)
+
+	jsreade := encoding.SimpleJsonReader{}
+	jsreade.Init()
+
+	msg := encoding.SimpleMessage{
+		ClientUID: 1,
+		Length:    10,
+		Type:      1,
+		Content:   "{\"name\":\"Standa\", \"age\": 21}",
 	}
-	srdr := encoding.SimpleMessageReader{}
 
-	serverx.Start(&srdr)
+	jsreade.Read(msg)
+
+	msg = encoding.SimpleMessage{
+		ClientUID: 1,
+		Length:    10,
+		Type:      2,
+		Content:   "{\"surname\":\"Král\", \"smr\": {\"name\":\"Standa\", \"age\": 21}}",
+	}
+
+	logrus.Infoln("mymes len", msg.Length)
+	jsreade.Read(msg)
+
 	//currentGame := game.Game{}
 	//currentGame.AddPlayer("Pavel")
 	//currentGame.AddPlayer("Tomáš")
