@@ -2,7 +2,6 @@ package encoding
 
 import (
 	log "github.com/sirupsen/logrus"
-	"io"
 	"strconv"
 	"strings"
 )
@@ -20,7 +19,7 @@ type MessageReader interface {
 type SimpleMessageReader struct {
 	messageCount int
 	buffers      map[int]*SimpleMessageBuffer
-	output       io.Reader
+	jsonReader   JsonReader
 }
 
 type SimpleMessageBuffer struct {
@@ -91,12 +90,27 @@ func (s *SimpleMessageReader) Receive(UID int, bytes []byte, length int) {
 	}
 }
 
-func (s *SimpleMessageReader) SetOutput(channel chan SimpleMessage) {
-	//s.outChannel = channel
+func (s *SimpleMessageReader) SetOutput(jsonReader JsonReader) {
+	s.jsonReader = jsonReader
 }
 
-func (s *SimpleMessageReader) checkBufferReady(buffer *SimpleMessageBuffer) bool {
-	return len(buffer.buffer) == buffer.Length
+func (s *SimpleMessageReader) checkBufferReady(buffer *SimpleMessageBuffer) {
+	if len(buffer.buffer) == buffer.Length {
+		s.clearBuffer(buffer)
+	}
+}
+
+func (s *SimpleMessageReader) clearBuffer(buffer *SimpleMessageBuffer) {
+	log.Infof("[#%d] %d - '%s'", buffer.ClientUID, buffer.MessageType, buffer.buffer)
+	if s.jsonReader != nil {
+		s.jsonReader.Read(SimpleMessage{
+			ClientUID: buffer.ClientUID,
+			Length:    buffer.Length,
+			Type:      buffer.MessageType,
+			Content:   buffer.buffer,
+		})
+	}
+	buffer.reset()
 }
 
 func (buffer *SimpleMessageBuffer) reset() {
