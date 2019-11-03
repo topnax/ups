@@ -8,7 +8,8 @@ import (
 )
 
 const (
-	SEPARATOR = "#"
+	START_CHAR = '$'
+	SEPARATOR  = "#"
 )
 
 type MessageReader interface {
@@ -41,6 +42,11 @@ func (s *SimpleMessageReader) Receive(UID int, bytes []byte, length int) {
 		message = message[:last]
 	}
 
+	// if, after the removal of the line break, the message is empty, return
+	if len(message) < 1 {
+		return
+	}
+
 	log.Debugln("Received message from #%d => '%s'", UID, message)
 
 	// check whether buffer map was created
@@ -59,23 +65,23 @@ func (s *SimpleMessageReader) Receive(UID int, bytes []byte, length int) {
 	}
 
 	buffer := s.buffers[UID]
-	if len(s.buffers[UID].buffer) <= 0 {
+	if message[0] == START_CHAR && (len(s.buffers[UID].buffer) <= 0 || (len(buffer.buffer) > 0 && buffer.buffer[len(buffer.buffer)-1] != '\\')) {
 		// if buffer length is equal or less than 0, a new message is received, empty the buffer
-		parts := strings.Split(message, SEPARATOR)
-		if len(parts) != 4 {
+		parts := strings.Split(message[1:], SEPARATOR)
+		if len(parts) != 3 {
 			log.Errorf("Invalid message header. Received message was `%s`", message)
 			return
 		}
 
 		// parse message type and content length
-		length, err := strconv.Atoi(parts[1])
-		messageType, err2 := strconv.Atoi(parts[2])
+		length, err := strconv.Atoi(parts[0])
+		messageType, err2 := strconv.Atoi(parts[1])
 
 		if err == nil && err2 == nil {
 			// set buffer properties and append the message
 			buffer.Length = length
 			buffer.MessageType = messageType
-			buffer.buffer = parts[3]
+			buffer.buffer = parts[2]
 			s.checkBufferReady(buffer)
 		}
 	} else {
@@ -89,11 +95,8 @@ func (s *SimpleMessageReader) SetOutput(channel chan SimpleMessage) {
 	//s.outChannel = channel
 }
 
-func (s *SimpleMessageReader) checkBufferReady(buffer *SimpleMessageBuffer) {
-	if len(buffer.buffer) == buffer.Length {
-		log.Infof("Parsed from %d at first '%s'\n length %d\n type %d", buffer.ClientUID, buffer.buffer, buffer.Length, buffer.MessageType)
-		buffer.reset()
-	}
+func (s *SimpleMessageReader) checkBufferReady(buffer *SimpleMessageBuffer) bool {
+	return len(buffer.buffer) == buffer.Length
 }
 
 func (buffer *SimpleMessageBuffer) reset() {

@@ -13,5 +13,5 @@ func (simpleMessage SimpleMessage) dos(messageType interface{}) {
 }
 
 func (s SampleMessage) handle(message SimpleMessage) {
-	message := &SimpleMessage{}
+	//message := &SimpleMessage{}
 }
