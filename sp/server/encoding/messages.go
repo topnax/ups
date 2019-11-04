@@ -41,3 +41,9 @@ func (c *CreateLobbyMessage) Handle(message SimpleMessage, amr ApplicationMessag
 type JoinLobbyMessage struct {
 	LobbyID int `json:"lobby_id"`
 }
+
+func (c *JoinLobbyMessage) Handle(message SimpleMessage, amr ApplicationMessageReader) {
+	if message.Parse(&c) {
+		amr.OnJoinLobby(*c, message.ClientUID)
+	}
+}

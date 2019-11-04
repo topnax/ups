@@ -109,6 +109,8 @@ func (s *SimpleMessageReader) clearBuffer(buffer *SimpleMessageBuffer) {
 			Type:      buffer.MessageType,
 			Content:   buffer.buffer,
 		})
+	} else {
+		log.Errorln("Cannot sent message to JSON parser because it's null")
 	}
 	buffer.reset()
 }

@@ -1,8 +1,10 @@
 package main
 
 import (
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
+	"syscall"
 	"ups/sp/server/encoding"
+	"ups/sp/server/networking/server"
 )
 
 func main() {
@@ -40,23 +42,21 @@ func main() {
 	//fmt.Println(sample.Name)
 	//fmt.Println(sample.Number)
 
-	//log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.DebugLevel)
 	//
 	//log.SetOutput(os.Stdout)
 
-	//serverx := server.Server{}
-	//err := serverx.Init(syscall.SockaddrInet4{
-	//	Addr: [4]byte{byte(127), byte(0), byte(0), byte(1)},
-	//	Port: 10000,
-	//})
-	//
-	//if err != nil {
-	//	log.Errorln(err)
-	//	return
-	//}
-	//srdr := encoding.SimpleMessageReader{}
-	//
-	//serverx.Start(&srdr)
+	serverx := server.Server{}
+	err := serverx.Init(syscall.SockaddrInet4{
+		Addr: [4]byte{byte(127), byte(0), byte(0), byte(1)},
+		Port: 10000,
+	})
+
+	if err != nil {
+		log.Errorln(err)
+		return
+	}
+	srdr := encoding.SimpleMessageReader{}
 
 	kkmr := encoding.KrisKrosMessageReader{}
 
@@ -64,24 +64,34 @@ func main() {
 	jsreade.Init()
 	jsreade.SetOutput(&kkmr)
 
-	msg := encoding.SimpleMessage{
-		ClientUID: 1,
-		Length:    10,
-		Type:      1,
-		Content:   "{\"name\":\"Standa\", \"age\": 21}",
-	}
+	srdr.SetOutput(&jsreade)
 
-	jsreade.Read(msg)
+	serverx.Start(&srdr)
 
-	msg = encoding.SimpleMessage{
-		ClientUID: 1,
-		Length:    10,
-		Type:      2,
-		Content:   "{\"surname\":\"Král\", \"smr\": {\"name\":\"Standa\", \"age\": 21}}",
-	}
-
-	logrus.Infoln("mymes len", msg.Length)
-	jsreade.Read(msg)
+	//kkmr := encoding.KrisKrosMessageReader{}
+	//
+	//jsreade := encoding.SimpleJsonReader{}
+	//jsreade.Init()
+	//jsreade.SetOutput(&kkmr)
+	//
+	//msg := encoding.SimpleMessage{
+	//	ClientUID: 1,
+	//	Length:    10,
+	//	Type:      1,
+	//	Content:   "{\"name\":\"Standa\", \"age\": 21}",
+	//}
+	//
+	//jsreade.Read(msg)
+	//
+	//msg = encoding.SimpleMessage{
+	//	ClientUID: 1,
+	//	Length:    10,
+	//	Type:      2,
+	//	Content:   "{\"surname\":\"Král\", \"smr\": {\"name\":\"Standa\", \"age\": 21}}",
+	//}
+	//
+	//logrus.Infoln("mymes len", msg.Length)
+	//jsreade.Read(msg)
 
 	//currentGame := game.Game{}
 	//currentGame.AddPlayer("Pavel")
