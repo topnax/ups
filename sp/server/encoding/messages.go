@@ -1,35 +1,11 @@
 package encoding
 
-import "github.com/sirupsen/logrus"
-
-func (s *SimpleJsonReader) Init() {
-	s.handlers = GetMessageHandlers()
-}
-
-type CreatedMessageHandler struct {
-	Surname string        `json:"surname"`
-	Smr     SampleMessage `json:"smr"`
-}
-
-type SampleMessage struct {
-	Name string `json:"name"`
-	Age  int    `json:"age"`
-}
-
-func (c *CreatedMessageHandler) Handle(message SimpleMessage, amr ApplicationMessageReader) {
-	if message.Parse(&c) {
-		logrus.Debugf("CreatedMessageReceived, surname %s,name %s, age %d", c.Surname, c.Smr.Name, c.Smr.Age)
-	}
-}
-
-func (s *SampleMessage) Handle(message SimpleMessage, amr ApplicationMessageReader) {
-	if message.Parse(&s) {
-		logrus.Debugf("Simple message received, name %s, age %d", s.Name, s.Age)
-	}
-}
-
 type CreateLobbyMessage struct {
-	ClientID int
+	ClientName string `json:"client_name"`
+}
+
+func (c *CreateLobbyMessage) GetType() int {
+	return 1
 }
 
 func (c *CreateLobbyMessage) Handle(message SimpleMessage, amr ApplicationMessageReader) {
@@ -38,8 +14,13 @@ func (c *CreateLobbyMessage) Handle(message SimpleMessage, amr ApplicationMessag
 	}
 }
 
+func (c *JoinLobbyMessage) GetType() int {
+	return 2
+}
+
 type JoinLobbyMessage struct {
-	LobbyID int `json:"lobby_id"`
+	LobbyID    int    `json:"lobby_id"`
+	ClientName string `json:"client_name"`
 }
 
 func (c *JoinLobbyMessage) Handle(message SimpleMessage, amr ApplicationMessageReader) {

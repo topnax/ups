@@ -4,6 +4,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"syscall"
 	"ups/sp/server/encoding"
+	"ups/sp/server/game_server"
 	"ups/sp/server/networking/server"
 )
 
@@ -58,7 +59,7 @@ func main() {
 	}
 	srdr := encoding.SimpleMessageReader{}
 
-	kkmr := encoding.KrisKrosMessageReader{}
+	kkmr := game_server.NewKrisKrosServer()
 
 	jsreade := encoding.SimpleJsonReader{}
 	jsreade.Init()
@@ -68,7 +69,7 @@ func main() {
 
 	serverx.Start(&srdr)
 
-	//kkmr := encoding.KrisKrosMessageReader{}
+	//kkmr := encoding.KrisKrosServer{}
 	//
 	//jsreade := encoding.SimpleJsonReader{}
 	//jsreade.Init()

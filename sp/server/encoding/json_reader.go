@@ -7,6 +7,7 @@ import (
 
 type MessageHandler interface {
 	Handle(message SimpleMessage, amr ApplicationMessageReader)
+	GetType() int
 }
 
 type JsonReader interface {
@@ -19,13 +20,14 @@ type SimpleJsonReader struct {
 	applicationMessageReader ApplicationMessageReader
 }
 
-func GetMessageHandlers() map[int]MessageHandler {
-	return map[int]MessageHandler{
-		1: &SampleMessage{},
-		2: &CreatedMessageHandler{},
-		3: &CreateLobbyMessage{},
-		4: &JoinLobbyMessage{},
-	}
+func (s *SimpleJsonReader) Init() {
+	s.handlers = make(map[int]MessageHandler)
+	s.Register(&CreateLobbyMessage{})
+	s.Register(&JoinLobbyMessage{})
+}
+
+func (s *SimpleJsonReader) Register(handler MessageHandler) {
+	s.handlers[(handler).GetType()] = handler
 }
 
 func (simpleMessage SimpleMessage) Parse(messageTemplate interface{}) bool {
