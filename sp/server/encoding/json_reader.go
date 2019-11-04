@@ -6,7 +6,7 @@ import (
 )
 
 type MessageHandler interface {
-	Handle(message SimpleMessage, amr *ApplicationMessageReader)
+	Handle(message SimpleMessage, amr ApplicationMessageReader)
 }
 
 type JsonReader interface {
@@ -16,13 +16,15 @@ type JsonReader interface {
 
 type SimpleJsonReader struct {
 	handlers                 map[int]MessageHandler
-	applicationMessageReader *KrisKrosMessageReader
+	applicationMessageReader ApplicationMessageReader
 }
 
 func GetMessageHandlers() map[int]MessageHandler {
 	return map[int]MessageHandler{
 		1: &SampleMessage{},
 		2: &CreatedMessageHandler{},
+		3: &CreateLobbyMessage{},
+		4: &JoinLobbyMessage{},
 	}
 }
 
@@ -45,6 +47,6 @@ func (s *SimpleJsonReader) Read(message SimpleMessage) {
 	}
 }
 
-func (s *SimpleJsonReader) SetOutput(reader *KrisKrosMessageReader) {
+func (s *SimpleJsonReader) SetOutput(reader ApplicationMessageReader) {
 	s.applicationMessageReader = reader
 }

@@ -16,13 +16,13 @@ type SampleMessage struct {
 	Age  int    `json:"age"`
 }
 
-func (c *CreatedMessageHandler) Handle(message SimpleMessage, amr *ApplicationMessageReader) {
+func (c *CreatedMessageHandler) Handle(message SimpleMessage, amr ApplicationMessageReader) {
 	if message.Parse(&c) {
 		logrus.Debugf("CreatedMessageReceived, surname %s,name %s, age %d", c.Surname, c.Smr.Name, c.Smr.Age)
 	}
 }
 
-func (s *SampleMessage) Handle(message SimpleMessage, amr *ApplicationMessageReader) {
+func (s *SampleMessage) Handle(message SimpleMessage, amr ApplicationMessageReader) {
 	if message.Parse(&s) {
 		logrus.Debugf("Simple message received, name %s, age %d", s.Name, s.Age)
 	}
@@ -34,7 +34,7 @@ type CreateLobbyMessage struct {
 
 func (c *CreateLobbyMessage) Handle(message SimpleMessage, amr ApplicationMessageReader) {
 	if message.Parse(&c) {
-		amr.OnCreateLobby(*c)
+		amr.OnCreateLobby(*c, message.ClientUID)
 	}
 }
 

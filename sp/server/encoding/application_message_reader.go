@@ -4,8 +4,8 @@ import "github.com/sirupsen/logrus"
 
 type ApplicationMessageReader interface {
 	//OnCreateLobby(message CreateLobbyMessage)
-	OnJoinLobby(message JoinLobbyMessage)
-	OnCreateLobby(message CreateLobbyMessage)
+	OnJoinLobby(message JoinLobbyMessage, clientUID int)
+	OnCreateLobby(message CreateLobbyMessage, clientUID int)
 }
 
 type KrisKrosMessageReader struct {
@@ -13,7 +13,7 @@ type KrisKrosMessageReader struct {
 }
 
 func (k *KrisKrosMessageReader) OnCreateLobby(message CreateLobbyMessage, clientUID int) {
-	logrus.Infof("Receiver create message from %d", clientUID)
+	logrus.Infof("Receiver create message from %d, count %d", clientUID, k.count)
 	k.count++
 }
 
