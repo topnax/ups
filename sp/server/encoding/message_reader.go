@@ -1,6 +1,7 @@
 package encoding
 
 import (
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
@@ -11,15 +12,27 @@ const (
 	SEPARATOR  = "#"
 )
 
-type MessageReader interface {
+type MessageDecoder interface {
 	Receive(UID int, bytes []byte, length int)
 	SetOutput(jsonReader JsonReader)
 }
 
+type MessageSender interface {
+	Send(response ResponseMessage, clientUID int)
+}
+
 type SimpleMessageReader struct {
-	messageCount int
-	buffers      map[int]*SimpleMessageBuffer
-	jsonReader   JsonReader
+	messageCount  int
+	buffers       map[int]*SimpleMessageBuffer
+	jsonReader    JsonReader
+	networkOutput ResponseOutput
+}
+
+type SimpleMessage struct {
+	ClientUID int
+	Length    int
+	Type      int
+	Content   string
 }
 
 type SimpleMessageBuffer struct {
@@ -101,29 +114,39 @@ func (s *SimpleMessageReader) checkBufferReady(buffer *SimpleMessageBuffer) {
 }
 
 func (s *SimpleMessageReader) clearBuffer(buffer *SimpleMessageBuffer) {
+	var response ResponseMessage
 	log.Infof("[#%d] %d - '%s'", buffer.ClientUID, buffer.MessageType, buffer.buffer)
 	if s.jsonReader != nil {
-		s.jsonReader.Read(SimpleMessage{
+		response = s.jsonReader.Read(SimpleMessage{
 			ClientUID: buffer.ClientUID,
 			Length:    buffer.Length,
 			Type:      buffer.MessageType,
 			Content:   buffer.buffer,
 		})
 	} else {
-		log.Errorln("Cannot sent message to JSON parser because it's null")
+		response = ErrorResponse("Cannot send message to JSON parser because it's null")
+
 	}
 	buffer.reset()
+	s.Send(response, buffer.ClientUID)
+}
+
+func (reader *SimpleMessageReader) SetResponseOutput(output ResponseOutput) {
+	reader.networkOutput = output
+}
+
+func (s *SimpleMessageReader) Send(response ResponseMessage, clientUID int) {
+	log.Debugf("Sending message of type %d to %d: '%s'", response.Type, clientUID, response.Content)
+	if s.networkOutput != nil {
+		log.Infof("%c%d%s%d%s%s", START_CHAR, len(response.Content), SEPARATOR, response.Type, SEPARATOR, response.Content)
+		s.networkOutput.Send(fmt.Sprintf("%c%d%s%d%s%s", START_CHAR, len(response.Content), SEPARATOR, response.Type, SEPARATOR, response.Content), clientUID)
+	} else {
+		log.Errorln("Cannot send response because output is null")
+	}
 }
 
 func (buffer *SimpleMessageBuffer) reset() {
 	buffer.buffer = ""
 	buffer.Length = 0
 	buffer.MessageType = 0
-}
-
-type SimpleMessage struct {
-	ClientUID int
-	Length    int
-	Type      int
-	Content   string
 }

@@ -2,31 +2,27 @@ package encoding
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/sirupsen/logrus"
 )
 
-type MessageHandler interface {
-	Handle(message SimpleMessage, amr ApplicationMessageReader)
-	GetType() int
-}
-
 type JsonReader interface {
-	Read(message SimpleMessage)
+	Read(message SimpleMessage) ResponseMessage
 	SetOutput(reader ApplicationMessageReader)
 }
 
 type SimpleJsonReader struct {
-	handlers                 map[int]MessageHandler
+	handlers                 map[int]Message
 	applicationMessageReader ApplicationMessageReader
 }
 
 func (s *SimpleJsonReader) Init() {
-	s.handlers = make(map[int]MessageHandler)
+	s.handlers = make(map[int]Message)
 	s.Register(&CreateLobbyMessage{})
 	s.Register(&JoinLobbyMessage{})
 }
 
-func (s *SimpleJsonReader) Register(handler MessageHandler) {
+func (s *SimpleJsonReader) Register(handler Message) {
 	s.handlers[(handler).GetType()] = handler
 }
 
@@ -34,18 +30,18 @@ func (simpleMessage SimpleMessage) Parse(messageTemplate interface{}) bool {
 	logrus.Infoln(simpleMessage.Content)
 	err := json.Unmarshal([]byte(simpleMessage.Content), &messageTemplate)
 	if err != nil {
-		logrus.Errorf("JSON Unmarshal error: '%s'\nFrom message of client #%d: '%s'", err, simpleMessage.ClientUID, simpleMessage.Content)
+		logrus.Errorf("JSON Unmarshal error: '%s'\nFrom message (type %d) of client #%d: '%s'", err, simpleMessage.ClientUID, simpleMessage.Type, simpleMessage.Content)
 		return false
 	}
 	return true
 }
 
-func (s *SimpleJsonReader) Read(message SimpleMessage) {
+func (s *SimpleJsonReader) Read(message SimpleMessage) ResponseMessage {
 	handler, ok := s.handlers[message.Type]
 	if !ok {
-		logrus.Errorf("Cannot read message from client %d of type %d\nContent: '%s'", message.ClientUID, message.Type, message.Content)
+		return ErrorResponse(fmt.Sprintf("Cannot read message from client %d of type %d\nContent: '%s'", message.ClientUID, message.Type, message.Content))
 	} else {
-		handler.Handle(message, s.applicationMessageReader)
+		return handler.Handle(message, s.applicationMessageReader)
 	}
 }
 

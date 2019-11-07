@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	log "github.com/sirupsen/logrus"
 	"syscall"
 	"ups/sp/server/encoding"
@@ -9,6 +10,12 @@ import (
 )
 
 func main() {
+
+	bytes, err := json.Marshal(encoding.JoinLobbyMessage{
+		LobbyID:    1,
+		ClientName: "Standa",
+	})
+	log.Infoln(string(bytes))
 
 	//
 	//messageReader := encoding.SimpleMessageReader{}
@@ -47,8 +54,7 @@ func main() {
 	//
 	//log.SetOutput(os.Stdout)
 
-	serverx := server.Server{}
-	err := serverx.Init(syscall.SockaddrInet4{
+	serverx, err := server.NewServer(syscall.SockaddrInet4{
 		Addr: [4]byte{byte(127), byte(0), byte(0), byte(1)},
 		Port: 10000,
 	})
@@ -59,6 +65,8 @@ func main() {
 	}
 	srdr := encoding.SimpleMessageReader{}
 
+	srdr.SetResponseOutput(&serverx)
+
 	kkmr := game_server.NewKrisKrosServer()
 
 	jsreade := encoding.SimpleJsonReader{}
@@ -66,6 +74,8 @@ func main() {
 	jsreade.SetOutput(&kkmr)
 
 	srdr.SetOutput(&jsreade)
+
+	kkmr.SetMessageSender(&srdr)
 
 	serverx.Start(&srdr)
 

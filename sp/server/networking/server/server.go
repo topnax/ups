@@ -37,16 +37,21 @@ type Server struct {
 	UID     int
 	Fd      int
 	Port    int
-	Clients []Client
+	Clients map[int]Client
 }
 
-func (server *Server) Init(addr syscall.SockaddrInet4) error {
+func NewServer(addr syscall.SockaddrInet4) (Server, error) {
+
+	server := Server{}
+
+	server.Clients = make(map[int]Client)
+
 	log.Debugln("Starting server at address", addr.Addr, "at port", addr.Port)
 
 	serverFd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_STREAM, syscall.IPPROTO_TCP)
 
 	if err != nil {
-		return errors.New("syscall.Socket has failed")
+		return server, errors.New("syscall.Socket has failed")
 	}
 
 	log.Debugln("Server was given fd of", serverFd)
@@ -61,16 +66,23 @@ func (server *Server) Init(addr syscall.SockaddrInet4) error {
 	err = syscall.Bind(server.Fd, &addr)
 
 	if err != nil {
-		return errors.New("syscall.Bind has failed")
+		return server, errors.New("syscall.Bind has failed")
 	}
 
 	err = syscall.Listen(server.Fd, MAX_CLIENTS)
 
 	if err != nil {
-		return errors.New("syscall.Listen has failed")
+		return server, errors.New("syscall.Listen has failed")
 	}
 
-	return nil
+	return server, nil
+}
+
+func (server *Server) Send(content string, clientUID int) {
+	_, ok := server.Clients[clientUID]
+	if ok {
+		server.Clients[clientUID].Send(content)
+	}
 }
 
 func (server *Server) addClient(fd int) Client {
@@ -78,12 +90,12 @@ func (server *Server) addClient(fd int) Client {
 		Fd:  fd,
 		UID: server.UID,
 	}
-	server.Clients = append(server.Clients, client)
+	server.Clients[fd] = client
 	server.UID++
 	return client
 }
 
-func (server *Server) Start(reader encoding.MessageReader) {
+func (server *Server) Start(reader encoding.MessageDecoder) {
 
 	readfds := syscall.FdSet{}
 
@@ -157,8 +169,8 @@ func (server *Server) Start(reader encoding.MessageReader) {
 	}
 }
 
-func (server *Server) removeClient(i int) {
-	server.Clients = append(server.Clients[:i], server.Clients[i+1:]...)
+func (server *Server) removeClient(fd int) {
+	delete(server.Clients, fd)
 }
 
 func (server *Server) acceptClient() (Client, error) {
