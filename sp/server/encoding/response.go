@@ -3,6 +3,7 @@ package encoding
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/sirupsen/logrus"
 )
 
 type ResponseOutput interface {
@@ -19,6 +20,7 @@ type ResponseMessage struct {
 }
 
 func GetResponse(Type int, Content string) ResponseMessage {
+	logrus.Infoln("Creating a response")
 	return ResponseMessage{
 		Type:    Type,
 		Content: Content,

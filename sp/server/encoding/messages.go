@@ -52,10 +52,18 @@ func (c *JoinLobbyMessage) Handle(message SimpleMessage, amr ApplicationMessageR
 
 // output
 
-type PlayerJoinedMessage struct {
+type PlayerJoinedLobbyMessage struct {
 	ClientName string `json:"client_name"`
 }
 
-func (p PlayerJoinedMessage) GetType() int {
+func (p PlayerJoinedLobbyMessage) GetType() int {
 	return 101
+}
+
+type PlayerLeftLobbyMessage struct {
+	ClientName string `json:"client_name"`
+}
+
+func (p PlayerLeftLobbyMessage) GetType() int {
+	return 102
 }

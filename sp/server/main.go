@@ -77,6 +77,8 @@ func main() {
 
 	kkmr.SetMessageSender(&srdr)
 
+	serverx.SetOnClientDisconnectedListener(&kkmr)
+
 	serverx.Start(&srdr)
 
 	//kkmr := encoding.KrisKrosServer{}

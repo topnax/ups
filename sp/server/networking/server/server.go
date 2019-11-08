@@ -1,25 +1,25 @@
 package server
 
-///*
-//#include <sys/select.h>
-//void fdclr(int fd, fd_set *set) {
-//	FD_CLR(fd, set);
-//}
-//int fdisset(int fd, fd_set *set) {
-//	return FD_ISSET(fd, set);
-//}
-//void fdset(int fd, fd_set *set) {
-//	FD_SET(fd, set);
-//}
-//void fdzero(fd_set *set) {
-//	FD_ZERO(set);
-//}
-//*/
-//import (
-//	"C"
-//)
+/*
+#include <sys/select.h>
+void fdclr(int fd, fd_set *set) {
+	FD_CLR(fd, set);
+}
+int fdisset(int fd, fd_set *set) {
+	return FD_ISSET(fd, set);
+}
+void fdset(int fd, fd_set *set) {
+	FD_SET(fd, set);
+}
+void fdzero(fd_set *set) {
+	FD_ZERO(set);
+}
+*/
+import (
+	"C"
+)
 
-//import "C"
+import "C"
 import (
 	"errors"
 	log "github.com/sirupsen/logrus"
@@ -34,10 +34,15 @@ const (
 )
 
 type Server struct {
-	UID     int
-	Fd      int
-	Port    int
-	Clients map[int]Client
+	UID                          int
+	Fd                           int
+	Port                         int
+	Clients                      map[int]Client
+	onClientDisconnectedListener OnClientDisconnectedListener
+}
+
+type OnClientDisconnectedListener interface {
+	ClientDisconnected(clientUID int)
 }
 
 func NewServer(addr syscall.SockaddrInet4) (Server, error) {
@@ -138,8 +143,8 @@ func (server *Server) Start(reader encoding.MessageDecoder) {
 			client, err := server.acceptClient()
 			if err == nil {
 				log.Infof("Client [%d] of ID %d has joined", client.Fd, client.UID)
+				client.Send("Welcome to this amazing server :)\n")
 			}
-			client.Send("Welcome to this amazing server :)\n")
 		} else {
 			for i, client := range server.Clients {
 				if FD_ISSET(&readfds, client.Fd) {
@@ -161,7 +166,7 @@ func (server *Server) Start(reader encoding.MessageDecoder) {
 						result := string(buff[:n])
 						//json.Un
 						log.Debugln("Received '%s' from %d of length %d", result, client.Fd, n)
-						reader.Receive(client.Fd, buff, n)
+						//reader.Receive(client.Fd, buff, n)
 					}
 				}
 			}
@@ -171,6 +176,10 @@ func (server *Server) Start(reader encoding.MessageDecoder) {
 
 func (server *Server) removeClient(fd int) {
 	delete(server.Clients, fd)
+
+	if server.onClientDisconnectedListener != nil {
+		server.onClientDisconnectedListener.ClientDisconnected(server.Clients[fd].UID)
+	}
 }
 
 func (server *Server) acceptClient() (Client, error) {
@@ -184,19 +193,23 @@ func (server *Server) acceptClient() (Client, error) {
 	}
 }
 
+func (server *Server) SetOnClientDisconnectedListener(listener OnClientDisconnectedListener) {
+	server.onClientDisconnectedListener = listener
+}
+
 func FD_SET(p *syscall.FdSet, fd int) {
-	//C.fdset(C.int(fd), (*C.fd_set)(unsafe.Pointer(p)))
-	p.Bits[fd/FD_BITS] |= int64(uint(1) << (uint(fd) % uint(FD_BITS)))
+	C.fdset(C.int(fd), (*C.fd_set)(unsafe.Pointer(p)))
+	//p.Bits[fd/FD_BITS] |= int64(uint(1) << (uint(fd) % uint(FD_BITS)))
 }
 
 func FD_ISSET(p *syscall.FdSet, fd int) bool {
-	return (p.Bits[fd/FD_BITS] & int64(uint(1)<<(uint(fd)%uint(FD_BITS)))) != 0
-	//return C.fdisset(C.int(i), (*C.fd_set)(unsafe.Pointer(p))) != 0
+	//return (p.Bits[fd/FD_BITS] & int64(uint(1)<<(uint(fd)%uint(FD_BITS)))) != 0
+	return C.fdisset(C.int(fd), (*C.fd_set)(unsafe.Pointer(p))) != 0
 }
 
 func FD_ZERO(p *syscall.FdSet) {
-	for i := range p.Bits {
-		p.Bits[i] = 0
-	}
-	//C.fdzero((*C.fd_set)(unsafe.Pointer(p)))
+	//for i := range p.Bits {
+	//	p.Bits[i] = 0
+	//}
+	C.fdzero((*C.fd_set)(unsafe.Pointer(p)))
 }
