@@ -19,12 +19,11 @@ type KrisKrosServer struct {
 
 func (k *KrisKrosServer) ClientDisconnected(clientUID int) {
 	k.removeClientFromLobby(clientUID)
-	delete(k.lobbiesByPlayerID, clientUID)
 }
 
 func (k *KrisKrosServer) removeClientFromLobby(clientUID int) {
 	lobby, ok := k.lobbiesByPlayerID[clientUID]
-
+	log.Info("Inside remove client from lobby", clientUID, ok)
 	if ok {
 		playerName := ""
 		for _, player := range lobby.Players {
@@ -42,6 +41,7 @@ func (k *KrisKrosServer) removeClientFromLobby(clientUID int) {
 			}
 		}
 		lobby.Players = append(lobby.Players[:playerIndex], lobby.Players[playerIndex+1:]...)
+		delete(k.lobbiesByPlayerID, clientUID)
 	}
 }
 

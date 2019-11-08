@@ -26,6 +26,7 @@ import (
 	"syscall"
 	"unsafe"
 	"ups/sp/server/encoding"
+	"ups/sp/server/utils"
 )
 
 const (
@@ -121,7 +122,7 @@ func (server *Server) Start(reader encoding.MessageDecoder) {
 		for _, clientFd := range server.Clients {
 			log.Debugln("Fd setting:", clientFd)
 			FD_SET(&readfds, clientFd.Fd)
-			maxFd = clientFd.Fd
+			maxFd = utils.Max(clientFd.Fd, maxFd)
 		}
 
 		log.Debugln("Readfds for fd", server.Fd, ": ", readfds)
@@ -146,7 +147,7 @@ func (server *Server) Start(reader encoding.MessageDecoder) {
 				client.Send("Welcome to this amazing server :)\n")
 			}
 		} else {
-			for i, client := range server.Clients {
+			for _, client := range server.Clients {
 				if FD_ISSET(&readfds, client.Fd) {
 					n, err := syscall.Read(client.Fd, buff)
 
@@ -160,13 +161,13 @@ func (server *Server) Start(reader encoding.MessageDecoder) {
 							client.Fd,
 							client.UID,
 						)
-						server.removeClient(i)
+						server.removeClient(client.Fd)
 					} else {
 						buffs[client.Fd] = append(buffs[client.Fd], buff[:n]...)
 						result := string(buff[:n])
 						//json.Un
 						log.Debugln("Received '%s' from %d of length %d", result, client.Fd, n)
-						//reader.Receive(client.Fd, buff, n)
+						reader.Receive(client.Fd, buff, n)
 					}
 				}
 			}
@@ -176,9 +177,12 @@ func (server *Server) Start(reader encoding.MessageDecoder) {
 
 func (server *Server) removeClient(fd int) {
 	delete(server.Clients, fd)
-
+	log.Info("Inside server remove client")
 	if server.onClientDisconnectedListener != nil {
-		server.onClientDisconnectedListener.ClientDisconnected(server.Clients[fd].UID)
+		log.Info("Into listenemr!")
+		server.onClientDisconnectedListener.ClientDisconnected(fd)
+	} else {
+		log.Info("CLoud not find listener")
 	}
 }
 
