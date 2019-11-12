@@ -1,7 +1,7 @@
 import tornadofx.*
 
-class MyApp: App(MyView::class)
+class KrisKrosApp: App(MainMenuView::class)
 
 fun main(args: Array<String>) {
-    launch<MyApp>(args)
+    launch<KrisKrosApp>(args)
 }
