@@ -1,0 +1,35 @@
+plugins {
+	id 'org.jetbrains.kotlin.jvm' version "$kotlinVersion"
+	id 'org.openjfx.javafxplugin' version '0.0.8'
+	id 'application'
+
+}
+
+version = '0.1.1'
+
+mainClassName = 'MainKt'
+description = 'My Application'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+	mavenCentral()
+}
+
+compileKotlin {
+	kotlinOptions.jvmTarget= "1.8"
+}
+
+javafx {
+	version = "13"
+	modules = [ 'javafx.controls' ]
+}
+
+
+dependencies {
+	implementation 'org.jetbrains.kotlin:kotlin-stdlib'
+	testImplementation 'junit:junit:4.12'
+	implementation 'no.tornado:tornadofx:1.7.17'
+}
+

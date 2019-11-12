@@ -11,7 +11,7 @@
 #define MAX_CLIENTS 10
 #define CLIENT_NAME_LEN 18
 
-void exitClient(int fd, fd_set *readfds, char fd_array[], int *num_clients, char client_names[MAX_CLIENTS][CLIENT_NAME_LEN + 1])
+void quit_client(int fd, fd_set *readfds, char fd_array[], int *num_clients, char client_names[MAX_CLIENTS][CLIENT_NAME_LEN + 1])
 {
     int i;
     char left_label[] = "has left the chat...\n";
@@ -190,14 +190,14 @@ void server(int port)
                         if (msg[0] == 'x')
                         {
                             printf("A client %s [%d] is leaving. X passed...\n", client_names[fd], fd);
-                            exitClient(fd, &readfds, fd_array, &num_clients, client_names);
+                            quit_client(fd, &readfds, fd_array, &num_clients, client_names);
                         }
                     }
                 }
                 else
                 {
                     printf("A client %s [%d] is leaving. RL == -1...\n", client_names[fd], fd);
-                    exitClient(fd, &readfds, fd_array, &num_clients, client_names);
+                    quit_client(fd, &readfds, fd_array, &num_clients, client_names);
                 }
             }
         }
