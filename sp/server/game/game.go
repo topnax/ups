@@ -12,11 +12,26 @@ type Game struct {
 	CurrentPlayerIndex int
 	Round              int
 
-	idInc int
+	PointsTable map[int]int
+
+	PlayersThatAccepted *PlayerSet
+	idInc               int
+}
+
+func (game *Game) AcceptTurn(player Player) bool {
+	if player.ID == game.CurrentPlayer.ID {
+		return false
+	}
+	game.PlayersThatAccepted.Add(player)
+	return len(game.PlayersThatAccepted.List) == len(game.Players)-1
 }
 
 func (game *Game) Start() error {
 	if len(game.Players) > 1 && len(game.Players) <= 4 {
+		game.PointsTable = make(map[int]int)
+		for _, player := range game.Players {
+			game.PointsTable[player.ID] = 0
+		}
 		game.Desk.Create()
 		game.CurrentPlayerIndex = -1
 		game.Next()
@@ -51,6 +66,10 @@ func (game *Game) Print() {
 	}
 
 	game.Desk.Print()
+	game.Desk.GetTotalPoints()
+	game.Next()
+
+	game.PrintPoints()
 
 	fmt.Println()
 	fmt.Println()
@@ -58,6 +77,9 @@ func (game *Game) Print() {
 }
 
 func (game *Game) Next() {
+
+	game.PointsTable[game.CurrentPlayerIndex] += game.Desk.GetTotalPoints()
+
 	if game.CurrentPlayerIndex < 0 || game.CurrentPlayerIndex == len(game.Players)-1 {
 		game.CurrentPlayerIndex = 0
 		game.Round++
@@ -67,6 +89,7 @@ func (game *Game) Next() {
 	game.CurrentPlayer = game.Players[game.CurrentPlayerIndex]
 	game.Desk.ClearCurrentWords()
 	game.Desk.PlacedLetter.Clear()
+	game.PlayersThatAccepted = NewPlayerSet()
 }
 
 func (game *Game) HandleSetAtEvent(event SetLetterAtEvent) error {
@@ -75,4 +98,10 @@ func (game *Game) HandleSetAtEvent(event SetLetterAtEvent) error {
 
 func (game Game) HandleResetAtEvent(event ResetAtEvent) {
 	game.Desk.Tiles[event.Row][event.Column].Set = false
+}
+
+func (game Game) PrintPoints() {
+	for _, player := range game.Players {
+		fmt.Println(player.Name, "has", game.PointsTable[player.ID], "points")
+	}
 }

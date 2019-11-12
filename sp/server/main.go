@@ -1,149 +1,195 @@
 package main
 
 import (
-<<<<<<< HEAD
-	"fmt"
-=======
-	"ups/sp/server/game"
->>>>>>> f868af92b9420e7f66281cabe0a1216a9f0d0009
+	"encoding/json"
+	log "github.com/sirupsen/logrus"
+	"syscall"
+	"ups/sp/server/encoding"
+	"ups/sp/server/game_server"
+	"ups/sp/server/networking/server"
 )
 
 func main() {
 
-<<<<<<< HEAD
-	var age int
+	bytes, err := json.Marshal(encoding.JoinLobbyMessage{
+		LobbyID:    1,
+		ClientName: "Standa",
+	})
+	log.Infoln(string(bytes))
 
-	fmt.Println(age)
+	//
+	//messageReader := encoding.SimpleMessageReader{}
+	//
+	//messageReader.Receive(1, []byte("#17#1#{'name':'"))
+	//
+	//
+	//messageReader.Receive(2, []byte("#16#2#{'name':'Pavel'}"))
+	//
+	//messageReader.Receive(1, []byte("Standa'}"))
 
-	fmt.Println("My name is", "Foo", "and my age is of", 10, "years and the current hour is", 19)
+	//
+	////messageReader.Receive(1, []byte("ciao  girls"))
+	//
+	//
+	//fufu := Foo{
+	//	Name: "Stenly",
+	//	Attr: Bar{
+	//		Age: 21,
+	//	},
+	//}
+	//
+	//bubu := Bar{Age:12,}
+	//
+	//eat(fufu, 0)
+	//
+	//eat(bubu, 1)
 
-	name := "foo"
+	//sample := json.Unmarshal(rawMessage.)
+	//
+	//
+	//fmt.Println(sample.Name)
+	//fmt.Println(sample.Number)
 
-	name = "bar"
+	log.SetLevel(log.DebugLevel)
+	//37
+	//log.SetOutput(os.Stdout)
 
-	fmt.Println(name)
-	fmt.Println(name)
-	fmt.Println(name)
+	serverx, err := server.NewServer(syscall.SockaddrInet4{
+		Addr: [4]byte{byte(127), byte(0), byte(0), byte(1)},
+		Port: 10000,
+	})
 
-	desk.
-
-	area, perimeter := rectProps(5, 6)
-
-	fmt.Println("The area is", area, "and the perimeter is", perimeter)
-	printPyra(20)
-	arr := [...]string {"Tom","Pavel", "Dan", "Petr", "Trtek"}
-
-	for index, element := range arr[1::4]{
-		fmt.Println(index, element)
+	if err != nil {
+		log.Errorln(err)
+		return
 	}
-}
+	srdr := encoding.SimpleMessageReader{}
 
-func rectProps(length, width float64) (area, perimeter float64) {
-	area = length * width
-	perimeter = (length + width) * 2
-	return //no explicit return value
-}
+	srdr.SetResponseOutput(&serverx)
 
-func printPyra(height int) {
-	fmt.Println("Printing pyramid of height", height)
-	floor := height*2 - 1
-	for i := 0; i < height; i++ {
-		air := height - 1 - i
-		for h := 0; h < floor; h++ {
-			if h < air || h > floor-air-1 {
-				fmt.Print(" ")
-			} else {
-				if h % 2 == 0 {
-					fmt.Print("O")
-				} else {
-					fmt.Print("0")
-				}
-			}
-		}
-		fmt.Print("\n")
-	}
-=======
-	currentGame := game.Game{}
-	currentGame.AddPlayer("Pavel")
-	currentGame.AddPlayer("Tomáš")
-	currentGame.AddPlayer("Fanda")
+	kkmr := game_server.NewKrisKrosServer()
 
-	currentGame.Start()
+	jsreade := encoding.SimpleJsonReader{}
+	jsreade.Init()
+	jsreade.SetOutput(&kkmr)
 
-	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
-		PlayerID: currentGame.CurrentPlayer.ID,
-		Row:      1,
-		Column:   1,
-		Letter:   "S",
-	})
-	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
-		PlayerID: currentGame.CurrentPlayer.ID,
-		Row:      2,
-		Column:   1,
-		Letter:   "E",
-	})
-	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
-		PlayerID: currentGame.CurrentPlayer.ID,
-		Row:      3,
-		Column:   1,
-		Letter:   "X",
-	})
-	currentGame.Print()
+	srdr.SetOutput(&jsreade)
 
-	currentGame.Next()
-	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
-		PlayerID: currentGame.CurrentPlayer.ID,
-		Row:      1,
-		Column:   3,
-		Letter:   "P",
-	})
-	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
-		PlayerID: currentGame.CurrentPlayer.ID,
-		Row:      2,
-		Column:   3,
-		Letter:   "E",
-	})
-	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
-		PlayerID: currentGame.CurrentPlayer.ID,
-		Row:      3,
-		Column:   3,
-		Letter:   "S",
-	})
+	kkmr.SetMessageSender(&srdr)
 
-	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
-		PlayerID: currentGame.CurrentPlayer.ID,
-		Row:      2,
-		Column:   2,
-		Letter:   "Y",
-	})
-	currentGame.Print()
+	serverx.SetOnClientDisconnectedListener(&kkmr)
 
-	currentGame.Next()
+	serverx.Start(&srdr)
 
-	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
-		PlayerID: currentGame.CurrentPlayer.ID,
-		Row:      2,
-		Column:   4,
-		Letter:   "S",
-	})
+	//kkmr := encoding.KrisKrosServer{}
+	//
+	//jsreade := encoding.SimpleJsonReader{}
+	//jsreade.Init()
+	//jsreade.SetOutput(&kkmr)
+	//
+	//msg := encoding.SimpleMessage{
+	//	ClientUID: 1,
+	//	Length:    10,
+	//	Type:      1,
+	//	Content:   "{\"name\":\"Standa\", \"age\": 21}",
+	//}
+	//
+	//jsreade.Read(msg)
+	//
+	//msg = encoding.SimpleMessage{
+	//	ClientUID: 1,
+	//	Length:    10,
+	//	Type:      2,
+	//	Content:   "{\"surname\":\"Král\", \"smr\": {\"name\":\"Standa\", \"age\": 21}}",
+	//}
+	//
+	//logrus.Infoln("mymes len", msg.Length)
+	//jsreade.Read(msg)
 
-	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
-		PlayerID: currentGame.CurrentPlayer.ID,
-		Row:      4,
-		Column:   1,
-		Letter:   "Y",
-	})
-
-	_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
-		PlayerID: currentGame.CurrentPlayer.ID,
-		Row:      5,
-		Column:   1,
-		Letter:   "H",
-	})
-
-	currentGame.Print()
-
-	currentGame.Desk.GetTotalPoints()
+	//currentGame := game.Game{}
+	//currentGame.AddPlayer("Pavel")
+	//currentGame.AddPlayer("Tomáš")
+	//currentGame.AddPlayer("Fanda")
+	//
+	//currentGame.Start()
+	//
+	//_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+	//	PlayerID: currentGame.CurrentPlayer.ID,
+	//	Row:      1,
+	//	Column:   1,
+	//	Letter:   "S",
+	//})
+	//_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+	//	PlayerID: currentGame.CurrentPlayer.ID,
+	//	Row:      2,
+	//	Column:   1,
+	//	Letter:   "E",
+	//})
+	//_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+	//	PlayerID: currentGame.CurrentPlayer.ID,
+	//	Row:      3,
+	//	Column:   1,
+	//	Letter:   "X",
+	//})
+	//currentGame.Print()
+	//
+	//currentGame.Next()
+	//_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+	//	PlayerID: currentGame.CurrentPlayer.ID,
+	//	Row:      1,
+	//	Column:   3,
+	//	Letter:   "P",
+	//})
+	//_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+	//	PlayerID: currentGame.CurrentPlayer.ID,
+	//	Row:      2,
+	//	Column:   3,
+	//	Letter:   "E",
+	//})
+	//_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+	//	PlayerID: currentGame.CurrentPlayer.ID,
+	//	Row:      3,
+	//	Column:   3,
+	//	Letter:   "S",
+	//})
+	//
+	//_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+	//	PlayerID: currentGame.CurrentPlayer.ID,
+	//	Row:      2,
+	//	Column:   2,
+	//	Letter:   "Y",
+	//})
+	//currentGame.Print()
+	//fmt.Println(currentGame.AcceptTurn(currentGame.Players[0]))
+	//fmt.Println(currentGame.AcceptTurn(currentGame.Players[1]))
+	//fmt.Println(currentGame.AcceptTurn(currentGame.Players[2]))
+	//currentGame.Next()
+	//
+	//_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+	//	PlayerID: currentGame.CurrentPlayer.ID,
+	//	Row:      2,
+	//	Column:   4,
+	//	Letter:   "S",
+	//})
+	//
+	//_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+	//	PlayerID: currentGame.CurrentPlayer.ID,
+	//	Row:      4,
+	//	Column:   1,
+	//	Letter:   "Y",
+	//})
+	//
+	//_ = currentGame.HandleSetAtEvent(game.SetLetterAtEvent{
+	//	PlayerID: currentGame.CurrentPlayer.ID,
+	//	Row:      5,
+	//	Column:   1,
+	//	Letter:   "H",
+	//})
+	//
+	//fmt.Println(currentGame.AcceptTurn(currentGame.Players[0]))
+	//fmt.Println(currentGame.AcceptTurn(currentGame.Players[1]))
+	//fmt.Println(currentGame.AcceptTurn(currentGame.Players[2]))
+	//currentGame.Print()
 
 	////
 	//desk := model.GetDesk()
@@ -187,5 +233,4 @@ func printPyra(height int) {
 	//if error2 != nil {
 	//	fmt.Println(error2)
 	//}
->>>>>>> f868af92b9420e7f66281cabe0a1216a9f0d0009
 }

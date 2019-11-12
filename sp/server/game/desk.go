@@ -186,7 +186,7 @@ func (desk *Desk) GetWordsAt(row int, column int) []WordMeta {
 	return words
 }
 
-func (desk Desk) GetTotalPoints() {
+func (desk Desk) GetTotalPoints() int {
 	wordMap := NewWordMetaSet()
 
 	var words []Word
@@ -208,6 +208,7 @@ func (desk Desk) GetTotalPoints() {
 	}
 
 	fmt.Println("Total points:", points)
+	return points
 
 }
 
