@@ -2,17 +2,60 @@ package controller
 
 import javafx.collections.ObservableList
 import model.lobby.Lobby
+import MainMenuView
+import javafx.application.Platform
+import networking.ConnectionStatusListener
+import networking.Message
+import networking.MessageReader
+import networking.TCPLayer
 import tornadofx.Controller
 import tornadofx.observableList
 import java.util.*
 
-class MainMenuController : Controller() {
+class MainMenuController : Controller(), MessageReader, ConnectionStatusListener {
 
     val random = Random()
+
+    lateinit var mainMenuView: MainMenuView
+
+    lateinit var tcp: TCPLayer
+
+    var lobbies: ObservableList<Lobby> = observableList()
+
+    override fun onConnected() {
+        Platform.runLater {
+            mainMenuView.setNetworkElementsEnabled(true)
+            mainMenuView.serverMenu.text = "Connected to ${tcp.hostname}"
+        }
+    }
+
+    override fun onUnreachable() {
+        Platform.runLater {
+            mainMenuView.setNetworkElementsEnabled(true)
+            mainMenuView.serverMenu.text = "${tcp.hostname} is unreachable"
+        }
+    }
+
+    override fun onFailedAttempt(attempt: Int) {
+        Platform.runLater {
+            mainMenuView.serverMenu.text = "${tcp.hostname} did not respond. Attempt $attempt"
+        }
+    }
+
+    @Synchronized
+    override fun read(message: Message) {
+        mainMenuView.serverMenu.text = message.content
+    }
 
     fun newLobby() {
         lobbies.add(Lobby(1, "magor", random.nextInt(102)))
     }
 
-    var lobbies: ObservableList<Lobby> = observableList()
+    fun init(mainMenuView: MainMenuView) {
+        this.mainMenuView = mainMenuView
+        mainMenuView.setNetworkElementsEnabled(false)
+        this.tcp = TCPLayer(messageReader = this, connectionStatusListener = this)
+        tcp.start()
+    }
+
 }
