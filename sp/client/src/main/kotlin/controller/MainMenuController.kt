@@ -54,7 +54,7 @@ class MainMenuController : Controller(), MessageReader, ConnectionStatusListener
     fun init(mainMenuView: MainMenuView) {
         this.mainMenuView = mainMenuView
         mainMenuView.setNetworkElementsEnabled(false)
-        this.tcp = TCPLayer(messageReader = this, connectionStatusListener = this)
+//        this.tcp = TCPLayer(messageReader = this, connectionStatusListener = this)
         tcp.start()
     }
 

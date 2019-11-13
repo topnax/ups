@@ -68,7 +68,7 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
                     }
 
                     message?.let {
-                        messageReceiver.receive(serverMessage.toTypedArray(), len)
+                        messageReceiver.receive(serverMessage, len)
                         println("from server: '${it}', len ${len}")
                     }
                 }
