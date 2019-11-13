@@ -8,7 +8,7 @@ import java.net.Socket
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
-class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost", val messageReader: MessageReader, val connectionStatusListener: ConnectionStatusListener) : Thread() {
+class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost", val messageReceiver: MessageReceiver, val connectionStatusListener: ConnectionStatusListener) : Thread() {
 
     companion object {
         val NUMBER_OF_ATTEMPTS = 4
@@ -68,7 +68,7 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
                     }
 
                     message?.let {
-                        messageReader.read(Message(10, 10, it))
+                        messageReceiver.receive(serverMessage.toTypedArray(), len)
                         println("from server: '${it}', len ${len}")
                     }
                 }
