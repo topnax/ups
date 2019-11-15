@@ -4,10 +4,7 @@ import javafx.collections.ObservableList
 import model.lobby.Lobby
 import MainMenuView
 import javafx.application.Platform
-import networking.ConnectionStatusListener
-import networking.Message
-import networking.MessageReader
-import networking.TCPLayer
+import networking.*
 import tornadofx.Controller
 import tornadofx.observableList
 import java.util.*
@@ -54,7 +51,14 @@ class MainMenuController : Controller(), MessageReader, ConnectionStatusListener
     fun init(mainMenuView: MainMenuView) {
         this.mainMenuView = mainMenuView
         mainMenuView.setNetworkElementsEnabled(false)
-//        this.tcp = TCPLayer(messageReader = this, connectionStatusListener = this)
+        this.tcp = TCPLayer(
+                connectionStatusListener = this,
+                messageReceiver = SimpleMessageReceiver(object : MessageReader {
+                    override fun read(message: Message) {
+
+                    }
+                })
+        )
         tcp.start()
     }
 
