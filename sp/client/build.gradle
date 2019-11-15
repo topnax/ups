@@ -29,7 +29,11 @@ javafx {
 
 dependencies {
 	implementation 'org.jetbrains.kotlin:kotlin-stdlib'
-	testImplementation 'junit:junit:4.12'
+	testImplementation("org.junit.jupiter:junit-jupiter:5.5.2")
 	implementation 'no.tornado:tornadofx:1.7.17'
+}
+
+test {
+	useJUnitPlatform()
 }
 
