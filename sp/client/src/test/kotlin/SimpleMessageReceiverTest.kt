@@ -1,6 +1,6 @@
-import networking.Message
-import networking.MessageReader
-import networking.SimpleMessageReceiver
+import networking.receiver.Message
+import networking.reader.MessageReader
+import networking.receiver.SimpleMessageReceiver
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

@@ -1,12 +1,10 @@
 package networking
 
-import hello.server
+import networking.receiver.MessageReceiver
 import java.io.*
 import java.net.ConnectException
 import java.net.InetAddress
 import java.net.Socket
-import java.nio.ByteBuffer
-import java.nio.charset.Charset
 
 class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost", val messageReceiver: MessageReceiver, val connectionStatusListener: ConnectionStatusListener) : Thread() {
 
@@ -32,7 +30,7 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
         for (i in 0..NUMBER_OF_ATTEMPTS) {
             try {
                 socket = Socket(InetAddress.getByName(hostname), port)
-                break;
+                break
             } catch (exception: ConnectException) {
                 connectionStatusListener.onFailedAttempt(i + 1)
                 if (i != NUMBER_OF_ATTEMPTS) {
@@ -50,7 +48,7 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
 
             connectionStatusListener.onConnected()
 
-            var serverMessage: ByteArray = ByteArray(100)
+            val serverMessage = ByteArray(100)
 
             try {
                 println("Writing to server")

@@ -5,6 +5,9 @@ import model.lobby.Lobby
 import MainMenuView
 import javafx.application.Platform
 import networking.*
+import networking.receiver.Message
+import networking.reader.MessageReader
+import networking.receiver.SimpleMessageReceiver
 import tornadofx.Controller
 import tornadofx.observableList
 import java.util.*

@@ -1,5 +1,6 @@
-package networking
+package networking.receiver
 
+import networking.reader.MessageReader
 import tornadofx.isInt
 import java.util.logging.Logger
 
@@ -78,24 +79,4 @@ class SimpleMessageReceiver(messageReader: MessageReader) : MessageReceiver(mess
             validHeader = false
         }
     }
-}
-
-fun main(args: Array<String>) {
-//    println("Hello world")
-    val smr = SimpleMessageReceiver(object : MessageReader {
-        override fun read(message: Message) {
-
-        }
-    }
-
-    )
-
-//    val message = "$6#1#{fele}"
-    var message = "blabla"
-    smr.receive(message.toByteArray(), message.length)
-
-    message = "blabla$5#1#hello$2$3#7#bla$$8#4#hel\\\$oXD"
-//    message = "$8#4#hel\\\$oXD"
-    smr.receive(message.toByteArray(), message.length)
-
 }
