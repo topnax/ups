@@ -46,11 +46,19 @@ func (k *KrisKrosServer) removeClientFromLobby(clientUID int) {
 }
 
 func NewKrisKrosServer() KrisKrosServer {
-	return KrisKrosServer{
+	k := KrisKrosServer{
 		lobbies:           make(map[int]*Lobby),
 		lobbiesByOwnerID:  make(map[int]*Lobby),
 		lobbiesByPlayerID: make(map[int]*Lobby),
 	}
+
+	k.lobbies[1] = &Lobby{
+		ID:      7,
+		Players: nil,
+		Owner:   game.Player{},
+	}
+
+	return k
 }
 
 func (k *KrisKrosServer) SetMessageSender(messageSender encoding.MessageSender) {
@@ -112,4 +120,22 @@ func (k *KrisKrosServer) OnCreateLobby(message encoding.CreateLobbyMessage, clie
 	} else {
 		return encoding.ErrorResponse(fmt.Sprintf("Player #%d already created a lobby", clientUID))
 	}
+}
+
+func (k *KrisKrosServer) OnGetLobbies(message encoding.GetLobbiesMessage, clientUID int) encoding.ResponseMessage {
+	var lobbies []Lobby
+	for _, v := range k.lobbies {
+		lobbies = append(lobbies, *v)
+	}
+	k.SendMessage(LobbiesListMessage{Lobbies: lobbies}, clientUID)
+
+	return encoding.SuccessResponse("great")
+}
+
+type LobbiesListMessage struct {
+	Lobbies []Lobby `json:"lobbies"`
+}
+
+func (p LobbiesListMessage) GetType() int {
+	return 103
 }
