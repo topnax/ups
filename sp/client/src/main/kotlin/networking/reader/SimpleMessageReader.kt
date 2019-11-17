@@ -12,6 +12,7 @@ class SimpleMessageReader(private val reader: ApplicationMessageReader) : Messag
     private val messageTypesX = hashMapOf<Int, (String) -> ApplicationMessage>()
 
     override fun read(message: Message) {
+        println("Message read ${message.type} of content '${message.content}'")
         val am = ApplicationMessage.fromJson(message.content, message.type)
         am?.let {
             reader.read(am)

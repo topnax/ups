@@ -10,14 +10,16 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
 
     companion object {
         val NUMBER_OF_ATTEMPTS = 4
-        val DELAY_BETWEEN_ATTEMPTS = 250L
+        val DELAY_BETWEEN_ATTEMPTS = 2000L
     }
 
     var socket: Socket? = null
 
-    lateinit var output: OutputStream
+    var output: OutputStream? = null
 
-    lateinit var input: InputStream
+    var input: InputStream? = null
+
+    private var run = true
 
     override fun run() {
 
@@ -31,6 +33,9 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
                 if (i != NUMBER_OF_ATTEMPTS) {
                     sleep(DELAY_BETWEEN_ATTEMPTS)
                 }
+            } catch (exception: Exception) {
+                exception.printStackTrace()
+                connectionStatusListener.onUnreachable()
             }
         }
 
@@ -48,9 +53,14 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
             try {
                 println("Writing to server")
 
-                while (true) {
+                while (run) {
 
-                    val len = input.read(serverMessage)
+                    var len = input?.read(serverMessage)
+
+                    if (len == null) {
+                        len = 0
+                    }
+
                     val message: String? = when (len) {
                         0, -1 -> {
                             null
@@ -65,19 +75,26 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
                         println("from server: '${it}', len ${len}")
                     }
                 }
+                println("stopped")
+
             } catch (e: IOException) {
                 e.printStackTrace()
             } finally {
                 println("finished")
-                finish()
+                close()
             }
         } ?: run {
             connectionStatusListener.onUnreachable()
         }
     }
 
-    private fun finish() {
-//        input.close()
-        output.close()
+    fun write(content: String) {
+        output?.write(content.toByteArray())
+    }
+
+    fun close() {
+        run = false
+        input?.close()
+        output?.close()
     }
 }

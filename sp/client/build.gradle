@@ -1,7 +1,7 @@
 plugins {
-	id 'org.jetbrains.kotlin.jvm' version "$kotlinVersion"
-	id 'org.openjfx.javafxplugin' version '0.0.8'
-	id 'application'
+    id 'org.jetbrains.kotlin.jvm' version "$kotlinVersion"
+    id 'org.openjfx.javafxplugin' version '0.0.8'
+    id 'application'
 
 }
 
@@ -14,28 +14,30 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 repositories {
-	mavenCentral()
-	jcenter()
+    mavenCentral()
+    jcenter()
 }
 
 compileKotlin {
-	kotlinOptions.jvmTarget= "1.8"
+    kotlinOptions.jvmTarget = "1.8"
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
 }
 
 javafx {
-	version = "13"
-	modules = [ 'javafx.controls' ]
+    version = "13"
+    modules = ['javafx.controls']
 }
 
 
 dependencies {
-	implementation 'org.jetbrains.kotlin:kotlin-stdlib'
-	testImplementation("org.junit.jupiter:junit-jupiter:5.5.2")
-	implementation 'no.tornado:tornadofx:1.7.17'
-	implementation 'com.beust:klaxon:5.0.1'
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib'
+    testImplementation("org.junit.jupiter:junit-jupiter:5.5.2")
+    implementation 'no.tornado:tornadofx:1.7.17'
+    implementation 'com.beust:klaxon:5.0.1'
 }
 
 test {
-	useJUnitPlatform()
+    useJUnitPlatform()
 }
 

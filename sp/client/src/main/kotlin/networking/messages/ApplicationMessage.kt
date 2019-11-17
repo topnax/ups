@@ -4,6 +4,7 @@ import com.beust.klaxon.FieldRenamer
 import com.beust.klaxon.Json
 import com.beust.klaxon.Klaxon
 import com.beust.klaxon.KlaxonException
+import model.lobby.Lobby
 
 
 abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
@@ -23,6 +24,7 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
                 when (type) {
                     JoinLobbyMessage(0, "").type -> fromJson<JoinLobbyMessage>(json)
                     PlayerJoinedLobby(0, "").type -> fromJson<PlayerJoinedLobby>(json)
+                    LobbiesListMessage(listOf()).type -> fromJson<LobbiesListMessage>(json)
                     else -> null
                 }
             } catch (ex: KlaxonException) {
@@ -32,10 +34,22 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
     }
 
     fun toJson(): String {
-        return Klaxon().fieldRenamer(renamer).toJsonString(this)
+        val json = Klaxon().fieldRenamer(renamer).toJsonString(this)
+        println("parsed to '$json'")
+        return json
     }
 }
 
 data class JoinLobbyMessage(val lobbyId: Int, val playerName: String) : ApplicationMessage(1)
 
 data class PlayerJoinedLobby(val playerId: Int, val playerName: String) : ApplicationMessage(2)
+
+class GetLobbiesMessage(val playerId: Int) : ApplicationMessage(3)
+
+data class LobbiesListMessage(val lobbies: List<Lobby>) : ApplicationMessage(103)
+
+fun main() {
+    val msg: ApplicationMessage = JoinLobbyMessage(1,"topnax")
+    println("dx" + msg.toJson())
+    print(Klaxon().fieldRenamer(renamer = ApplicationMessage.renamer).toJsonString(JoinLobbyMessage(1, "topnax")))
+}

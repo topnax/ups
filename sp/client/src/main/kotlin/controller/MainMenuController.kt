@@ -5,6 +5,9 @@ import model.lobby.Lobby
 import MainMenuView
 import javafx.application.Platform
 import networking.*
+import networking.messages.ApplicationMessage
+import networking.messages.GetLobbiesMessage
+import networking.messages.LobbiesListMessage
 import networking.receiver.Message
 import networking.reader.MessageReader
 import networking.receiver.SimpleMessageReceiver
@@ -18,27 +21,43 @@ class MainMenuController : Controller(), MessageReader, ConnectionStatusListener
 
     lateinit var mainMenuView: MainMenuView
 
-    lateinit var tcp: TCPLayer
-
     var lobbies: ObservableList<Lobby> = observableList()
+
+    init {
+        Network.getInstance().addMessageListener(LobbiesListMessage::class.java, ::onLobbiesListRetrieved)
+    }
+
+    fun onLobbiesListRetrieved(message: ApplicationMessage) {
+        if (message is LobbiesListMessage) {
+            message.lobbies.forEach{
+                println("lobby ${it.id}")
+                println(it.owner)
+                println(it.id)
+                println(it.players)
+            }
+        }
+    }
 
     override fun onConnected() {
         Platform.runLater {
             mainMenuView.setNetworkElementsEnabled(true)
-            mainMenuView.serverMenu.text = "Connected to ${tcp.hostname}"
+            mainMenuView.serverMenu.text = "Connected to ${Network.getInstance().tcpLayer?.hostname}"
+            Network.getInstance().send(GetLobbiesMessage(1))
         }
     }
 
     override fun onUnreachable() {
+        println("onunreachable")
         Platform.runLater {
             mainMenuView.setNetworkElementsEnabled(true)
-            mainMenuView.serverMenu.text = "${tcp.hostname} is unreachable"
+            mainMenuView.serverMenu.text = "${Network.getInstance().tcpLayer?.hostname} is unreachable"
         }
     }
 
     override fun onFailedAttempt(attempt: Int) {
+        println("onfailed" + attempt)
         Platform.runLater {
-            mainMenuView.serverMenu.text = "${tcp.hostname} did not respond. Attempt $attempt"
+            mainMenuView.serverMenu.text = "${Network.getInstance().tcpLayer?.hostname} did not respond. Attempt $attempt"
         }
     }
 
@@ -53,16 +72,13 @@ class MainMenuController : Controller(), MessageReader, ConnectionStatusListener
 
     fun init(mainMenuView: MainMenuView) {
         this.mainMenuView = mainMenuView
-        mainMenuView.setNetworkElementsEnabled(false)
-        this.tcp = TCPLayer(
-                connectionStatusListener = this,
-                messageReceiver = SimpleMessageReceiver(object : MessageReader {
-                    override fun read(message: Message) {
+        Network.getInstance().connectionStatusListeners.add(this)
+        connectTo("localhost", 10000)
+    }
 
-                    }
-                })
-        )
-        tcp.start()
+    fun connectTo(hostname: String, port: Int) {
+        mainMenuView.setNetworkElementsEnabled(false)
+        Network.getInstance().connectTo(hostname, port)
     }
 
 }
