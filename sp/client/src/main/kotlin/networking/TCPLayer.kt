@@ -19,11 +19,6 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
 
     lateinit var input: InputStream
 
-    init {
-
-
-    }
-
     override fun run() {
 
         println("Client opening a socket at $hostname using port $port")
