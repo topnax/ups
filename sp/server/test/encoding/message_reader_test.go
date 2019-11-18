@@ -9,8 +9,9 @@ type SimpleOutput struct {
 	lastMessage encoding.SimpleMessage
 }
 
-func (s *SimpleOutput) Read(message encoding.SimpleMessage) {
+func (s *SimpleOutput) Read(message encoding.SimpleMessage) encoding.ResponseMessage {
 	s.lastMessage = message
+	return encoding.ResponseMessage{}
 }
 
 func (s SimpleOutput) SetOutput(reader encoding.ApplicationMessageReader) {
@@ -20,7 +21,7 @@ func TestReceive(t *testing.T) {
 	jsonReader := SimpleOutput{}
 	smr := encoding.SimpleMessageReader{}
 	smr.SetOutput(&jsonReader)
-	sent := "$10#5#Hello guys"
+	sent := "$10#5#10#Hello guys"
 	bytes := []byte(sent)
 	smr.Receive(1, bytes, len(bytes))
 	if jsonReader.lastMessage.Content != "Hello guys" {
@@ -31,6 +32,8 @@ func TestReceive(t *testing.T) {
 		t.Errorf("Got message length %d, want %d", jsonReader.lastMessage.Length, 10)
 	} else if jsonReader.lastMessage.ClientUID != 1 {
 		t.Errorf("Got client UID %d, want %d", jsonReader.lastMessage.ClientUID, 1)
+	} else if jsonReader.lastMessage.ID != 10 {
+		t.Errorf("Got client UID %d, want %d", jsonReader.lastMessage.ID, 10)
 	}
 }
 
@@ -39,7 +42,7 @@ func TestReceivePartial(t *testing.T) {
 	smr := encoding.SimpleMessageReader{}
 	smr.SetOutput(&jsonReader)
 
-	sent := "$10#5#Hello"
+	sent := "$10#5#10#Hello"
 	bytes := []byte(sent)
 	smr.Receive(1, bytes, len(bytes))
 
@@ -55,6 +58,8 @@ func TestReceivePartial(t *testing.T) {
 		t.Errorf("Got message length %d, want %d", jsonReader.lastMessage.Length, 10)
 	} else if jsonReader.lastMessage.ClientUID != 1 {
 		t.Errorf("Got client UID %d, want %d", jsonReader.lastMessage.ClientUID, 1)
+	} else if jsonReader.lastMessage.ID != 10 {
+		t.Errorf("Got client UID %d, want %d", jsonReader.lastMessage.ID, 10)
 	}
 }
 
@@ -63,7 +68,7 @@ func TestReceivePartial2(t *testing.T) {
 	smr := encoding.SimpleMessageReader{}
 	smr.SetOutput(&jsonReader)
 
-	sent := "$10#5#Youre"
+	sent := "$10#5#10#Youre"
 	bytes := []byte(sent)
 	smr.Receive(1, bytes, len(bytes))
 
@@ -71,7 +76,7 @@ func TestReceivePartial2(t *testing.T) {
 	bytes = []byte(sent)
 	smr.Receive(1, bytes, len(bytes))
 
-	sent = "$10#5#Hello guys"
+	sent = "$10#5#10#Hello guys"
 	bytes = []byte(sent)
 	smr.Receive(1, bytes, len(bytes))
 
@@ -83,6 +88,8 @@ func TestReceivePartial2(t *testing.T) {
 		t.Errorf("Got message length %d, want %d", jsonReader.lastMessage.Length, 10)
 	} else if jsonReader.lastMessage.ClientUID != 1 {
 		t.Errorf("Got client UID %d, want %d", jsonReader.lastMessage.ClientUID, 1)
+	} else if jsonReader.lastMessage.ID != 10 {
+		t.Errorf("Got client UID %d, want %d", jsonReader.lastMessage.ID, 10)
 	}
 }
 
@@ -91,7 +98,7 @@ func TestReceivePartial3(t *testing.T) {
 	smr := encoding.SimpleMessageReader{}
 	smr.SetOutput(&jsonReader)
 
-	sent := "$10#5#Hello\\"
+	sent := "$10#5#10#Hello\\"
 	bytes := []byte(sent)
 	smr.Receive(1, bytes, len(bytes))
 
@@ -107,5 +114,7 @@ func TestReceivePartial3(t *testing.T) {
 		t.Errorf("Got message length %d, want %d", jsonReader.lastMessage.Length, 10)
 	} else if jsonReader.lastMessage.ClientUID != 1 {
 		t.Errorf("Got client UID %d, want %d", jsonReader.lastMessage.ClientUID, 1)
+	} else if jsonReader.lastMessage.ID != 10 {
+		t.Errorf("Got client UID %d, want %d", jsonReader.lastMessage.ID, 10)
 	}
 }

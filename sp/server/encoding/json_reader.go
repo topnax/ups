@@ -20,6 +20,7 @@ func (s *SimpleJsonReader) Init() {
 	s.handlers = make(map[int]Message)
 	s.Register(&CreateLobbyMessage{})
 	s.Register(&JoinLobbyMessage{})
+	s.Register(&GetLobbiesMessage{})
 }
 
 func (s *SimpleJsonReader) Register(handler Message) {

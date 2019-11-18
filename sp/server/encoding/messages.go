@@ -1,6 +1,10 @@
 package encoding
 
-import "fmt"
+import (
+	"fmt"
+	//"ups/sp/server/game_server"
+	//"ups/sp/server/game_server"
+)
 
 type Message interface {
 	Handle(message SimpleMessage, amr ApplicationMessageReader) ResponseMessage
@@ -46,6 +50,23 @@ type JoinLobbyMessage struct {
 func (c *JoinLobbyMessage) Handle(message SimpleMessage, amr ApplicationMessageReader) ResponseMessage {
 	if message.Parse(&c) {
 		return amr.OnJoinLobby(*c, message.ClientUID)
+	}
+	return failedToParse(message)
+}
+
+// get lobbies
+
+func (c *GetLobbiesMessage) GetType() int {
+	return 3
+}
+
+type GetLobbiesMessage struct {
+	PlayerID int `json:"player_id"`
+}
+
+func (c *GetLobbiesMessage) Handle(message SimpleMessage, amr ApplicationMessageReader) ResponseMessage {
+	if message.Parse(&c) {
+		return amr.OnGetLobbies(*c, message.ClientUID)
 	}
 	return failedToParse(message)
 }

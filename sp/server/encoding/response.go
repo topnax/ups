@@ -17,28 +17,30 @@ type Response struct {
 type ResponseMessage struct {
 	Type    int
 	Content string
+	ID      int
 }
 
-func GetResponse(Type int, Content string) ResponseMessage {
+func GetResponse(Type int, Content string, ID int) ResponseMessage {
 	logrus.Infoln("Creating a response")
 	return ResponseMessage{
 		Type:    Type,
 		Content: Content,
+		ID:      ID,
 	}
 }
 
 func SuccessResponse(Content string) ResponseMessage {
-	return GetResponse(1, Content)
+	return GetResponse(1, Content, 0)
 }
 
 func ErrorResponse(Content string) ResponseMessage {
-	return GetResponse(0, Content)
+	return GetResponse(0, Content, 0)
 }
 
 func MessageResponse(Struct interface{}, Type int) ResponseMessage {
 	bytes, err := json.Marshal(Struct)
 	if err == nil {
-		return GetResponse(Type, string(bytes))
+		return GetResponse(Type, string(bytes), 0)
 	} else {
 		return ErrorResponse(fmt.Sprintf("Could not marshal a message of type %d, error %s", Type, err))
 	}
