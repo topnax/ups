@@ -33,6 +33,7 @@ type SimpleMessage struct {
 	Length    int
 	Type      int
 	Content   string
+	ID        int
 }
 
 type SimpleMessageBuffer struct {
@@ -40,6 +41,7 @@ type SimpleMessageBuffer struct {
 	Length      int
 	MessageType int
 	buffer      string
+	MessageId   int
 }
 
 // ADD A MESSAGE STARTING CHAR
@@ -80,7 +82,7 @@ func (s *SimpleMessageReader) Receive(UID int, bytes []byte, length int) {
 	if message[0] == START_CHAR && (len(s.buffers[UID].buffer) <= 0 || (len(buffer.buffer) > 0 && buffer.buffer[len(buffer.buffer)-1] != '\\')) {
 		// if buffer length is equal or less than 0, a new message is received, empty the buffer
 		parts := strings.Split(message[1:], SEPARATOR)
-		if len(parts) != 3 {
+		if len(parts) != 4 {
 			log.Errorf("Invalid message header. Received message was `%s`", message)
 			return
 		}
@@ -88,12 +90,14 @@ func (s *SimpleMessageReader) Receive(UID int, bytes []byte, length int) {
 		// parse message type and content length
 		length, err := strconv.Atoi(parts[0])
 		messageType, err2 := strconv.Atoi(parts[1])
+		messageId, err3 := strconv.Atoi(parts[2])
 
-		if err == nil && err2 == nil {
+		if err == nil && err2 == nil && err3 == nil {
 			// set buffer properties and append the message
 			buffer.Length = length
 			buffer.MessageType = messageType
-			buffer.buffer = parts[2]
+			buffer.MessageId = messageId
+			buffer.buffer = parts[3]
 			s.checkBufferReady(buffer)
 		}
 	} else {
@@ -122,11 +126,12 @@ func (s *SimpleMessageReader) clearBuffer(buffer *SimpleMessageBuffer) {
 			Length:    buffer.Length,
 			Type:      buffer.MessageType,
 			Content:   buffer.buffer,
+			ID:        buffer.MessageId,
 		})
 	} else {
 		response = ErrorResponse("Cannot send message to JSON parser because it's null")
-
 	}
+	response.ID = buffer.MessageId
 	buffer.reset()
 	s.Send(response, buffer.ClientUID)
 }
@@ -139,7 +144,7 @@ func (s *SimpleMessageReader) Send(response ResponseMessage, clientUID int) {
 	log.Debugf("Sending message of type %d to %d: '%s'", response.Type, clientUID, response.Content)
 	if s.networkOutput != nil {
 		log.Infof("%c%d%s%d%s%s", START_CHAR, len(response.Content), SEPARATOR, response.Type, SEPARATOR, response.Content)
-		s.networkOutput.Send(fmt.Sprintf("%c%d%s%d%s%s", START_CHAR, len(response.Content), SEPARATOR, response.Type, SEPARATOR, response.Content), clientUID)
+		s.networkOutput.Send(fmt.Sprintf("%c%d%s%d%s%d%s%s", START_CHAR, len(response.Content), SEPARATOR, response.Type, SEPARATOR, response.ID, SEPARATOR, response.Content), clientUID)
 	} else {
 		log.Errorln("Cannot send response because output is null")
 	}
@@ -149,4 +154,5 @@ func (buffer *SimpleMessageBuffer) reset() {
 	buffer.buffer = ""
 	buffer.Length = 0
 	buffer.MessageType = 0
+	buffer.MessageId = 0
 }
