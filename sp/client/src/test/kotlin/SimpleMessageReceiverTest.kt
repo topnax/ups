@@ -22,23 +22,25 @@ class SimpleMessageReceiverTest {
 
     @Test
     internal fun receiveSimpleValidMessage() {
-        val message = "$10#1#123456789X"
+        val message = "$10#1#11#123456789X"
         receiver.receive(message.toByteArray(), message.length)
         assertEquals(1, received.size)
         assertEquals(10, received[0].length)
         assertEquals("123456789X", received[0].content)
         assertEquals(1, received[0].type)
+        assertEquals(11, received[0].id)
     }
 
     @Test
     internal fun receiveSimpleValidSplitMessage() {
-        receiver.receive("$10#1#123".toByteArray(), 8)
+        receiver.receive("$10#1#11#123".toByteArray(), 8)
         receiver.receive("456789X".toByteArray(), 7)
 
         assertEquals(1, received.size)
         assertEquals(10, received[0].length)
         assertEquals("123456789X", received[0].content)
         assertEquals(1, received[0].type)
+        assertEquals(11, received[0].id)
     }
 
     @Test
@@ -46,21 +48,22 @@ class SimpleMessageReceiverTest {
         receiver.receive("678IDS".toByteArray(), 8)
         receiver.receive("$434á438#".toByteArray(), 7)
 
-        receiver.receive("$10#1#123".toByteArray(), 8)
+        receiver.receive("$10#1#11#123".toByteArray(), 8)
         receiver.receive("456789X".toByteArray(), 7)
 
         assertEquals(1, received.size)
         assertEquals(10, received[0].length)
         assertEquals("123456789X", received[0].content)
         assertEquals(1, received[0].type)
+        assertEquals(11, received[0].id)
     }
 
     @Test
     internal fun receiveMultipleValidMessages() {
-        receiver.receive("$10#1#123".toByteArray(), 8)
+        receiver.receive("$10#1#11#123".toByteArray(), 8)
         receiver.receive("456789X".toByteArray(), 7)
 
-        receiver.receive("$17#2#123".toByteArray(), 8)
+        receiver.receive("$17#2#12#123".toByteArray(), 8)
         receiver.receive("456789X".toByteArray(), 7)
         receiver.receive("456789X".toByteArray(), 7)
 
@@ -69,10 +72,12 @@ class SimpleMessageReceiverTest {
         assertEquals(10, received[0].length)
         assertEquals("123456789X", received[0].content)
         assertEquals(1, received[0].type)
+        assertEquals(11, received[0].id)
 
         assertEquals(17, received[1].length)
         assertEquals("123456789X456789X", received[1].content)
         assertEquals(2, received[1].type)
+        assertEquals(12, received[1].id)
     }
 
     @Test
