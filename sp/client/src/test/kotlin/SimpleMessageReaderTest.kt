@@ -24,7 +24,7 @@ class SimpleMessageReaderTest {
                 "player_name": "Topnax",
                 "lobby_id": 10
            }
-        """))
+        """, 10))
 
         assertEquals(1, messages.size)
         assertEquals(JoinLobbyMessage::class.java, messages[0].javaClass)
@@ -43,7 +43,7 @@ class SimpleMessageReaderTest {
 
         reader.read(Message(15, 1, """
            fdsfdsfds f5sd4 f54ds
-        """))
+        """, 10))
 
         assertEquals(0, messages.size)
     }

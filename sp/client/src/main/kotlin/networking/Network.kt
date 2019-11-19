@@ -11,6 +11,9 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
 
     companion object {
 
+        private val MESSAGE_ID_CEILING = 60000
+        private val MESSAGE_STARTING_ID = 1
+
         private var network: Network = Network()
 
         @Synchronized
@@ -18,6 +21,8 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
             return network
         }
     }
+
+    private var messageId = MESSAGE_STARTING_ID
 
     var tcpLayer: TCPLayer? = null
 
@@ -69,6 +74,12 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
     fun send(message: ApplicationMessage) {
         val json = message.toJson()
 
-        tcpLayer?.write("${SimpleMessageReceiver.START_CHAR}${json.length}${SimpleMessageReceiver.SEPARATOR}${message.type}${SimpleMessageReceiver.SEPARATOR}$json")
+        tcpLayer?.write("${SimpleMessageReceiver.START_CHAR}${json.length}${SimpleMessageReceiver.SEPARATOR}${message.type}${SimpleMessageReceiver.SEPARATOR}${messageId}${SimpleMessageReceiver.SEPARATOR}$json")
+
+        messageId++
+
+        if (messageId > MESSAGE_ID_CEILING) {
+            messageId = MESSAGE_STARTING_ID
+        }
     }
 }

@@ -1,3 +1,3 @@
 package networking.receiver
 
-data class Message(val length: Int, val type: Int, val content: String)
+data class Message(val length: Int, val type: Int, val content: String, val id: Int)
