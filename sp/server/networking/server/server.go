@@ -25,7 +25,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"syscall"
 	"unsafe"
-	"ups/sp/server/rework/protocol/def"
+	"ups/sp/server/protocol/def"
 	"ups/sp/server/utils"
 )
 

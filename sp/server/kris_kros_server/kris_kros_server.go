@@ -5,9 +5,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"ups/sp/server/game"
 	"ups/sp/server/model"
-	"ups/sp/server/rework/protocol/def"
-	"ups/sp/server/rework/protocol/impl"
-	"ups/sp/server/rework/protocol/messages"
+	"ups/sp/server/protocol/def"
+	"ups/sp/server/protocol/impl"
+	"ups/sp/server/protocol/messages"
 )
 
 type KrisKrosServer struct {

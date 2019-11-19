@@ -3,8 +3,8 @@ package kris_kros_server
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
-	"ups/sp/server/rework/protocol/def"
-	"ups/sp/server/rework/protocol/impl"
+	"ups/sp/server/protocol/def"
+	"ups/sp/server/protocol/impl"
 )
 
 type KrisKrosRouter struct {

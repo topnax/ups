@@ -3,7 +3,7 @@ package messages
 import (
 	"github.com/sirupsen/logrus"
 	"ups/sp/server/model"
-	"ups/sp/server/rework/protocol/def"
+	"ups/sp/server/protocol/def"
 )
 
 const (

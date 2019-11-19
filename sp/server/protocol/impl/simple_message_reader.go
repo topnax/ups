@@ -3,7 +3,7 @@ package impl
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
-	"ups/sp/server/rework/protocol/def"
+	"ups/sp/server/protocol/def"
 )
 
 type SimpleMessageReader struct {

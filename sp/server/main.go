@@ -1,55 +1,14 @@
 package main
 
 import (
-	"encoding/json"
 	log "github.com/sirupsen/logrus"
 	"syscall"
-	"ups/sp/server/messages"
+	"ups/sp/server/kris_kros_server"
 	"ups/sp/server/networking/server"
-	"ups/sp/server/rework/kris_kros_server"
-	"ups/sp/server/rework/protocol/impl"
+	"ups/sp/server/protocol/impl"
 )
 
 func main() {
-
-	bytes, err := json.Marshal(messages.JoinLobbyMessage{
-		LobbyID:    1,
-		ClientName: "Standa",
-	})
-	log.Infoln(string(bytes))
-
-	//
-	//messageReader := encoding.SimpleMessageReader{}
-	//
-	//messageReader.Receive(1, []byte("#17#1#{'name':'"))
-	//
-	//
-	//messageReader.Receive(2, []byte("#16#2#{'name':'Pavel'}"))
-	//
-	//messageReader.Receive(1, []byte("Standa'}"))
-
-	//
-	////messageReader.Receive(1, []byte("ciao  girls"))
-	//
-	//
-	//fufu := Foo{
-	//	Name: "Stenly",
-	//	Attr: Bar{
-	//		Age: 21,
-	//	},
-	//}
-	//
-	//bubu := Bar{Age:12,}
-	//
-	//eat(fufu, 0)
-	//
-	//eat(bubu, 1)
-
-	//sample := json.Unmarshal(rawMessage.)
-	//
-	//
-	//fmt.Println(sample.Name)
-	//fmt.Println(sample.Number)
 
 	log.SetLevel(log.DebugLevel)
 	//37

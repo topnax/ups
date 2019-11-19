@@ -2,23 +2,19 @@ package protocol
 
 import (
 	"testing"
-	"ups/sp/server/rework/protocol/def"
-	"ups/sp/server/rework/protocol/impl"
+	"ups/sp/server/protocol/def"
+	"ups/sp/server/protocol/impl"
 )
 
 type SimpleOutput struct {
 	lastMessage def.Message
 }
 
-func (s SimpleOutput) Send(content string, clientUID int) {
-
-}
-
 func (s *SimpleOutput) Read(message def.Message) def.Response {
-	println("received read")
 	s.lastMessage = message
 	return impl.SuccessResponse("test")
 }
+
 func TestReceive(t *testing.T) {
 	jsonReader := SimpleOutput{}
 	smr := impl.SimpleTcpMessageReceiver{}

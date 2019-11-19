@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
-	"ups/sp/server/rework/protocol/def"
-	"ups/sp/server/rework/protocol/impl"
+	"ups/sp/server/protocol/def"
+	"ups/sp/server/protocol/impl"
 )
 
 func parse(message def.Message, messageTemplate interface{}) bool {

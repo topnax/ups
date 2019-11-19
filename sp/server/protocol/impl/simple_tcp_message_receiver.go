@@ -5,7 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
-	"ups/sp/server/rework/protocol/def"
+	"ups/sp/server/protocol/def"
 )
 
 const (

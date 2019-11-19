@@ -2,8 +2,8 @@ package kris_kros_server
 
 import (
 	log "github.com/sirupsen/logrus"
-	"ups/sp/server/rework/protocol/def"
-	"ups/sp/server/rework/protocol/messages"
+	"ups/sp/server/protocol/def"
+	"ups/sp/server/protocol/messages"
 )
 
 func (router *KrisKrosRouter) registerRoutes() {
