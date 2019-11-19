@@ -4,11 +4,10 @@ import (
 	"encoding/json"
 	log "github.com/sirupsen/logrus"
 	"syscall"
-	"ups/sp/server/encoding"
-	"ups/sp/server/game_server"
-	"ups/sp/server/impl"
 	"ups/sp/server/messages"
 	"ups/sp/server/networking/server"
+	"ups/sp/server/rework/kris_kros_server"
+	"ups/sp/server/rework/protocol/impl"
 )
 
 func main() {
@@ -65,23 +64,36 @@ func main() {
 		log.Errorln(err)
 		return
 	}
-	srdr := encoding.SimpleMessageReader{}
 
-	srdr.SetResponseOutput(&serverx)
+	tcpReceiver := impl.SimpleTcpMessageReceiver{}
+	krisKrosServer := kris_kros_server.NewKrisKrosServer(&tcpReceiver)
+	messageReader := impl.NewSimpleMessageReader(krisKrosServer, krisKrosServer.Router.Handlers)
 
-	kkmr := game_server.NewKrisKrosServer()
+	tcpReceiver.SetMessageReader(&messageReader)
+	tcpReceiver.SetOutput(&serverx)
 
-	jsreade := impl.SimpleJsonReader{}
-	jsreade.Init()
-	jsreade.SetOutput(&kkmr)
+	serverx.Start(&tcpReceiver)
 
-	srdr.SetOutput(&jsreade)
+	// old
+	//srdr := encoding.SimpleMessageReader{}
+	//
+	//srdr.SetResponseOutput(&serverx)
+	//
+	//kkmr := game_server.NewKrisKrosServer()
+	//
+	//jsreade := impl.SimpleJsonReader{}
+	//jsreade.Init()
+	//jsreade.SetOutput(&kkmr)
+	//
+	//srdr.SetOutput(&jsreade)
+	//
+	//kkmr.SetMessageSender(&srdr)
+	//
+	//serverx.SetOnClientDisconnectedListener(&kkmr)
+	//
+	//serverx.Start(&srdr)
 
-	kkmr.SetMessageSender(&srdr)
-
-	serverx.SetOnClientDisconnectedListener(&kkmr)
-
-	serverx.Start(&srdr)
+	// <old
 
 	//kkmr := encoding.KrisKrosServer{}
 	//
@@ -90,7 +102,7 @@ func main() {
 	//jsreade.SetOutput(&kkmr)
 	//
 	//msg := encoding.SimpleMessage{
-	//	ClientUID: 1,
+	//	clientID: 1,
 	//	Length:    10,
 	//	Type:      1,
 	//	Content:   "{\"name\":\"Standa\", \"age\": 21}",
@@ -99,7 +111,7 @@ func main() {
 	//jsreade.Read(msg)
 	//
 	//msg = encoding.SimpleMessage{
-	//	ClientUID: 1,
+	//	clientID: 1,
 	//	Length:    10,
 	//	Type:      2,
 	//	Content:   "{\"surname\":\"Král\", \"smr\": {\"name\":\"Standa\", \"age\": 21}}",

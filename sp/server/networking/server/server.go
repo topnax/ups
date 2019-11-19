@@ -25,7 +25,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"syscall"
 	"unsafe"
-	"ups/sp/server/encoding"
+	"ups/sp/server/rework/protocol/def"
 	"ups/sp/server/utils"
 )
 
@@ -60,7 +60,7 @@ func NewServer(addr syscall.SockaddrInet4) (Server, error) {
 		return server, errors.New("syscall.Socket has failed")
 	}
 
-	log.Debugln("Server was given fd of", serverFd)
+	log.Debugln("Server was given FD of", serverFd)
 
 	server.Port = addr.Port
 	server.Fd = serverFd
@@ -101,7 +101,7 @@ func (server *Server) addClient(fd int) Client {
 	return client
 }
 
-func (server *Server) Start(reader encoding.MessageDecoder) {
+func (server *Server) Start(receiver def.TcpMessageReceiver) {
 
 	readfds := syscall.FdSet{}
 
@@ -120,16 +120,11 @@ func (server *Server) Start(reader encoding.MessageDecoder) {
 
 		maxFd := server.Fd
 		for _, clientFd := range server.Clients {
-			log.Debugln("Fd setting:", clientFd)
 			FD_SET(&readfds, clientFd.Fd)
 			maxFd = utils.Max(clientFd.Fd, maxFd)
 		}
 
-		log.Debugln("Readfds for fd", server.Fd, ": ", readfds)
-
 		activeFd, err := syscall.Select(maxFd+1, &readfds, nil, nil, nil)
-
-		log.Debugln("Selected for fd", server.Fd, ": ", readfds)
 
 		if err != nil {
 			log.Errorln("Select error:", err)
@@ -144,7 +139,6 @@ func (server *Server) Start(reader encoding.MessageDecoder) {
 			client, err := server.acceptClient()
 			if err == nil {
 				log.Infof("Client [%d] of ID %d has joined", client.Fd, client.UID)
-				client.Send("Welcome to this amazing server :)\n")
 			}
 		} else {
 			for _, client := range server.Clients {
@@ -157,7 +151,7 @@ func (server *Server) Start(reader encoding.MessageDecoder) {
 					}
 
 					if n == 0 {
-						log.Infof("Client %d of id %d disconnected ",
+						log.Infof("Client %d of ID %d disconnected ",
 							client.Fd,
 							client.UID,
 						)
@@ -167,7 +161,7 @@ func (server *Server) Start(reader encoding.MessageDecoder) {
 						result := string(buff[:n])
 						//json.Un
 						log.Debugln("Received '%s' from %d of length %d", result, client.Fd, n)
-						reader.Receive(client.Fd, buff, n)
+						receiver.Receive(client.Fd, buff, n)
 					}
 				}
 			}
@@ -179,10 +173,10 @@ func (server *Server) removeClient(fd int) {
 	delete(server.Clients, fd)
 	log.Info("Inside server remove client")
 	if server.onClientDisconnectedListener != nil {
-		log.Info("Into listenemr!")
+		log.Info("Into listener!")
 		server.onClientDisconnectedListener.ClientDisconnected(fd)
 	} else {
-		log.Info("CLoud not find listener")
+		log.Info("Could not find listener")
 	}
 }
 
