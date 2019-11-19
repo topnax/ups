@@ -15,7 +15,7 @@ class KrisKrosMessageReader : ApplicationMessageReader {
         messageHandlers[clazz] = handler
     }
 
-    override fun read(message: ApplicationMessage) {
+    override fun read(message: ApplicationMessage, mid: Int) {
         messageHandlers[message.javaClass]?.invoke(message)
     }
 

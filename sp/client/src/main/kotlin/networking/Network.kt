@@ -2,9 +2,8 @@ package networking
 
 import networking.applicationmessagereader.ApplicationMessageReader
 import networking.messages.ApplicationMessage
-import networking.messages.GetLobbiesMessage
+import networking.messages.SuccessResponseMessage
 import networking.reader.SimpleMessageReader
-import networking.receiver.MessageReceiver
 import networking.receiver.SimpleMessageReceiver
 
 class Network : ConnectionStatusListener, ApplicationMessageReader {
@@ -28,6 +27,8 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
 
     private var messageListeners = mutableMapOf<Class<out ApplicationMessage>, MutableList<(ApplicationMessage) -> Unit>>()
 
+    private var responseListeners = mutableMapOf<Int, MutableList<(ApplicationMessage) -> Unit>>()
+
     val connectionStatusListeners = mutableListOf<ConnectionStatusListener>()
 
     fun connectTo(hostname: String, port: Int) {
@@ -43,6 +44,15 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
 
     fun removeMessageListener(messageClazz: Class<out ApplicationMessage>, callback: (ApplicationMessage) -> Unit) {
         messageListeners[messageClazz]?.remove(callback)
+    }
+
+    fun addResponseListener(mid: Int, callback: (ApplicationMessage) -> Unit) {
+        responseListeners.putIfAbsent(mid, mutableListOf())
+        responseListeners[mid]?.add(callback)
+    }
+
+    fun removeResponseListener(mid: Int, callback: (ApplicationMessage) -> Unit) {
+        responseListeners[mid]?.remove(callback)
     }
 
     override fun onConnected() {
@@ -63,18 +73,32 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
         }
     }
 
-    override fun read(message: ApplicationMessage) {
+    override fun read(message: ApplicationMessage, mid: Int) {
         println("received message of type ${message.type}")
         for (callback: (ApplicationMessage) -> Unit in messageListeners.getOrDefault(message.javaClass, listOf<(ApplicationMessage) -> Unit>())) {
             println("invoking :)")
             callback.invoke(message)
         }
+
+
+        for (callback: (ApplicationMessage) -> Unit in responseListeners.getOrDefault(mid, listOf<(ApplicationMessage) -> Unit>())) {
+            println("invoking :)")
+            callback.invoke(message)
+        }
+        responseListeners[mid]?.clear()
     }
 
-    fun send(message: ApplicationMessage) {
+    fun send(message: ApplicationMessage, callback: ((ApplicationMessage) -> Unit)? = null, desiredMessageId: Int = 0) {
         val json = message.toJson()
 
+
+        callback?.let {
+            addResponseListener(if (desiredMessageId != 0) desiredMessageId else messageId, callback)
+        }
+
+
         tcpLayer?.write("${SimpleMessageReceiver.START_CHAR}${json.length}${SimpleMessageReceiver.SEPARATOR}${message.type}${SimpleMessageReceiver.SEPARATOR}${messageId}${SimpleMessageReceiver.SEPARATOR}$json")
+
 
         messageId++
 

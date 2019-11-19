@@ -1,16 +1,15 @@
 import controller.MainMenuController
 import javafx.beans.property.SimpleIntegerProperty
 import javafx.beans.property.SimpleStringProperty
-import javafx.scene.Parent
 import javafx.scene.control.Button
 import javafx.scene.control.Label
 import javafx.scene.control.MenuItem
+import javafx.scene.control.TextField
 import javafx.scene.layout.Priority
 import model.lobby.Lobby
 import networking.Network
-import networking.messages.GetLobbiesMessage
+
 import tornadofx.*
-import java.util.regex.Pattern
 
 class MainMenuView : View() {
 
@@ -21,6 +20,7 @@ class MainMenuView : View() {
     }
 
     private lateinit var createLobbyButton: Button
+    lateinit var nameTextField: TextField
     lateinit var serverMenu: MenuItem
 
     val controller: MainMenuController by inject()
@@ -34,8 +34,6 @@ class MainMenuView : View() {
                         val modal = find<JoinServerView>()
                         modal.mainViewController = controller
                         modal.openModal()
-                        serverMenu.text = "127.1.1.1"
-                        controller.newLobby()
                     }
                 }
             }
@@ -51,12 +49,13 @@ class MainMenuView : View() {
             hbox(spacing = 10.0) {
                 createLobbyButton = button("Create a lobby")
                 createLobbyButton.action {
-                    serverMenu.text = "127.1.1.9"
-                    controller.newLobby()
+                    controller.newLobby(nameTextField.text)
                 }
 
+                nameTextField = textfield {}
+
                 button("Join TEST").action {
-                    Network.getInstance().send(GetLobbiesMessage(1))
+//                    Network.getInstance().send(GetLobbiesMessage(1))
 //                    replaceWith<GameView>()
                 }
 
@@ -76,7 +75,7 @@ class MainMenuView : View() {
         controller.init(this@MainMenuView)
     }
 
-    class JoinServerView() : View() {
+    class JoinServerView: View() {
         var mainViewController: MainMenuController? = null
         val model = ConnectMetaModel(ConnectMeta())
         override val root = vbox(spacing = 10) {

@@ -21,13 +21,22 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
 
         fun fromJson(json: String, type: Int): ApplicationMessage? {
             return try {
-                when (type) {
-                    JoinLobbyMessage(0, "").type -> fromJson<JoinLobbyMessage>(json)
-                    PlayerJoinedLobby(0, "").type -> fromJson<PlayerJoinedLobby>(json)
-                    LobbiesListMessage(listOf()).type -> fromJson<LobbiesListMessage>(json)
-                    else -> null
+                if (type in 401..499) {
+                    fromJson<ErrorResponseMessage>(json)
+                } else {
+                    when (type) {
+                        JoinLobbyMessage(0, "").type -> fromJson<JoinLobbyMessage>(json)
+                        PlayerJoinedLobby(0, "").type -> fromJson<PlayerJoinedLobby>(json)
+                        GetLobbiesMessage(listOf()).type -> fromJson<GetLobbiesMessage>(json)
+                        SuccessResponseMessage("").type -> fromJson<SuccessResponseMessage>(json)
+                        else -> null
+                    }
                 }
             } catch (ex: KlaxonException) {
+                println("json parse error!")
+                println(json)
+
+                println(ex)
                 null
             }
         }
@@ -40,13 +49,19 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
     }
 }
 
-data class JoinLobbyMessage(val lobbyId: Int, val playerName: String) : ApplicationMessage(1)
+data class PlayerJoinedLobby(val playerId: Int, val playerName: String) : ApplicationMessage(102)
 
-data class PlayerJoinedLobby(val playerId: Int, val playerName: String) : ApplicationMessage(2)
+data class CreateLobbyMessage(val clientName: String) : ApplicationMessage(2)
 
-class GetLobbiesMessage(val playerId: Int) : ApplicationMessage(3)
+data class GetLobbiesMessage(val lobbies: List<Lobby>) : ApplicationMessage(3)
 
-data class LobbiesListMessage(val lobbies: List<Lobby>) : ApplicationMessage(103)
+data class JoinLobbyMessage(val lobbyId: Int, val clientName: String) : ApplicationMessage(4)
+
+data class SuccessResponseMessage(val content: String) : ApplicationMessage(701)
+
+data class ErrorResponseMessage(val content: String) : ApplicationMessage(101)
+
+//class GetLobbiesMessage(val playerId: Int) : ApplicationMessage(102)
 
 fun main() {
     val msg: ApplicationMessage = JoinLobbyMessage(1,"topnax")

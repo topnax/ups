@@ -15,7 +15,7 @@ class SimpleMessageReader(private val reader: ApplicationMessageReader) : Messag
         println("Message read ${message.type} of content '${message.content}'")
         val am = ApplicationMessage.fromJson(message.content, message.type)
         am?.let {
-            reader.read(am)
+            reader.read(am, message.id)
         }
     }
 }
