@@ -30,11 +30,11 @@ func GetResponse(Type int, Content string, ID int) ResponseMessage {
 }
 
 func SuccessResponse(Content string) ResponseMessage {
-	return GetResponse(1, Content, 0)
+	return GetResponse(100, Content, 0)
 }
 
 func ErrorResponse(Content string) ResponseMessage {
-	return GetResponse(0, Content, 0)
+	return GetResponse(101, Content, 0)
 }
 
 func MessageResponse(Struct interface{}, Type int) ResponseMessage {

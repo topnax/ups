@@ -6,12 +6,14 @@ import (
 	"syscall"
 	"ups/sp/server/encoding"
 	"ups/sp/server/game_server"
+	"ups/sp/server/impl"
+	"ups/sp/server/messages"
 	"ups/sp/server/networking/server"
 )
 
 func main() {
 
-	bytes, err := json.Marshal(encoding.JoinLobbyMessage{
+	bytes, err := json.Marshal(messages.JoinLobbyMessage{
 		LobbyID:    1,
 		ClientName: "Standa",
 	})
@@ -69,7 +71,7 @@ func main() {
 
 	kkmr := game_server.NewKrisKrosServer()
 
-	jsreade := encoding.SimpleJsonReader{}
+	jsreade := impl.SimpleJsonReader{}
 	jsreade.Init()
 	jsreade.SetOutput(&kkmr)
 

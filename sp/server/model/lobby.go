@@ -1,4 +1,4 @@
-package game_server
+package model
 
 import "ups/sp/server/game"
 

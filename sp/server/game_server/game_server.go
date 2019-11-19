@@ -5,6 +5,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"ups/sp/server/encoding"
 	"ups/sp/server/game"
+	"ups/sp/server/messages"
+	"ups/sp/server/model"
 )
 
 type KrisKrosServer struct {
@@ -12,9 +14,9 @@ type KrisKrosServer struct {
 	lobbyUIQ      int
 
 	count             int
-	lobbies           map[int]*Lobby
-	lobbiesByOwnerID  map[int]*Lobby
-	lobbiesByPlayerID map[int]*Lobby
+	lobbies           map[int]*model.Lobby
+	lobbiesByOwnerID  map[int]*model.Lobby
+	lobbiesByPlayerID map[int]*model.Lobby
 }
 
 func (k *KrisKrosServer) ClientDisconnected(clientUID int) {
@@ -35,7 +37,7 @@ func (k *KrisKrosServer) removeClientFromLobby(clientUID int) {
 		playerIndex := -1
 		for i, player := range lobby.Players {
 			if player.ID != clientUID {
-				k.SendMessage(encoding.PlayerLeftLobbyMessage{ClientName: playerName}, player.ID)
+				k.SendMessage(messages.PlayerLeftLobbyMessage{ClientName: playerName}, player.ID)
 			} else {
 				playerIndex = i
 			}
@@ -47,12 +49,12 @@ func (k *KrisKrosServer) removeClientFromLobby(clientUID int) {
 
 func NewKrisKrosServer() KrisKrosServer {
 	k := KrisKrosServer{
-		lobbies:           make(map[int]*Lobby),
-		lobbiesByOwnerID:  make(map[int]*Lobby),
-		lobbiesByPlayerID: make(map[int]*Lobby),
+		lobbies:           make(map[int]*model.Lobby),
+		lobbiesByOwnerID:  make(map[int]*model.Lobby),
+		lobbiesByPlayerID: make(map[int]*model.Lobby),
 	}
 
-	k.lobbies[1] = &Lobby{
+	k.lobbies[1] = &model.Lobby{
 		ID:      7,
 		Players: nil,
 		Owner:   game.Player{},
@@ -71,7 +73,8 @@ func (k *KrisKrosServer) SendMessage(message encoding.TypedMessage, clientUID in
 	}
 }
 
-func (k *KrisKrosServer) OnJoinLobby(message encoding.JoinLobbyMessage, clientUID int) encoding.ResponseMessage {
+func (k *KrisKrosServer) OnJoinLobby(mes encoding.Message, clientUID int) encoding.ResponseMessage {
+	message := mes.(*messages.JoinLobbyMessage)
 	log.Infof("Receiver join message from %d", clientUID)
 	_, exists := k.lobbies[message.LobbyID]
 	if exists {
@@ -89,7 +92,7 @@ func (k *KrisKrosServer) OnJoinLobby(message encoding.JoinLobbyMessage, clientUI
 		for _, player := range lobby.Players {
 			log.Debugf("[%d] %s", player.ID, player.Name)
 			if player.ID != newPlayer.ID {
-				k.SendMessage(encoding.PlayerJoinedLobbyMessage{ClientName: newPlayer.Name}, player.ID)
+				k.SendMessage(messages.PlayerJoinedLobbyMessage{ClientName: newPlayer.Name}, player.ID)
 			}
 		}
 
@@ -98,15 +101,16 @@ func (k *KrisKrosServer) OnJoinLobby(message encoding.JoinLobbyMessage, clientUI
 	return encoding.ErrorResponse(fmt.Sprintf("Lobby of ID %d does not exist", message.LobbyID))
 }
 
-func (k *KrisKrosServer) OnCreateLobby(message encoding.CreateLobbyMessage, clientUID int) encoding.ResponseMessage {
+func (k *KrisKrosServer) OnCreateLobby(message encoding.Message, clientUID int) encoding.ResponseMessage {
 	log.Infof("Receiver create message from %d", clientUID)
 	_, exists := k.lobbiesByOwnerID[clientUID]
 	if !exists {
+		clmMes := message.(*messages.CreateLobbyMessage)
 		player := game.Player{
-			Name: message.ClientName,
+			Name: clmMes.ClientName,
 			ID:   clientUID,
 		}
-		k.lobbies[k.lobbyUIQ] = &Lobby{
+		k.lobbies[k.lobbyUIQ] = &model.Lobby{
 			Owner: player,
 			ID:    k.lobbyUIQ,
 		}
@@ -116,14 +120,14 @@ func (k *KrisKrosServer) OnCreateLobby(message encoding.CreateLobbyMessage, clie
 		k.lobbiesByOwnerID[clientUID] = k.lobbies[k.lobbyUIQ]
 		lobby.Players = append(lobby.Players, player)
 
-		return encoding.SuccessResponse(fmt.Sprintf("%s created new lobby of ID %d", player.Name, lobby.ID))
+		return encoding.MessageResponse(messages.PlayerJoinedLobbyMessage{ClientName: "you hjoined"}, messages.PlayerJoinedLobbyMessage{}.GetType())
 	} else {
 		return encoding.ErrorResponse(fmt.Sprintf("Player #%d already created a lobby", clientUID))
 	}
 }
 
-func (k *KrisKrosServer) OnGetLobbies(message encoding.GetLobbiesMessage, clientUID int) encoding.ResponseMessage {
-	var lobbies []Lobby
+func (k *KrisKrosServer) OnGetLobbies(mes encoding.Message, clientUID int) encoding.ResponseMessage {
+	var lobbies []model.Lobby
 	for _, v := range k.lobbies {
 		lobbies = append(lobbies, *v)
 	}
@@ -133,7 +137,7 @@ func (k *KrisKrosServer) OnGetLobbies(message encoding.GetLobbiesMessage, client
 }
 
 type LobbiesListMessage struct {
-	Lobbies []Lobby `json:"lobbies"`
+	Lobbies []model.Lobby `json:"lobbies"`
 }
 
 func (p LobbiesListMessage) GetType() int {

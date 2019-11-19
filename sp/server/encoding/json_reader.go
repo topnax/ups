@@ -2,7 +2,6 @@ package encoding
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/sirupsen/logrus"
 )
 
@@ -11,20 +10,13 @@ type JsonReader interface {
 	SetOutput(reader ApplicationMessageReader)
 }
 
-type SimpleJsonReader struct {
-	handlers                 map[int]Message
-	applicationMessageReader ApplicationMessageReader
+type Message interface {
+	Handle(message SimpleMessage, amr ApplicationMessageReader) ResponseMessage
+	GetType() int
 }
 
-func (s *SimpleJsonReader) Init() {
-	s.handlers = make(map[int]Message)
-	s.Register(&CreateLobbyMessage{})
-	s.Register(&JoinLobbyMessage{})
-	s.Register(&GetLobbiesMessage{})
-}
-
-func (s *SimpleJsonReader) Register(handler Message) {
-	s.handlers[(handler).GetType()] = handler
+type TypedMessage interface {
+	GetType() int
 }
 
 func (simpleMessage SimpleMessage) Parse(messageTemplate interface{}) bool {
@@ -35,17 +27,4 @@ func (simpleMessage SimpleMessage) Parse(messageTemplate interface{}) bool {
 		return false
 	}
 	return true
-}
-
-func (s *SimpleJsonReader) Read(message SimpleMessage) ResponseMessage {
-	handler, ok := s.handlers[message.Type]
-	if !ok {
-		return ErrorResponse(fmt.Sprintf("Cannot read message from client %d of type %d\nContent: '%s'", message.ClientUID, message.Type, message.Content))
-	} else {
-		return handler.Handle(message, s.applicationMessageReader)
-	}
-}
-
-func (s *SimpleJsonReader) SetOutput(reader ApplicationMessageReader) {
-	s.applicationMessageReader = reader
 }
