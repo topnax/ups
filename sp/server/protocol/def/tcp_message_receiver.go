@@ -14,6 +14,7 @@ type Message interface {
 type Response interface {
 	Content() string
 	Type() int
+	ID() int
 }
 
 type MessageSender interface {
@@ -21,5 +22,5 @@ type MessageSender interface {
 }
 
 type ResponseSender interface {
-	Send(response Response, clientUID int)
+	Send(response Response, clientUID int, msgID int)
 }

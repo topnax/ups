@@ -130,11 +130,12 @@ func (s *SimpleTcpMessageReceiver) clearBuffer(buffer *SimpleTcpMessageBuffer) {
 			msgType:     buffer.MessageType,
 		})
 	} else {
-		response = ErrorResponse("Cannot send message to JSON parser because it's null", NoMessageReader)
+		response = ErrorResponseID("Cannot send message to JSON parser because it's null", NoMessageReader, buffer.MessageId)
 	}
-	buffer.reset()
+
+	s.Send(response, buffer.ClientUID, buffer.MessageId)
 	log.Debugln("Responding to client %d '%s'", buffer.ClientUID, response.Content())
-	s.Send(response, buffer.ClientUID)
+	buffer.reset()
 }
 
 func (receiver *SimpleTcpMessageReceiver) SetMessageReader(reader def.MessageReader) {
@@ -145,10 +146,15 @@ func (receiver *SimpleTcpMessageReceiver) SetOutput(output def.MessageSender) {
 	receiver.responseSender = output
 }
 
-func (s *SimpleTcpMessageReceiver) Send(response def.Response, clientUID int) {
-	log.Debugf("Sending message of type %d to %d: '%s'", response.Type, clientUID, response.Content)
+func (s *SimpleTcpMessageReceiver) Send(response def.Response, clientUID int, msgID int) {
+
+	if response.ID() != 0 {
+		msgID = response.ID()
+	}
+
+	log.Debugf("Sending message of type %d to %d: '%s'", response.Type(), clientUID, response.Content())
 	if s.responseSender != nil {
-		s.responseSender.Send(fmt.Sprintf("%c%d%s%d%s%d%s%s", StartChar, len(response.Content()), Separator, response.Type(), Separator, clientUID, Separator, response.Content()), clientUID)
+		s.responseSender.Send(fmt.Sprintf("%c%d%s%d%s%d%s%s", StartChar, len(response.Content()), Separator, response.Type(), Separator, msgID, Separator, response.Content()), clientUID)
 	} else {
 		log.Errorln("Cannot send response because output is null")
 	}

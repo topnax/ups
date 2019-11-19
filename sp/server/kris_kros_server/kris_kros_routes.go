@@ -1,23 +1,53 @@
 package kris_kros_server
 
 import (
-	log "github.com/sirupsen/logrus"
 	"ups/sp/server/protocol/def"
 	"ups/sp/server/protocol/messages"
 )
 
 func (router *KrisKrosRouter) registerRoutes() {
 	router.register(messages.PlayerJoinedMessage{}, playerJoinedRoute)
+	router.register(messages.CreateLobbyMessage{}, createLobbyRoute)
+	router.register(messages.GetLobbiesMessage{}, getLobbiesRoute)
+	router.register(messages.JoinLobbyMessage{}, joinLobbyRoute)
 }
 
 func playerJoinedRoute(handler def.MessageHandler, server *KrisKrosServer, clientUID int) def.Response {
-	// $15#1#1#{"name":"Stan"}
-	log.Infoln("Player joined route triggered")
-
 	msg, ok := handler.(messages.PlayerJoinedMessage)
 
 	if ok {
 		return server.OnPlayerJoined(msg, clientUID)
 	}
+
+	return failedToCast(handler)
+}
+
+func createLobbyRoute(handler def.MessageHandler, server *KrisKrosServer, clientUID int) def.Response {
+	msg, ok := handler.(messages.CreateLobbyMessage)
+
+	if ok {
+		return server.OnCreateLobby(msg, clientUID)
+	}
+
+	return failedToCast(handler)
+}
+
+func getLobbiesRoute(handler def.MessageHandler, server *KrisKrosServer, clientUID int) def.Response {
+	msg, ok := handler.(messages.GetLobbiesMessage)
+
+	if ok {
+		return server.OnGetLobbies(msg, clientUID)
+	}
+
+	return failedToCast(handler)
+}
+
+func joinLobbyRoute(handler def.MessageHandler, server *KrisKrosServer, clientUID int) def.Response {
+	msg, ok := handler.(messages.JoinLobbyMessage)
+
+	if ok {
+		return server.OnJoinLobby(msg, clientUID)
+	}
+
 	return failedToCast(handler)
 }

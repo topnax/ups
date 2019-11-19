@@ -1,34 +1,78 @@
 package messages
 
 import (
-	"github.com/sirupsen/logrus"
-	"ups/sp/server/model"
 	"ups/sp/server/protocol/def"
 )
 
 const (
-	PlayerJoinedLobby = 1
+	PlayerJoinedLobbyType = 1
+	CreateLobbyType       = 2
+	GetLobbiesType        = 3
+	JoinLobbyMessageType  = 4
 )
 
 type PlayerJoinedMessage struct {
-	Name string `json:"name"`
+	PlayerName string `json:"player_name"`
 }
 
 func (p PlayerJoinedMessage) Handle(message def.Message, amr def.ApplicationMessageReader) def.Response {
 	if parse(message, &p) {
-		logrus.Infoln("My name is", p.Name)
-		res := amr.Read(p, message.ClientID())
-		logrus.Infoln("MEssages returning", res.Content())
-		return res
+		return amr.Read(p, message.ClientID())
 	}
 	return failedToParse(message)
 }
 
 func (p PlayerJoinedMessage) GetType() int {
-	return PlayerJoinedLobby
+	return PlayerJoinedLobbyType
 }
 
-type PlayerConfirmation struct {
-	counter     int
-	model.Lobby `json:"lobby"`
+////////////////////////////////////////////
+
+type CreateLobbyMessage struct {
+	PlayerName string `json:"player_name"`
+}
+
+func (p CreateLobbyMessage) Handle(message def.Message, amr def.ApplicationMessageReader) def.Response {
+	if parse(message, &p) {
+		return amr.Read(p, message.ClientID())
+	}
+	return failedToParse(message)
+}
+
+func (p CreateLobbyMessage) GetType() int {
+	return CreateLobbyType
+}
+
+////////////////////////////////////////////
+
+type GetLobbiesMessage struct {
+}
+
+func (p GetLobbiesMessage) Handle(message def.Message, amr def.ApplicationMessageReader) def.Response {
+	if parse(message, &p) {
+		return amr.Read(p, message.ClientID())
+	}
+	return failedToParse(message)
+}
+
+func (p GetLobbiesMessage) GetType() int {
+	return GetLobbiesType
+}
+
+////////////////////////////////////////////
+
+type JoinLobbyMessage struct {
+	PlayerName string `json:"player_name"`
+	LobbyID    int    `json:"lobby_id"`
+}
+
+func (p JoinLobbyMessage) Handle(message def.Message, amr def.ApplicationMessageReader) def.Response {
+	if parse(message, &p) {
+		return amr.Read(p, message.ClientID())
+	}
+	return failedToParse(message)
+}
+
+func (p JoinLobbyMessage) GetType() int {
+	return JoinLobbyMessageType
 }

@@ -31,7 +31,8 @@ func (s *SimpleMessageReader) Read(message def.Message) def.Response {
 	handler, ok := s.handlers[message.Type()]
 	log.Debugln("MessageReader read message from UID %d of type %d and of content %s", message.ClientID(), message.Type(), message.Content())
 	if !ok {
-		return ErrorResponse(fmt.Sprintf("Could not find a message handler for a message of type '%d' and content '%s'", message.Type(), message.Content()), NoMessageHandler)
+		res := ErrorResponseID(fmt.Sprintf("Could not find a message handler for a message of type '%d' and content '%s'", message.Type(), message.Content()), NoMessageHandler, message.ID())
+		return res
 	} else {
 		res := handler.Handle(message, s.applicationMessageReader)
 		return res
