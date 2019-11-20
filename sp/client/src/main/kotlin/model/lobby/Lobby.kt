@@ -1,12 +1,8 @@
 package model.lobby
 
-import com.beust.klaxon.Klaxon
 import javafx.beans.property.SimpleIntegerProperty
 import javafx.beans.property.SimpleStringProperty
-import javafx.collections.ObservableList
-import tornadofx.ViewModel
 import tornadofx.getValue
-import tornadofx.observableList
 import tornadofx.setValue
 
 class Lobby(id: Int, owner: String, players: Int) {

@@ -23,17 +23,17 @@ class MainMenuController : Controller(), MessageReader, ConnectionStatusListener
     var lobbies: ObservableList<Lobby> = observableList()
 
     init {
-        Network.getInstance().addMessageListener(GetLobbiesMessage::class.java, ::onLobbiesListRetrieved)
+//        Network.getInstance().addMessageListener(GetLobbiesMessage::class.java, ::onLobbiesListRetrieved)
+        Network.getInstance().addMessageListener(::onLobbiesListRetrieved)
     }
 
-    fun onLobbiesListRetrieved(message: ApplicationMessage) {
-        if (message is GetLobbiesMessage) {
-            message.lobbies.forEach {
-                println("lobby ${it.id}")
-                println(it.owner)
-                println(it.id)
-                println(it.players)
-            }
+    fun onLobbiesListRetrieved(message: GetLobbiesMessage) {
+        message.lobbies.forEach {
+            println("lobby ${it.id}")
+            println(it.owner)
+            println(it.id)
+            println(it.players)
+
         }
     }
 

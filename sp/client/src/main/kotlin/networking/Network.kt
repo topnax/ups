@@ -5,6 +5,7 @@ import networking.messages.ApplicationMessage
 import networking.messages.SuccessResponseMessage
 import networking.reader.SimpleMessageReader
 import networking.receiver.SimpleMessageReceiver
+import tornadofx.App
 
 class Network : ConnectionStatusListener, ApplicationMessageReader {
 
@@ -25,7 +26,7 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
 
     var tcpLayer: TCPLayer? = null
 
-    private var messageListeners = mutableMapOf<Class<out ApplicationMessage>, MutableList<(ApplicationMessage) -> Unit>>()
+    var messageListeners = mutableMapOf<Class<out ApplicationMessage>, MutableList<(T: ApplicationMessage) -> Unit>>()
 
     private var responseListeners = mutableMapOf<Int, MutableList<(ApplicationMessage) -> Unit>>()
 
@@ -37,13 +38,17 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
         tcpLayer?.start()
     }
 
-    fun addMessageListener(messageClazz: Class<out ApplicationMessage>, callback: (ApplicationMessage) -> Unit) {
-        messageListeners.putIfAbsent(messageClazz, mutableListOf())
-        messageListeners[messageClazz]?.add(callback)
-    }
-
     fun removeMessageListener(messageClazz: Class<out ApplicationMessage>, callback: (ApplicationMessage) -> Unit) {
         messageListeners[messageClazz]?.remove(callback)
+    }
+
+    inline fun <reified T: ApplicationMessage> addMessageListener(noinline callback: (T) -> Unit){
+        messageListeners.putIfAbsent(T::class.java, mutableListOf())
+        messageListeners[T::class.java]?.add(callback as (ApplicationMessage) -> Unit)
+    }
+
+    inline fun <reified T: ApplicationMessage> removeMessageListener(noinline callback: (T) -> Unit){
+        messageListeners[T::class.java]?.remove(callback)
     }
 
     fun addResponseListener(mid: Int, callback: (ApplicationMessage) -> Unit) {
