@@ -20,33 +20,7 @@ package kris_kros_server
 //	lobbiesByPlayerID map[int]*model.Lobby
 //}
 //
-//func (k *KrisKrosServer) ClientDisconnected(clientUID int) {
-//	k.removeClientFromLobby(clientUID)
-//}
-//
-//func (k *KrisKrosServer) removeClientFromLobby(clientUID int) {
-//	lobby, ok := k.lobbiesByPlayerID[clientUID]
-//	log.Info("Inside remove client from lobby", clientUID, ok)
-//	if ok {
-//		playerName := ""
-//		for _, player := range lobby.Players {
-//			if player.ID == clientUID {
-//				playerName = player.PlayerName
-//			}
-//		}
-//
-//		playerIndex := -1
-//		for i, player := range lobby.Players {
-//			if player.ID != clientUID {
-//				k.SendMessage(messages.PlayerLeftLobbyMessage{ClientName: playerName}, player.ID)
-//			} else {
-//				playerIndex = i
-//			}
-//		}
-//		lobby.Players = append(lobby.Players[:playerIndex], lobby.Players[playerIndex+1:]...)
-//		delete(k.lobbiesByPlayerID, clientUID)
-//	}
-//}
+
 //
 //func NewKrisKrosServer() KrisKrosServer {
 //	k := KrisKrosServer{

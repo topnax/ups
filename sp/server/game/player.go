@@ -1,6 +1,6 @@
 package game
 
 type Player struct {
-	Name string
-	ID   int
+	Name string `json:"name"`
+	ID   int    `json:"id"`
 }

@@ -19,6 +19,7 @@ const (
 
 	PlayerAlreadyCreatedLobby = 20
 	LobbyDoesNotExist         = 21
+	CouldNotLeaveLobby        = 22
 
 	PlainSuccess = 701
 )

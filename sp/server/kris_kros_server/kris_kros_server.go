@@ -68,12 +68,13 @@ func (k *KrisKrosServer) OnJoinLobby(message messages.JoinLobbyMessage, clientUI
 		for _, player := range lobby.Players {
 			log.Debugf("[%d] %s", player.ID, player.Name)
 			if player.ID != newPlayer.ID {
-				resp := responses.PlayerJoinedResponse{PlayerName: newPlayer.Name, PlayerID: newPlayer.ID}
+				//resp := responses.PlayerJoinedResponse{PlayerName: newPlayer.Name, PlayerID: newPlayer.ID}
+				resp := responses.LobbyJoinedResponse{Lobby: *lobby}
 				k.sender.Send(impl.MessageResponse(resp, resp.Type()), player.ID, 0)
 			}
 		}
-
-		return impl.SuccessResponse(fmt.Sprintf("Sucessfully joined a lobby of ID %d. Owner %s", lobby.ID, lobby.Owner.Name))
+		resp := responses.LobbyJoinedResponse{Lobby: *lobby}
+		return impl.MessageResponse(resp, resp.Type())
 	}
 	return impl.ErrorResponse(fmt.Sprintf("Lobby of ID %d does not exist", message.LobbyID), impl.LobbyDoesNotExist)
 }
@@ -91,6 +92,8 @@ func (k *KrisKrosServer) OnCreateLobby(msg messages.CreateLobbyMessage, clientUI
 			ID:    k.lobbyUIQ,
 		}
 		lobby := k.lobbies[k.lobbyUIQ]
+		k.lobbiesByPlayerID[player.ID] = lobby
+
 		k.lobbyUIQ++
 
 		k.lobbiesByOwnerID[clientUID] = k.lobbies[k.lobbyUIQ]
@@ -103,7 +106,7 @@ func (k *KrisKrosServer) OnCreateLobby(msg messages.CreateLobbyMessage, clientUI
 }
 
 func (k *KrisKrosServer) OnGetLobbies(message messages.GetLobbiesMessage, clientID int) def.Response {
-	var lobbies []model.Lobby
+	lobbies := []model.Lobby{}
 
 	for _, lobby := range k.lobbies {
 		lobbies = append(lobbies, *lobby)
@@ -112,6 +115,64 @@ func (k *KrisKrosServer) OnGetLobbies(message messages.GetLobbiesMessage, client
 	resp := responses.GetLobbiesResponse{Lobbies: lobbies}
 
 	return impl.MessageResponse(resp, resp.Type())
+}
+
+func (k *KrisKrosServer) ClientDisconnected(clientUID int) {
+	k.removeClientFromLobby(clientUID)
+}
+
+func (k *KrisKrosServer) removeClientFromLobby(clientUID int) bool {
+	lobby, ok := k.lobbiesByPlayerID[clientUID]
+	log.Infof("Inside remove client from lobby, clientuid %d, exists : %v", clientUID, ok)
+	if ok {
+		var dcdPlayer game.Player
+		dcdPlayerIndex := -1
+		for i, player := range lobby.Players {
+			if player.ID == clientUID {
+				dcdPlayer = player
+				dcdPlayerIndex = i
+				break
+			}
+		}
+		if dcdPlayer.ID == lobby.Owner.ID {
+			k.destroyLobby(lobby)
+		} else {
+
+			lobby.Players = append(lobby.Players[:dcdPlayerIndex], lobby.Players[dcdPlayerIndex+1:]...)
+			delete(k.lobbiesByPlayerID, clientUID)
+
+			for _, player := range lobby.Players {
+				if player.ID != clientUID {
+					resp := responses.LobbyJoinedResponse{Lobby: *lobby}
+					k.sender.Send(impl.MessageResponse(resp, resp.Type()), player.ID, 0)
+				}
+			}
+		}
+		return false
+	}
+	return false
+}
+
+func (k *KrisKrosServer) destroyLobby(lobby *model.Lobby) {
+	log.Infof("Destroying a lobby of id %d and owner %s", lobby.ID, lobby.Owner.Name)
+	for _, player := range lobby.Players {
+		if player.ID != lobby.Owner.ID {
+			resp := responses.LobbyDestroyed{}
+			delete(k.lobbiesByPlayerID, player.ID)
+			k.sender.Send(impl.MessageResponse(resp, resp.Type()), player.ID, 0)
+		}
+	}
+
+	delete(k.lobbiesByOwnerID, lobby.Owner.ID)
+	delete(k.lobbies, lobby.ID)
+}
+
+func (k *KrisKrosServer) OnLeaveLobby(clientUID int) def.Response {
+	if k.removeClientFromLobby(clientUID) {
+		return impl.SuccessResponse("Successfully left lobby")
+	} else {
+		return impl.ErrorResponse("Could not leave the lobby", impl.CouldNotLeaveLobby)
+	}
 }
 
 //func (k *KrisKrosServer) OnGetLobbies(mes encoding.Message, clientUID int) encoding.ResponseMessage {

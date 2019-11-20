@@ -1,10 +1,16 @@
 package responses
 
-import "ups/sp/server/model"
+import (
+	"ups/sp/server/game"
+	"ups/sp/server/model"
+)
 
 const (
-	getLobbiesResponse   = 101
-	playerJoinedResponse = 102
+	getLobbiesResponse      = 101
+	playerJoinedResponse    = 102
+	lobbyJoinedResponse     = 103
+	playerLeftLobbyResponse = 104
+	lobbyDestroyedResponse  = 105
 )
 
 type TypedResponse interface {
@@ -20,7 +26,7 @@ type PlainResponse struct {
 //////////////////////////////////////
 
 type GetLobbiesResponse struct {
-	Lobbies []model.Lobby
+	Lobbies []model.Lobby `json:"lobbies"`
 }
 
 func (g GetLobbiesResponse) Type() int {
@@ -36,4 +42,33 @@ type PlayerJoinedResponse struct {
 
 func (g PlayerJoinedResponse) Type() int {
 	return playerJoinedResponse
+}
+
+//////////////////////////////////////
+
+type LobbyJoinedResponse struct {
+	Lobby model.Lobby `json:"lobby"`
+}
+
+func (g LobbyJoinedResponse) Type() int {
+	return lobbyJoinedResponse
+}
+
+//////////////////////////////////////
+
+type PlayerLeftLobby struct {
+	Player game.Player `json:"player"`
+}
+
+func (g PlayerLeftLobby) Type() int {
+	return playerLeftLobbyResponse
+}
+
+//////////////////////////////////////
+
+type LobbyDestroyed struct {
+}
+
+func (g LobbyDestroyed) Type() int {
+	return lobbyDestroyedResponse
 }

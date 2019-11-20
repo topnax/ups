@@ -5,6 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 	"ups/sp/server/protocol/def"
 )
 
@@ -113,7 +114,9 @@ func (s *SimpleTcpMessageReceiver) Receive(UID int, bytes []byte, length int) {
 }
 
 func (s *SimpleTcpMessageReceiver) checkBufferReady(buffer *SimpleTcpMessageBuffer) {
-	if len(buffer.buffer) == buffer.Length {
+	strlen := utf8.RuneCountInString(buffer.buffer)
+	//if len(buffer.buffer) == buffer.Length {
+	if strlen == buffer.Length {
 		s.clearBuffer(buffer)
 	}
 }
@@ -154,7 +157,7 @@ func (s *SimpleTcpMessageReceiver) Send(response def.Response, clientUID int, ms
 
 	log.Debugf("Sending message of type %d to %d: '%s'", response.Type(), clientUID, response.Content())
 	if s.responseSender != nil {
-		s.responseSender.Send(fmt.Sprintf("%c%d%s%d%s%d%s%s", StartChar, len(response.Content()), Separator, response.Type(), Separator, msgID, Separator, response.Content()), clientUID)
+		s.responseSender.Send(fmt.Sprintf("%c%d%s%d%s%d%s%s", StartChar, utf8.RuneCountInString(response.Content()), Separator, response.Type(), Separator, msgID, Separator, response.Content()), clientUID)
 	} else {
 		log.Errorln("Cannot send response because output is null")
 	}

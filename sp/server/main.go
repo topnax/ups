@@ -9,7 +9,6 @@ import (
 )
 
 func main() {
-
 	log.SetLevel(log.DebugLevel)
 	//37
 	//log.SetOutput(os.Stdout)
@@ -30,6 +29,7 @@ func main() {
 
 	tcpReceiver.SetMessageReader(&messageReader)
 	tcpReceiver.SetOutput(&serverx)
+	serverx.SetOnClientDisconnectedListener(&krisKrosServer)
 
 	serverx.Start(&tcpReceiver)
 
