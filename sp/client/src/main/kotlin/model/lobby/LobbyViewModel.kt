@@ -5,15 +5,17 @@ import javafx.beans.property.SimpleStringProperty
 import tornadofx.getValue
 import tornadofx.setValue
 
-class Lobby(id: Int, owner: String, players: Int) {
+class LobbyViewModel(id: Int, owner: String, playerCount: Int) {
 
     val idProperty = SimpleIntegerProperty(id)
     var id by idProperty
 
     val ownerProperty = SimpleStringProperty(owner)
-    var owner by ownerProperty
+    var ownerName by ownerProperty
 
-    val playersProperty = SimpleIntegerProperty(players)
-    var players by playersProperty
+    val playersProperty = SimpleIntegerProperty(playerCount)
+    var playerCount by playersProperty
 
 }
+
+class Lobby(val players: List<Player>, val id: Int, val owner: Player)

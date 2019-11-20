@@ -42,12 +42,12 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
         messageListeners[messageClazz]?.remove(callback)
     }
 
-    inline fun <reified T: ApplicationMessage> addMessageListener(noinline callback: (T) -> Unit){
+    inline fun <reified T : ApplicationMessage> addMessageListener(noinline callback: (T) -> Unit) {
         messageListeners.putIfAbsent(T::class.java, mutableListOf())
         messageListeners[T::class.java]?.add(callback as (ApplicationMessage) -> Unit)
     }
 
-    inline fun <reified T: ApplicationMessage> removeMessageListener(noinline callback: (T) -> Unit){
+    inline fun <reified T : ApplicationMessage> removeMessageListener(noinline callback: (T) -> Unit) {
         messageListeners[T::class.java]?.remove(callback)
     }
 
@@ -73,16 +73,18 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
     }
 
     override fun onFailedAttempt(attempt: Int) {
-        connectionStatusListeners.forEach{
+        connectionStatusListeners.forEach {
             it.onFailedAttempt(attempt)
         }
     }
 
     override fun read(message: ApplicationMessage, mid: Int) {
         println("received message of type ${message.type}")
-        for (callback: (ApplicationMessage) -> Unit in messageListeners.getOrDefault(message.javaClass, listOf<(ApplicationMessage) -> Unit>())) {
-            println("invoking :)")
-            callback.invoke(message)
+        synchronized(messageListeners) {
+            for (callback: (ApplicationMessage) -> Unit in messageListeners.getOrDefault(message.javaClass, listOf<(ApplicationMessage) -> Unit>())) {
+                println("invoking :)")
+                callback.invoke(message)
+            }
         }
 
 
@@ -101,6 +103,7 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
             addResponseListener(if (desiredMessageId != 0) desiredMessageId else messageId, callback)
         }
 
+        println("printing $json to server")
 
         tcpLayer?.write("${SimpleMessageReceiver.START_CHAR}${json.length}${SimpleMessageReceiver.SEPARATOR}${message.type}${SimpleMessageReceiver.SEPARATOR}${messageId}${SimpleMessageReceiver.SEPARATOR}$json")
 

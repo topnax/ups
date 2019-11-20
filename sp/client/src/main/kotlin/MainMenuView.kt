@@ -6,8 +6,11 @@ import javafx.scene.control.Label
 import javafx.scene.control.MenuItem
 import javafx.scene.control.TextField
 import javafx.scene.layout.Priority
-import model.lobby.Lobby
+import model.lobby.LobbyViewModel
 import networking.Network
+import networking.messages.ApplicationMessage
+import networking.messages.GetLobbiesMessage
+import networking.messages.GetLobbiesResponse
 
 import tornadofx.*
 
@@ -55,24 +58,35 @@ class MainMenuView : View() {
                 nameTextField = textfield {}
 
                 button("Join TEST").action {
-//                    Network.getInstance().send(GetLobbiesMessage(1))
-//                    replaceWith<GameView>()
+                    controller.refreshLobbies()
                 }
 
             }
 
-            tableview(controller.lobbies) {
-                placeholder = Label("No lobbies found")
+            tableview(controller.lobbyViewModels) {
+                placeholder = Label("No lobbyViewModels found")
                 insets(10.0)
-                column("ID", Lobby::idProperty)
-                column("Owner", Lobby::owner)
-                column("Players", Lobby::playersProperty)
+                column("ID", LobbyViewModel::idProperty)
+                column("Owner", LobbyViewModel::ownerName)
+                column("Players", LobbyViewModel::playersProperty)
                 vboxConstraints {
                     vGrow = Priority.ALWAYS
                 }
+                onDoubleClick {
+                    println(this.selectedItem?.id)
+                    this.selectedItem?.let {
+                        controller.onJoinLobby(it.id)
+                    }
+                }
+
             }
         }
         controller.init(this@MainMenuView)
+    }
+
+    override fun onDock() {
+        super.onDock()
+        controller.refreshLobbies()
     }
 
     class JoinServerView: View() {

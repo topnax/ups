@@ -4,6 +4,8 @@ import MainMenuView
 import javafx.application.Platform
 import javafx.collections.ObservableList
 import model.lobby.Lobby
+import model.lobby.LobbyViewModel
+import model.lobby.Player
 import networking.ConnectionStatusListener
 import networking.Network
 import networking.messages.*
@@ -12,80 +14,12 @@ import networking.receiver.Message
 import tornadofx.Controller
 import tornadofx.observableList
 import views.LobbyView
-import java.util.*
 
-class MainMenuController : Controller(), MessageReader, ConnectionStatusListener {
-
-    val random = Random()
+class MainMenuController : Controller(), ConnectionStatusListener {
 
     lateinit var mainMenuView: MainMenuView
 
-    var lobbies: ObservableList<Lobby> = observableList()
-
-    init {
-//        Network.getInstance().addMessageListener(GetLobbiesMessage::class.java, ::onLobbiesListRetrieved)
-        Network.getInstance().addMessageListener(::onLobbiesListRetrieved)
-    }
-
-    fun onLobbiesListRetrieved(message: GetLobbiesMessage) {
-        message.lobbies.forEach {
-            println("lobby ${it.id}")
-            println(it.owner)
-            println(it.id)
-            println(it.players)
-
-        }
-    }
-
-    override fun onConnected() {
-        Platform.runLater {
-            mainMenuView.setNetworkElementsEnabled(true)
-            mainMenuView.serverMenu.text = "Connected to ${Network.getInstance().tcpLayer?.hostname}"
-//            Network.getInstance().send(GetLobb(1))
-        }
-    }
-
-    override fun onUnreachable() {
-        println("onunreachable")
-        Platform.runLater {
-            mainMenuView.setNetworkElementsEnabled(true)
-            mainMenuView.serverMenu.text = "${Network.getInstance().tcpLayer?.hostname} is unreachable"
-        }
-    }
-
-    override fun onFailedAttempt(attempt: Int) {
-        println("onfailed" + attempt)
-        Platform.runLater {
-            mainMenuView.serverMenu.text = "${Network.getInstance().tcpLayer?.hostname} did not respond. Attempt $attempt"
-        }
-    }
-
-    @Synchronized
-    override fun read(message: Message) {
-        mainMenuView.serverMenu.text = message.content
-    }
-
-    fun newLobby(name: String) {
-//        lobbies.add(Lobby(1, "magor", random.nextInt(102)))
-
-        Network.getInstance().send(CreateLobbyMessage(name), { am: ApplicationMessage ->
-            run {
-                when (am) {
-                    is SuccessResponseMessage -> {
-                        println("created yes ${am.content}")
-                        Platform.runLater {
-                            mainMenuView.replaceWith(find<LobbyView>(mapOf(LobbyView::playerName to mainMenuView.nameTextField.text)))
-                        }
-
-                    }
-                    is ErrorResponseMessage -> println("fail ${am.content}")
-                    else -> {
-
-                    }
-                }
-            }
-        })
-    }
+    var lobbyViewModels: ObservableList<LobbyViewModel> = observableList()
 
     fun init(mainMenuView: MainMenuView) {
         this.mainMenuView = mainMenuView
@@ -93,9 +27,78 @@ class MainMenuController : Controller(), MessageReader, ConnectionStatusListener
         connectTo("localhost", 10000)
     }
 
+    override fun onConnected() {
+        Platform.runLater {
+            mainMenuView.setNetworkElementsEnabled(true)
+            mainMenuView.serverMenu.text = "Connected to ${Network.getInstance().tcpLayer?.hostname}"
+        }
+        refreshLobbies()
+    }
+
+    override fun onUnreachable() {
+        Platform.runLater {
+            mainMenuView.setNetworkElementsEnabled(true)
+            mainMenuView.serverMenu.text = "${Network.getInstance().tcpLayer?.hostname} is unreachable"
+        }
+    }
+
+    override fun onFailedAttempt(attempt: Int) {
+        Platform.runLater {
+            mainMenuView.serverMenu.text = "${Network.getInstance().tcpLayer?.hostname} did not respond. Attempt $attempt"
+        }
+    }
+
+    fun newLobby(name: String) {
+        Network.getInstance().send(CreateLobbyMessage(name), { am: ApplicationMessage ->
+            run {
+                when (am) {
+                    is SuccessResponseMessage -> {
+                        Platform.runLater {
+                            val player = Player(name, -1)
+                            mainMenuView.replaceWith(find<LobbyView>(mapOf(LobbyView::lobby to Lobby(listOf(player), -1, player))))
+                        }
+                    }
+                    is ErrorResponseMessage -> println("fail ${am.content}")
+                }
+            }
+        })
+    }
+
+    fun refreshLobbies() {
+        Network.getInstance().send(GetLobbiesMessage(), { am: ApplicationMessage ->
+            run {
+                when (am) {
+                    is GetLobbiesResponse -> {
+                        lobbyViewModels.clear()
+                        am.lobbies.forEach {
+                            lobbyViewModels.add(LobbyViewModel(it.id, it.owner.name, it.players.size))
+                        }
+                    }
+                    else -> lobbyViewModels.clear()
+                }
+            }
+        })
+    }
+
     fun connectTo(hostname: String, port: Int) {
         mainMenuView.setNetworkElementsEnabled(false)
         Network.getInstance().connectTo(hostname, port)
+    }
+
+    fun onJoinLobby(id: Int) {
+        Network.getInstance().send(JoinLobbyMessage(id, mainMenuView.nameTextField.text), { am: ApplicationMessage ->
+            run {
+                Platform.runLater {
+                    if (am is LobbyJoinedMessage) {
+                        println("Owner is of id #${am.lobby.owner.id}")
+                        am.lobby.players.forEach {
+                            println("player ${it.name} of id ${it.id}")
+                        }
+                        mainMenuView.replaceWith(find<LobbyView>(mapOf(LobbyView::lobby to am.lobby)))
+                    }
+                }
+            }
+        })
     }
 
 }

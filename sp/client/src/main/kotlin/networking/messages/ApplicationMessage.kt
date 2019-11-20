@@ -5,6 +5,7 @@ import com.beust.klaxon.Json
 import com.beust.klaxon.Klaxon
 import com.beust.klaxon.KlaxonException
 import model.lobby.Lobby
+import model.lobby.Player
 
 
 abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
@@ -27,8 +28,11 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
                     when (type) {
                         JoinLobbyMessage(0, "").type -> fromJson<JoinLobbyMessage>(json)
                         PlayerJoinedLobby(0, "").type -> fromJson<PlayerJoinedLobby>(json)
-                        GetLobbiesMessage(listOf()).type -> fromJson<GetLobbiesMessage>(json)
+                        GetLobbiesMessage().type -> fromJson<GetLobbiesMessage>(json)
                         SuccessResponseMessage("").type -> fromJson<SuccessResponseMessage>(json)
+                        GetLobbiesResponse(mutableListOf()).type -> fromJson<GetLobbiesResponse>(json)
+                        LobbyJoinedMessage(Lobby(listOf(), 0, Player("", 0))).type -> fromJson<LobbyJoinedMessage>(json)
+                        LobbyDestroyedResponse().type -> fromJson<LobbyDestroyedResponse>(json)
                         else -> null
                     }
                 }
@@ -42,29 +46,46 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
         }
     }
 
-    fun toJson(): String {
+    open fun toJson(): String {
         val json = Klaxon().fieldRenamer(renamer).toJsonString(this)
         println("parsed to '$json'")
         return json
     }
 }
 
+open class EmptyMessage(messageType: Int) : ApplicationMessage(messageType) {
+    override fun toJson(): String {
+        return "{}"
+    }
+}
+
 data class PlayerJoinedLobby(val playerId: Int, val playerName: String) : ApplicationMessage(102)
 
-data class CreateLobbyMessage(val clientName: String) : ApplicationMessage(2)
+data class CreateLobbyMessage(val playerName: String) : ApplicationMessage(2)
 
-data class GetLobbiesMessage(val lobbies: List<Lobby>) : ApplicationMessage(3)
+class GetLobbiesMessage : EmptyMessage(3)
 
-data class JoinLobbyMessage(val lobbyId: Int, val clientName: String) : ApplicationMessage(4)
+data class JoinLobbyMessage(val lobbyId: Int, val playerName: String) : ApplicationMessage(4)
+
+class LeaveLobbyMessage : EmptyMessage(5)
+
+data class GetLobbiesResponse(val lobbies: MutableList<Lobby>): ApplicationMessage(101)
 
 data class SuccessResponseMessage(val content: String) : ApplicationMessage(701)
 
 data class ErrorResponseMessage(val content: String) : ApplicationMessage(101)
 
+data class LobbyJoinedMessage(val lobby: Lobby) : ApplicationMessage(103)
+
+class LobbyDestroyedResponse : EmptyMessage(105)
+
 //class GetLobbiesMessage(val playerId: Int) : ApplicationMessage(102)
 
 fun main() {
-    val msg: ApplicationMessage = JoinLobbyMessage(1,"topnax")
-    println("dx" + msg.toJson())
-    print(Klaxon().fieldRenamer(renamer = ApplicationMessage.renamer).toJsonString(JoinLobbyMessage(1, "topnax")))
+    try {
+        val lobby = Klaxon().fieldRenamer(ApplicationMessage.renamer).parse<LobbyDestroyedResponse>("{}")
+        println("Lobby type is ${lobby?.type}")
+    } catch (ex: KlaxonException) {
+        ex.printStackTrace()
+    }
 }

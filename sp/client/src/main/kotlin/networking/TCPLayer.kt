@@ -54,7 +54,6 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
                 println("Writing to server")
 
                 while (run) {
-
                     var len = input?.read(serverMessage)
 
                     if (len == null) {
