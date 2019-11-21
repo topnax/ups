@@ -114,4 +114,8 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
             messageId = MESSAGE_STARTING_ID
         }
     }
+
+    fun stop() {
+        tcpLayer?.close()
+    }
 }

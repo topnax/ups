@@ -5,6 +5,7 @@ import java.io.*
 import java.net.ConnectException
 import java.net.InetAddress
 import java.net.Socket
+import java.net.SocketException
 
 class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost", val messageReceiver: MessageReceiver, val connectionStatusListener: ConnectionStatusListener) : Thread() {
 
@@ -77,6 +78,9 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
                 println("stopped")
 
             } catch (e: IOException) {
+                e.printStackTrace()
+            } catch (e: SocketException) {
+                connectionStatusListener.onUnreachable()
                 e.printStackTrace()
             } finally {
                 println("finished")

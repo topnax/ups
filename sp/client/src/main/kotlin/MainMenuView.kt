@@ -52,7 +52,7 @@ class MainMenuView : View() {
             hbox(spacing = 10.0) {
                 createLobbyButton = button("Create a lobby")
                 createLobbyButton.action {
-                    controller.newLobby(nameTextField.text)
+                    controller.newLobby()
                 }
 
                 nameTextField = textfield {}
@@ -134,7 +134,6 @@ class MainMenuView : View() {
             mainViewController?.connectTo(model.hostName.value, model.port.value.toInt())
             close()
         }
-
 
         inner class ConnectMeta(hostName: String? = null, port: Int? = null) {
             val hostNameProperty = SimpleStringProperty(this, "hostName", hostName)

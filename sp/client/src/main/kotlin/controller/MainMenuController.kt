@@ -3,6 +3,7 @@ package controller
 import MainMenuView
 import javafx.application.Platform
 import javafx.collections.ObservableList
+import javafx.scene.control.Alert
 import model.lobby.Lobby
 import model.lobby.LobbyViewModel
 import model.lobby.Player
@@ -12,6 +13,7 @@ import networking.messages.*
 import networking.reader.MessageReader
 import networking.receiver.Message
 import tornadofx.Controller
+import tornadofx.alert
 import tornadofx.observableList
 import views.LobbyView
 
@@ -23,6 +25,10 @@ class MainMenuController : Controller(), ConnectionStatusListener {
 
     fun init(mainMenuView: MainMenuView) {
         this.mainMenuView = mainMenuView
+        mainMenuView.primaryStage.setOnCloseRequest {
+            Network.getInstance().stop()
+        }
+
         Network.getInstance().connectionStatusListeners.add(this)
         connectTo("localhost", 10000)
     }
@@ -48,20 +54,23 @@ class MainMenuController : Controller(), ConnectionStatusListener {
         }
     }
 
-    fun newLobby(name: String) {
-        Network.getInstance().send(CreateLobbyMessage(name), { am: ApplicationMessage ->
-            run {
-                when (am) {
-                    is SuccessResponseMessage -> {
-                        Platform.runLater {
-                            val player = Player(name, -1)
-                            mainMenuView.replaceWith(find<LobbyView>(mapOf(LobbyView::lobby to Lobby(listOf(player), -1, player))))
+    fun newLobby() {
+        if (validateName()) {
+            val name = mainMenuView.nameTextField.text.trim()
+            Network.getInstance().send(CreateLobbyMessage(name), { am: ApplicationMessage ->
+                run {
+                    when (am) {
+                        is SuccessResponseMessage -> {
+                            Platform.runLater {
+                                val player = Player(name, -1)
+                                mainMenuView.replaceWith(find<LobbyView>(mapOf(LobbyView::lobby to Lobby(listOf(player), -1, player))))
+                            }
                         }
+                        is ErrorResponseMessage -> println("fail ${am.content}")
                     }
-                    is ErrorResponseMessage -> println("fail ${am.content}")
                 }
-            }
-        })
+            })
+        }
     }
 
     fun refreshLobbies() {
@@ -86,19 +95,24 @@ class MainMenuController : Controller(), ConnectionStatusListener {
     }
 
     fun onJoinLobby(id: Int) {
-        Network.getInstance().send(JoinLobbyMessage(id, mainMenuView.nameTextField.text), { am: ApplicationMessage ->
-            run {
-                Platform.runLater {
-                    if (am is LobbyJoinedMessage) {
-                        println("Owner is of id #${am.lobby.owner.id}")
-                        am.lobby.players.forEach {
-                            println("player ${it.name} of id ${it.id}")
+        if (validateName()) {
+            Network.getInstance().send(JoinLobbyMessage(id, mainMenuView.nameTextField.text.trim()), { am: ApplicationMessage ->
+                run {
+                    Platform.runLater {
+                        if (am is LobbyJoinedMessage) {
+                            mainMenuView.replaceWith(find<LobbyView>(mapOf(LobbyView::lobby to am.lobby)))
                         }
-                        mainMenuView.replaceWith(find<LobbyView>(mapOf(LobbyView::lobby to am.lobby)))
                     }
                 }
-            }
-        })
+            })
+        }
     }
 
+    private fun validateName(): Boolean {
+        if (mainMenuView.nameTextField.text.trim().isNotEmpty()) {
+            return true
+        }
+        alert(Alert.AlertType.ERROR, "Error", "Name must be of non-zero length")
+        return false
+    }
 }
