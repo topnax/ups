@@ -60,10 +60,36 @@ func (s *SimpleTcpMessageReceiver) Receive(UID int, bytes []byte, length int) {
 	// remove trailing empty bytes
 	message := string(bytes[:length])
 
-	// if remove line break if found at the last position
-	if last := len(message) - 1; last >= 0 && message[last] == '\n' {
-		message = message[:last]
+	// if, after the removal of the line break, the message is empty, return
+	if len(message) < 1 {
+		return
 	}
+
+	var messages []string
+	var prevChar rune
+	lastGroupStart := 0
+
+	runes := []rune(message)
+
+	for pos, char := range message {
+		if char == StartChar && prevChar != '\\' && lastGroupStart != pos {
+			messages = append(messages, string(runes[lastGroupStart:pos]))
+			lastGroupStart = pos
+		}
+		prevChar = char
+	}
+
+	utfLen := utf8.RuneCountInString(message)
+	if lastGroupStart != utfLen {
+		messages = append(messages, string(runes[lastGroupStart:utfLen]))
+	}
+
+	for _, mess := range messages {
+		s.ReceiveMessage(UID, mess)
+	}
+}
+
+func (s *SimpleTcpMessageReceiver) ReceiveMessage(UID int, message string) {
 
 	// if, after the removal of the line break, the message is empty, return
 	if len(message) < 1 {
