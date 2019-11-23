@@ -55,6 +55,7 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
                 println("Writing to server")
 
                 while (run) {
+                    println("reading")
                     var len = input?.read(serverMessage)
 
                     if (len == null) {
@@ -77,10 +78,10 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
                 }
                 println("stopped")
 
-            } catch (e: IOException) {
-                e.printStackTrace()
             } catch (e: SocketException) {
                 connectionStatusListener.onUnreachable()
+                println("Socket had an exception")
+            } catch (e: IOException) {
                 e.printStackTrace()
             } finally {
                 println("finished")
