@@ -1,17 +1,19 @@
 package networking.receiver
 
+import mu.KotlinLogging
 import networking.reader.MessageReader
 import tornadofx.isInt
-import java.util.logging.Logger
+
+private val logger = KotlinLogging.logger {}
 
 class SimpleMessageReceiver(messageReader: MessageReader) : MessageReceiver(messageReader) {
 
-    val LOG = Logger.getLogger(this.javaClass.name)
     companion object {
         val START_CHAR = '$'
 
         val SEPARATOR = '#'
     }
+
     private var buffer: String = ""
 
     private var currentType: Int = 0
@@ -22,7 +24,6 @@ class SimpleMessageReceiver(messageReader: MessageReader) : MessageReceiver(mess
 
     override fun receive(bytes: ByteArray, length: Int) {
         val message = String(bytes)
-        // if message[0] == START_CHAR && (len(s.buffers[UID].buffer) <= 0 || (len(buffer.buffer) > 0 && buffer.buffer[len(buffer.buffer)-1] != '\\')) {
         val messages = mutableListOf<String>()
         var prevChar: Char? = null
 
@@ -42,17 +43,11 @@ class SimpleMessageReceiver(messageReader: MessageReader) : MessageReceiver(mess
         messages.forEach {
             receiveMessage(it)
         }
-
-//        println()me
-//
-//        LOG.level = Level.FINE
-
     }
 
     private fun receiveMessage(message: String) {
         val length = message.length
         if (message[0] == START_CHAR && (buffer.isEmpty() || buffer[buffer.length - 1] != '\\')) {
-            println(message.substring(1 until length).split(SEPARATOR))
             val parts = message.substring(1 until length).split(SEPARATOR)
             if (parts.size == 4 && parts[0].isInt() && parts[1].isInt() && parts[2].isInt()) {
                 validHeader = true
@@ -62,7 +57,7 @@ class SimpleMessageReceiver(messageReader: MessageReader) : MessageReceiver(mess
                 buffer = parts[3]
                 checkBuffer()
             } else {
-                LOG.severe("Receiver message '$message' could not be parsed, invalid header.")
+                logger.error { "Receiver message '$message' could not be parsed, invalid header." }
                 validHeader = false
             }
         } else {
@@ -75,7 +70,6 @@ class SimpleMessageReceiver(messageReader: MessageReader) : MessageReceiver(mess
         if (validHeader && currentLength <= buffer.length) {
             buffer = buffer.substring(0 until currentLength)
             messageReader.read(Message(currentLength, currentType, buffer, currentID))
-            println("success $currentType :) '$buffer'")
             currentLength = 0
             buffer = ""
             validHeader = false

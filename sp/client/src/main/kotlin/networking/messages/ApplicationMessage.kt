@@ -6,7 +6,9 @@ import com.beust.klaxon.Klaxon
 import com.beust.klaxon.KlaxonException
 import model.lobby.Lobby
 import model.lobby.Player
+import mu.KotlinLogging
 
+val logger = KotlinLogging.logger {  }
 
 abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
 
@@ -37,10 +39,7 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
                     }
                 }
             } catch (ex: KlaxonException) {
-                println("json parse error!")
-                println(json)
-
-                println(ex)
+                logger.error { "Failed to parse message of type $type from '$json', because ${ex.message}" }
                 null
             }
         }
@@ -48,7 +47,7 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
 
     open fun toJson(): String {
         val json = Klaxon().fieldRenamer(renamer).toJsonString(this)
-        println("parsed to '$json'")
+        logger.info { "${this.javaClass::class.java} parsed to '$json'" }
         return json
     }
 }
@@ -80,15 +79,3 @@ data class ErrorResponseMessage(val content: String) : ApplicationMessage(101)
 data class LobbyJoinedMessage(val lobby: Lobby) : ApplicationMessage(103)
 
 class LobbyDestroyedResponse : EmptyMessage(105)
-
-
-//class GetLobbiesMessage(val playerId: Int) : ApplicationMessage(102)
-
-fun main() {
-    try {
-        val lobby = Klaxon().fieldRenamer(ApplicationMessage.renamer).parse<LobbyDestroyedResponse>("{}")
-        println("Lobby type is ${lobby?.type}")
-    } catch (ex: KlaxonException) {
-        ex.printStackTrace()
-    }
-}

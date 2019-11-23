@@ -7,6 +7,7 @@ import javafx.scene.control.Alert
 import model.lobby.Lobby
 import model.lobby.LobbyViewModel
 import model.lobby.Player
+import mu.KotlinLogging
 import networking.ConnectionStatusListener
 import networking.Network
 import networking.messages.*
@@ -17,6 +18,8 @@ import tornadofx.alert
 import tornadofx.observableList
 import views.LobbyView
 
+private val logger = KotlinLogging.logger { }
+
 class MainMenuController : Controller(), ConnectionStatusListener {
 
     lateinit var mainMenuView: MainMenuView
@@ -26,7 +29,7 @@ class MainMenuController : Controller(), ConnectionStatusListener {
     fun init(mainMenuView: MainMenuView) {
         this.mainMenuView = mainMenuView
         mainMenuView.primaryStage.setOnCloseRequest {
-            println("stopping network")
+            logger.debug { "Primary stage closing" }
             Network.getInstance().stop()
         }
 
@@ -67,7 +70,7 @@ class MainMenuController : Controller(), ConnectionStatusListener {
                                 mainMenuView.replaceWith(find<LobbyView>(mapOf(LobbyView::lobby to Lobby(listOf(player), -1, player))))
                             }
                         }
-                        is ErrorResponseMessage -> println("fail ${am.content}")
+                        is ErrorResponseMessage -> logger.error { "Could not create a new lobby. Response content '${am.content}'" }
                     }
                 }
             })
