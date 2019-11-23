@@ -96,6 +96,7 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
     }
 
     fun close() {
+        println("Network has been stopped")
         run = false
         input?.close()
         output?.close()

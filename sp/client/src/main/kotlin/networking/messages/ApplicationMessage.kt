@@ -31,7 +31,7 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
                         GetLobbiesMessage().type -> fromJson<GetLobbiesMessage>(json)
                         SuccessResponseMessage("").type -> fromJson<SuccessResponseMessage>(json)
                         GetLobbiesResponse(mutableListOf()).type -> fromJson<GetLobbiesResponse>(json)
-                        LobbyJoinedMessage(Lobby(listOf(), 0, Player("", 0))).type -> fromJson<LobbyJoinedMessage>(json)
+                        LobbyJoinedMessage(Lobby(listOf(), 0, Player("", 0, false))).type -> fromJson<LobbyJoinedMessage>(json)
                         LobbyDestroyedResponse().type -> fromJson<LobbyDestroyedResponse>(json)
                         else -> null
                     }
@@ -69,6 +69,8 @@ data class JoinLobbyMessage(val lobbyId: Int, val playerName: String) : Applicat
 
 class LeaveLobbyMessage : EmptyMessage(5)
 
+class PlayerReadyToggleMessage(val ready: Boolean): ApplicationMessage(6)
+
 data class GetLobbiesResponse(val lobbies: MutableList<Lobby>): ApplicationMessage(101)
 
 data class SuccessResponseMessage(val content: String) : ApplicationMessage(701)
@@ -78,6 +80,7 @@ data class ErrorResponseMessage(val content: String) : ApplicationMessage(101)
 data class LobbyJoinedMessage(val lobby: Lobby) : ApplicationMessage(103)
 
 class LobbyDestroyedResponse : EmptyMessage(105)
+
 
 //class GetLobbiesMessage(val playerId: Int) : ApplicationMessage(102)
 

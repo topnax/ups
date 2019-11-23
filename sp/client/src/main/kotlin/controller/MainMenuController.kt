@@ -26,6 +26,7 @@ class MainMenuController : Controller(), ConnectionStatusListener {
     fun init(mainMenuView: MainMenuView) {
         this.mainMenuView = mainMenuView
         mainMenuView.primaryStage.setOnCloseRequest {
+            println("stopping network")
             Network.getInstance().stop()
         }
 
@@ -62,7 +63,7 @@ class MainMenuController : Controller(), ConnectionStatusListener {
                     when (am) {
                         is SuccessResponseMessage -> {
                             Platform.runLater {
-                                val player = Player(name, -1)
+                                val player = Player(name, -1, false)
                                 mainMenuView.replaceWith(find<LobbyView>(mapOf(LobbyView::lobby to Lobby(listOf(player), -1, player))))
                             }
                         }
