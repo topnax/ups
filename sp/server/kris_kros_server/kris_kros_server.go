@@ -55,8 +55,9 @@ func (k *KrisKrosServer) OnJoinLobby(message messages.JoinLobbyMessage, clientUI
 	_, exists := k.lobbies[message.LobbyID]
 	if exists {
 		newPlayer := game.Player{
-			Name: message.PlayerName,
-			ID:   clientUID,
+			Name:  message.PlayerName,
+			ID:    clientUID,
+			Ready: false,
 		}
 
 		lobby := k.lobbies[message.LobbyID]
@@ -84,8 +85,9 @@ func (k *KrisKrosServer) OnCreateLobby(msg messages.CreateLobbyMessage, clientUI
 	_, exists := k.lobbiesByOwnerID[clientUID]
 	if !exists {
 		player := game.Player{
-			Name: msg.PlayerName,
-			ID:   clientUID,
+			Name:  msg.PlayerName,
+			ID:    clientUID,
+			Ready: false,
 		}
 		k.lobbies[k.lobbyUIQ] = &model.Lobby{
 			Owner: player,
@@ -130,6 +132,7 @@ func (k *KrisKrosServer) removeClientFromLobby(clientUID int) bool {
 		for i, player := range lobby.Players {
 			if player.ID == clientUID {
 				dcdPlayer = player
+				dcdPlayer.Ready = false
 				dcdPlayerIndex = i
 				break
 			}
@@ -173,6 +176,35 @@ func (k *KrisKrosServer) OnLeaveLobby(clientUID int) def.Response {
 	} else {
 		return impl.ErrorResponse("Could not leave the lobby", impl.CouldNotLeaveLobby)
 	}
+}
+
+func (k *KrisKrosServer) OnPlayerReadyToggle(playerID int, ready bool) def.Response {
+	log.Infof("Setting %d to %v", playerID, ready)
+	lobby, exists := k.lobbiesByPlayerID[playerID]
+	if exists {
+		found := false
+		readyPlayerIndex := 0
+		for index, player := range lobby.Players {
+			if player.ID == playerID {
+				found = true
+				readyPlayerIndex = index
+				break
+			}
+		}
+		if found {
+			lobby.Players[readyPlayerIndex].Ready = ready
+			for _, player := range lobby.Players {
+				if player.ID != playerID {
+					resp := responses.LobbyJoinedResponse{Lobby: *lobby}
+					k.sender.Send(impl.MessageResponse(resp, resp.Type()), player.ID, 0)
+				}
+			}
+			resp := responses.LobbyJoinedResponse{Lobby: *lobby}
+			log.Infoln("Owner is", lobby.Owner.Ready)
+			return impl.MessageResponse(resp, resp.Type())
+		}
+	}
+	return impl.ErrorResponse("Could not find such user in a lobby", impl.CouldNotFindSuchUserInLobby)
 }
 
 //func (k *KrisKrosServer) OnGetLobbies(mes encoding.Message, clientUID int) encoding.ResponseMessage {

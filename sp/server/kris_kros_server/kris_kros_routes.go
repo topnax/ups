@@ -11,6 +11,7 @@ func (router *KrisKrosRouter) registerRoutes() {
 	router.register(messages.GetLobbiesMessage{}, getLobbiesRoute)
 	router.register(messages.JoinLobbyMessage{}, joinLobbyRoute)
 	router.register(messages.LeaveLobbyMessage{}, leaveLobbyRoute)
+	router.register(messages.PlayerReadyToggle{}, playerReadyRoute)
 }
 
 func playerJoinedRoute(handler def.MessageHandler, server *KrisKrosServer, clientUID int) def.Response {
@@ -58,6 +59,16 @@ func leaveLobbyRoute(handler def.MessageHandler, server *KrisKrosServer, clientU
 
 	if ok {
 		return server.OnLeaveLobby(clientUID)
+	}
+
+	return failedToCast(handler)
+}
+
+func playerReadyRoute(handler def.MessageHandler, server *KrisKrosServer, clientUID int) def.Response {
+	msg, ok := handler.(messages.PlayerReadyToggle)
+
+	if ok {
+		return server.OnPlayerReadyToggle(clientUID, msg.Ready)
 	}
 
 	return failedToCast(handler)

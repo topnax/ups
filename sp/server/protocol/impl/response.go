@@ -17,9 +17,10 @@ const (
 	FailedToCast     = 5
 	FailedToRoute    = 6
 
-	PlayerAlreadyCreatedLobby = 20
-	LobbyDoesNotExist         = 21
-	CouldNotLeaveLobby        = 22
+	PlayerAlreadyCreatedLobby   = 20
+	LobbyDoesNotExist           = 21
+	CouldNotLeaveLobby          = 22
+	CouldNotFindSuchUserInLobby = 23
 
 	PlainSuccess = 701
 )
