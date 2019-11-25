@@ -8,11 +8,26 @@ import model.lobby.Lobby
 import model.lobby.Player
 import mu.KotlinLogging
 
-val logger = KotlinLogging.logger {  }
+val logger = KotlinLogging.logger { }
 
 abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
 
     companion object {
+
+        const val CREATE_LOBBY_MESSAGE_TYPE = 2
+        const val GET_LOBBIES_MESSAGE_TYPE = 3
+        const val JOIN_LOBBY_MESSAGE_TYPE = 4
+        const val LEAVE_LOBBY_MESSAGE_TYPE = 5
+        const val PLAYER_READY_TOGGLE_MESSAGE_TYPE = 6
+
+        const val GET_LOBBIES_RESPONSE_TYPE = 101
+        const val LOBBY_UPDATED_RESPONSE_TYPE = 103
+        const val LOBBY_DESTROYED_RESPONSE_TYPE = 105
+        const val LOBBY_JOINED_RESPONSE_TYPE = 106
+
+        const val ERROR_RESPONSE_TYPE = 401
+        const val SUCCESS_RESPONSE_TYPE = 701
+
         val renamer = object : FieldRenamer {
             override fun toJson(fieldName: String) = FieldRenamer.camelToUnderscores(fieldName)
             override fun fromJson(fieldName: String) = FieldRenamer.underscoreToCamel(fieldName)
@@ -23,18 +38,17 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
         }
 
         fun fromJson(json: String, type: Int): ApplicationMessage? {
+
             return try {
                 if (type in 401..499) {
                     fromJson<ErrorResponseMessage>(json)
                 } else {
                     when (type) {
-                        JoinLobbyMessage(0, "").type -> fromJson<JoinLobbyMessage>(json)
-                        PlayerJoinedLobby(0, "").type -> fromJson<PlayerJoinedLobby>(json)
-                        GetLobbiesMessage().type -> fromJson<GetLobbiesMessage>(json)
-                        SuccessResponseMessage("").type -> fromJson<SuccessResponseMessage>(json)
-                        GetLobbiesResponse(mutableListOf()).type -> fromJson<GetLobbiesResponse>(json)
-                        LobbyJoinedMessage(Lobby(listOf(), 0, Player("", 0, false))).type -> fromJson<LobbyJoinedMessage>(json)
-                        LobbyDestroyedResponse().type -> fromJson<LobbyDestroyedResponse>(json)
+                        SUCCESS_RESPONSE_TYPE -> fromJson<SuccessResponseMessage>(json)
+                        GET_LOBBIES_RESPONSE_TYPE -> fromJson<GetLobbiesResponse>(json)
+                        LOBBY_UPDATED_RESPONSE_TYPE -> fromJson<LobbyUpdatedResponse>(json)
+                        LOBBY_DESTROYED_RESPONSE_TYPE -> fromJson<LobbyDestroyedResponse>(json)
+                        LOBBY_JOINED_RESPONSE_TYPE -> fromJson<LobbyJoinedResponse>(json)
                         else -> null
                     }
                 }
@@ -58,24 +72,24 @@ open class EmptyMessage(messageType: Int) : ApplicationMessage(messageType) {
     }
 }
 
-data class PlayerJoinedLobby(val playerId: Int, val playerName: String) : ApplicationMessage(102)
+data class ErrorResponseMessage(val content: String) : ApplicationMessage(ERROR_RESPONSE_TYPE)
 
-data class CreateLobbyMessage(val playerName: String) : ApplicationMessage(2)
+data class CreateLobbyMessage(val playerName: String) : ApplicationMessage(CREATE_LOBBY_MESSAGE_TYPE)
 
-class GetLobbiesMessage : EmptyMessage(3)
+class GetLobbiesMessage : EmptyMessage(GET_LOBBIES_MESSAGE_TYPE)
 
-data class JoinLobbyMessage(val lobbyId: Int, val playerName: String) : ApplicationMessage(4)
+data class JoinLobbyMessage(val lobbyId: Int, val playerName: String) : ApplicationMessage(JOIN_LOBBY_MESSAGE_TYPE)
 
-class LeaveLobbyMessage : EmptyMessage(5)
+class LeaveLobbyMessage : EmptyMessage(LEAVE_LOBBY_MESSAGE_TYPE)
 
-class PlayerReadyToggleMessage(val ready: Boolean): ApplicationMessage(6)
+data class PlayerReadyToggleMessage(val ready: Boolean) : ApplicationMessage(PLAYER_READY_TOGGLE_MESSAGE_TYPE)
 
-data class GetLobbiesResponse(val lobbies: MutableList<Lobby>): ApplicationMessage(101)
+data class GetLobbiesResponse(val lobbies: MutableList<Lobby>) : ApplicationMessage(GET_LOBBIES_RESPONSE_TYPE)
 
-data class SuccessResponseMessage(val content: String) : ApplicationMessage(701)
+data class LobbyUpdatedResponse(val lobby: Lobby) : ApplicationMessage(LOBBY_UPDATED_RESPONSE_TYPE)
 
-data class ErrorResponseMessage(val content: String) : ApplicationMessage(101)
+data class LobbyJoinedResponse(val player: Player, val lobby: Lobby) : ApplicationMessage(LOBBY_JOINED_RESPONSE_TYPE)
 
-data class LobbyJoinedMessage(val lobby: Lobby) : ApplicationMessage(103)
+class LobbyDestroyedResponse : EmptyMessage(LOBBY_DESTROYED_RESPONSE_TYPE)
 
-class LobbyDestroyedResponse : EmptyMessage(105)
+data class SuccessResponseMessage(val content: String) : ApplicationMessage(SUCCESS_RESPONSE_TYPE)

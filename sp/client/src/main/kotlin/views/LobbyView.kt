@@ -18,12 +18,14 @@ class LobbyView : View() {
 
     private lateinit var playerListView: ListView<String>
     private lateinit var readyButton: Button
+    private lateinit var startButton: Button
 
     var ready = false
 
     val lobby: Lobby by param(Lobby(listOf(), -1, Player("", -1, false)))
+    val player: Player by param(Player("", -1, false))
 
-    private fun onLobbyUpdated(message: LobbyJoinedMessage) {
+    private fun onLobbyUpdated(message: LobbyUpdatedResponse) {
         Platform.runLater {
             update(message.lobby)
         }
@@ -54,6 +56,17 @@ class LobbyView : View() {
                 leaveLobby()
             }
         }
+        startButton = button("Start button") {
+            alignment = Pos.CENTER
+            action {
+                startLobby()
+            }
+            visibleProperty().set(false)
+        }
+    }
+
+    private fun startLobby() {
+        TODO("not implemented")
     }
 
     private fun onReadyButtonClicked() {
@@ -62,7 +75,7 @@ class LobbyView : View() {
         ), { am ->
             run {
                 when (am) {
-                    is LobbyJoinedMessage -> {
+                    is LobbyUpdatedResponse -> {
                         ready = !ready
                         Platform.runLater { update(am.lobby) }
                     }
@@ -93,9 +106,13 @@ class LobbyView : View() {
             }
             playerListView.items.add(displayedName)
         }
+        if (player == lobby.owner) {
+            startButton.visibleProperty().set(true)
+        }
     }
 
     override fun onDock() {
+        ready = false
         update(lobby)
         Network.getInstance().addMessageListener(::onLobbyUpdated)
         Network.getInstance().addMessageListener(::onLobbyDestroyed)

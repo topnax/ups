@@ -4,15 +4,11 @@ import MainMenuView
 import javafx.application.Platform
 import javafx.collections.ObservableList
 import javafx.scene.control.Alert
-import model.lobby.Lobby
 import model.lobby.LobbyViewModel
-import model.lobby.Player
 import mu.KotlinLogging
 import networking.ConnectionStatusListener
 import networking.Network
 import networking.messages.*
-import networking.reader.MessageReader
-import networking.receiver.Message
 import tornadofx.Controller
 import tornadofx.alert
 import tornadofx.observableList
@@ -64,10 +60,9 @@ class MainMenuController : Controller(), ConnectionStatusListener {
             Network.getInstance().send(CreateLobbyMessage(name), { am: ApplicationMessage ->
                 run {
                     when (am) {
-                        is SuccessResponseMessage -> {
+                        is LobbyJoinedResponse -> {
                             Platform.runLater {
-                                val player = Player(name, -1, false)
-                                mainMenuView.replaceWith(find<LobbyView>(mapOf(LobbyView::lobby to Lobby(listOf(player), -1, player))))
+                                mainMenuView.replaceWith(find<LobbyView>(mapOf(LobbyView::lobby to am.lobby, LobbyView::player to am.player)))
                             }
                         }
                         is ErrorResponseMessage -> logger.error { "Could not create a new lobby. Response content '${am.content}'" }
@@ -103,7 +98,7 @@ class MainMenuController : Controller(), ConnectionStatusListener {
             Network.getInstance().send(JoinLobbyMessage(id, mainMenuView.nameTextField.text.trim()), { am: ApplicationMessage ->
                 run {
                     Platform.runLater {
-                        if (am is LobbyJoinedMessage) {
+                        if (am is LobbyJoinedResponse) {
                             mainMenuView.replaceWith(find<LobbyView>(mapOf(LobbyView::lobby to am.lobby)))
                         }
                     }
