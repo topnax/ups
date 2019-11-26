@@ -85,6 +85,7 @@ func (s *SimpleTcpMessageReceiver) Receive(UID int, bytes []byte, length int) {
 	}
 
 	for _, mess := range messages {
+		log.Infof("Into receiving messages '%s'", mess)
 		s.ReceiveMessage(UID, mess)
 	}
 }
@@ -163,7 +164,7 @@ func (s *SimpleTcpMessageReceiver) clearBuffer(buffer *SimpleTcpMessageBuffer) {
 	}
 
 	s.Send(response, buffer.ClientUID, buffer.MessageId)
-	log.Debugln("Responding to client %d '%s'", buffer.ClientUID, response.Content())
+	log.Debugf("Responding to client %d '%s'", buffer.ClientUID, response.Content())
 	buffer.reset()
 }
 
@@ -183,7 +184,8 @@ func (s *SimpleTcpMessageReceiver) Send(response def.Response, clientUID int, ms
 
 	log.Debugf("Sending message of type %d to %d: '%s'", response.Type(), clientUID, response.Content())
 	if s.responseSender != nil {
-		s.responseSender.Send(fmt.Sprintf("%c%d%s%d%s%d%s%s", StartChar, utf8.RuneCountInString(response.Content()), Separator, response.Type(), Separator, msgID, Separator, response.Content()), clientUID)
+		bytes := []byte(response.Content())
+		s.responseSender.Send(fmt.Sprintf("%c%d%s%d%s%d%s%s", StartChar, len(bytes), Separator, response.Type(), Separator, msgID, Separator, response.Content()), clientUID)
 	} else {
 		log.Errorln("Cannot send response because output is null")
 	}

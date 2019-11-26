@@ -70,11 +70,11 @@ func (k *KrisKrosServer) OnJoinLobby(message messages.JoinLobbyMessage, clientUI
 			log.Debugf("[%d] %s", player.ID, player.Name)
 			if player.ID != newPlayer.ID {
 				//resp := responses.PlayerJoinedResponse{PlayerName: newPlayer.Name, PlayerID: newPlayer.ID}
-				resp := responses.LobbyJoinedResponse{Lobby: *lobby}
+				resp := responses.LobbyUpdatedResponse{Lobby: *lobby}
 				k.sender.Send(impl.MessageResponse(resp, resp.Type()), player.ID, 0)
 			}
 		}
-		resp := responses.LobbyJoinedResponse{Lobby: *lobby}
+		resp := responses.LobbyJoinedResponse{Player: newPlayer, Lobby: *lobby}
 		return impl.MessageResponse(resp, resp.Type())
 	}
 	return impl.ErrorResponse(fmt.Sprintf("Lobby of ID %d does not exist", message.LobbyID), impl.LobbyDoesNotExist)
@@ -100,8 +100,8 @@ func (k *KrisKrosServer) OnCreateLobby(msg messages.CreateLobbyMessage, clientUI
 
 		k.lobbiesByOwnerID[clientUID] = k.lobbies[k.lobbyUIQ]
 		lobby.Players = append(lobby.Players, player)
-
-		return impl.SuccessResponse(fmt.Sprintf("lobby created OF ID %d", lobby.ID))
+		resp := responses.LobbyJoinedResponse{Player: player, Lobby: *lobby}
+		return impl.MessageResponse(resp, resp.Type())
 	} else {
 		return impl.ErrorResponse(fmt.Sprintf("Player #%d already created a lobby", clientUID), impl.PlayerAlreadyCreatedLobby)
 	}
@@ -146,7 +146,7 @@ func (k *KrisKrosServer) removeClientFromLobby(clientUID int) bool {
 
 			for _, player := range lobby.Players {
 				if player.ID != clientUID {
-					resp := responses.LobbyJoinedResponse{Lobby: *lobby}
+					resp := responses.LobbyUpdatedResponse{Lobby: *lobby}
 					k.sender.Send(impl.MessageResponse(resp, resp.Type()), player.ID, 0)
 				}
 			}
@@ -160,7 +160,7 @@ func (k *KrisKrosServer) destroyLobby(lobby *model.Lobby) {
 	log.Infof("Destroying a lobby of id %d and owner %s", lobby.ID, lobby.Owner.Name)
 	for _, player := range lobby.Players {
 		if player.ID != lobby.Owner.ID {
-			resp := responses.LobbyDestroyed{}
+			resp := responses.LobbyDestroyedResponse{}
 			delete(k.lobbiesByPlayerID, player.ID)
 			k.sender.Send(impl.MessageResponse(resp, resp.Type()), player.ID, 0)
 		}
@@ -195,11 +195,11 @@ func (k *KrisKrosServer) OnPlayerReadyToggle(playerID int, ready bool) def.Respo
 			lobby.Players[readyPlayerIndex].Ready = ready
 			for _, player := range lobby.Players {
 				if player.ID != playerID {
-					resp := responses.LobbyJoinedResponse{Lobby: *lobby}
+					resp := responses.LobbyUpdatedResponse{Lobby: *lobby}
 					k.sender.Send(impl.MessageResponse(resp, resp.Type()), player.ID, 0)
 				}
 			}
-			resp := responses.LobbyJoinedResponse{Lobby: *lobby}
+			resp := responses.LobbyUpdatedResponse{Lobby: *lobby}
 			log.Infoln("Owner is", lobby.Owner.Ready)
 			return impl.MessageResponse(resp, resp.Type())
 		}

@@ -160,7 +160,7 @@ func (server *Server) Start(receiver def.TcpMessageReceiver) {
 						buffs[client.Fd] = append(buffs[client.Fd], buff[:n]...)
 						result := string(buff[:n])
 						//json.Un
-						log.Debugln("Received '%s' from %d of length %d", result, client.Fd, n)
+						log.Debugf("Received '%s' from %d of length %d", result, client.Fd, n)
 						receiver.Receive(client.Fd, buff, n)
 					}
 				}

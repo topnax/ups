@@ -8,9 +8,10 @@ import (
 const (
 	getLobbiesResponse      = 101
 	playerJoinedResponse    = 102
-	lobbyJoinedResponse     = 103
+	lobbyUpdatedResponse    = 103
 	playerLeftLobbyResponse = 104
 	lobbyDestroyedResponse  = 105
+	lobbyJoinedResponse     = 106
 )
 
 type TypedResponse interface {
@@ -46,29 +47,40 @@ func (g PlayerJoinedResponse) Type() int {
 
 //////////////////////////////////////
 
-type LobbyJoinedResponse struct {
+type LobbyUpdatedResponse struct {
 	Lobby model.Lobby `json:"lobby"`
 }
 
-func (g LobbyJoinedResponse) Type() int {
-	return lobbyJoinedResponse
+func (g LobbyUpdatedResponse) Type() int {
+	return lobbyUpdatedResponse
 }
 
 //////////////////////////////////////
 
-type PlayerLeftLobby struct {
+type PlayerLeftLobbyResponse struct {
 	Player game.Player `json:"player"`
 }
 
-func (g PlayerLeftLobby) Type() int {
+func (g PlayerLeftLobbyResponse) Type() int {
 	return playerLeftLobbyResponse
 }
 
 //////////////////////////////////////
 
-type LobbyDestroyed struct {
+type LobbyDestroyedResponse struct {
 }
 
-func (g LobbyDestroyed) Type() int {
+func (g LobbyDestroyedResponse) Type() int {
 	return lobbyDestroyedResponse
+}
+
+//////////////////////////////////////
+
+type LobbyJoinedResponse struct {
+	Player game.Player `json:"player"`
+	Lobby  model.Lobby `json:"lobby"`
+}
+
+func (g LobbyJoinedResponse) Type() int {
+	return lobbyJoinedResponse
 }
