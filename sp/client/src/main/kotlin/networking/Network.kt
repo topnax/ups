@@ -1,16 +1,16 @@
 package networking
 
+import mu.KotlinLogging
 import networking.applicationmessagereader.ApplicationMessageReader
 import networking.messages.ApplicationMessage
-import networking.messages.SuccessResponseMessage
 import networking.reader.SimpleMessageReader
 import networking.receiver.SimpleMessageReceiver
-import tornadofx.App
+
+private val logger = KotlinLogging.logger { }
 
 class Network : ConnectionStatusListener, ApplicationMessageReader {
 
     companion object {
-
         private val MESSAGE_ID_CEILING = 60000
         private val MESSAGE_STARTING_ID = 1
 
@@ -79,34 +79,34 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
     }
 
     override fun read(message: ApplicationMessage, mid: Int) {
-        println("received message of type ${message.type}")
+        logger.info { "Received a message of type ${message.type}" }
         synchronized(messageListeners) {
+            logger.info { "About to invoke ${messageListeners.size} message listeners of type ${message.type}" }
             for (callback: (ApplicationMessage) -> Unit in messageListeners.getOrDefault(message.javaClass, listOf<(ApplicationMessage) -> Unit>())) {
-                println("invoking :)")
                 callback.invoke(message)
             }
         }
 
-
-        for (callback: (ApplicationMessage) -> Unit in responseListeners.getOrDefault(mid, listOf<(ApplicationMessage) -> Unit>())) {
-            println("invoking :)")
-            callback.invoke(message)
+        synchronized(responseListeners) {
+            val idResponseListeners = responseListeners.getOrDefault(mid, listOf<(ApplicationMessage) -> Unit>())
+            logger.info { "About to invoke ${idResponseListeners.size} response listeners of message ID ${mid} and type ${message.type}" }
+            for (callback: (ApplicationMessage) -> Unit in idResponseListeners) {
+                callback.invoke(message)
+            }
+            responseListeners[mid]?.clear()
         }
-        responseListeners[mid]?.clear()
     }
 
     fun send(message: ApplicationMessage, callback: ((ApplicationMessage) -> Unit)? = null, desiredMessageId: Int = 0) {
         val json = message.toJson()
 
-
         callback?.let {
             addResponseListener(if (desiredMessageId != 0) desiredMessageId else messageId, callback)
         }
 
-        println("printing $json to server")
+        logger.info { "Printing message of type ${message.type} and content '$json' to server" }
 
         tcpLayer?.write("${SimpleMessageReceiver.START_CHAR}${json.length}${SimpleMessageReceiver.SEPARATOR}${message.type}${SimpleMessageReceiver.SEPARATOR}${messageId}${SimpleMessageReceiver.SEPARATOR}$json")
-
 
         messageId++
 

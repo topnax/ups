@@ -4,14 +4,12 @@ import MainMenuView
 import javafx.application.Platform
 import javafx.geometry.Pos
 import javafx.scene.control.Alert
+import javafx.scene.control.Button
 import javafx.scene.control.ListView
 import model.lobby.Lobby
 import model.lobby.Player
 import networking.Network
-import networking.messages.LeaveLobbyMessage
-import networking.messages.LobbyDestroyedResponse
-import networking.messages.LobbyJoinedMessage
-import networking.messages.PlayerJoinedLobby
+import networking.messages.*
 import tornadofx.*
 import java.util.*
 import kotlin.concurrent.schedule
@@ -19,10 +17,15 @@ import kotlin.concurrent.schedule
 class LobbyView : View() {
 
     private lateinit var playerListView: ListView<String>
+    private lateinit var readyButton: Button
+    private lateinit var startButton: Button
 
-    val lobby: Lobby by param(Lobby(listOf(), -1, Player("", -1)))
+    var ready = false
 
-    private fun onLobbyUpdated(message: LobbyJoinedMessage) {
+    val lobby: Lobby by param(Lobby(listOf(), -1, Player("", -1, false)))
+    val player: Player by param(Player("", -1, false))
+
+    private fun onLobbyUpdated(message: LobbyUpdatedResponse) {
         Platform.runLater {
             update(message.lobby)
         }
@@ -43,12 +46,43 @@ class LobbyView : View() {
             alignment = Pos.CENTER
         }
         playerListView = listview {}
+        readyButton = button("Ready")
+        readyButton.action {
+            onReadyButtonClicked()
+        }
         button("Leave lobby") {
             alignment = Pos.CENTER
             action {
                 leaveLobby()
             }
         }
+        startButton = button("Start button") {
+            alignment = Pos.CENTER
+            action {
+                startLobby()
+            }
+            visibleProperty().set(false)
+        }
+    }
+
+    private fun startLobby() {
+        TODO("not implemented")
+    }
+
+    private fun onReadyButtonClicked() {
+        Network.getInstance().send(PlayerReadyToggleMessage(
+                !ready
+        ), { am ->
+            run {
+                when (am) {
+                    is LobbyUpdatedResponse -> {
+                        ready = !ready
+                        Platform.runLater { update(am.lobby) }
+                    }
+                    else -> Platform.runLater { alert(Alert.AlertType.ERROR, "Error", "Could not toggle state") }
+                }
+            }
+        })
     }
 
     private fun leaveLobby() {
@@ -66,11 +100,19 @@ class LobbyView : View() {
     fun update(lobby: Lobby) {
         playerListView.items.clear()
         lobby.players.forEach {
-            playerListView.items.add(if (lobby.owner.id == it.id) it.name + " (owner)" else it.name)
+            var displayedName = if (lobby.owner.id == it.id) it.name + " (owner)" else it.name
+            if (!it.ready) {
+                displayedName += " not ready"
+            }
+            playerListView.items.add(displayedName)
+        }
+        if (player == lobby.owner) {
+            startButton.visibleProperty().set(true)
         }
     }
 
     override fun onDock() {
+        ready = false
         update(lobby)
         Network.getInstance().addMessageListener(::onLobbyUpdated)
         Network.getInstance().addMessageListener(::onLobbyDestroyed)

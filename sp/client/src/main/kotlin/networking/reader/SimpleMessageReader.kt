@@ -1,21 +1,20 @@
 package networking.reader
 
-import com.beust.klaxon.KlaxonException
+import mu.KotlinLogging
 import networking.applicationmessagereader.ApplicationMessageReader
 import networking.messages.ApplicationMessage
-import networking.messages.JoinLobbyMessage
 import networking.receiver.Message
 
+private val logger = KotlinLogging.logger {}
+
 class SimpleMessageReader(private val reader: ApplicationMessageReader) : MessageReader {
-
-    private val messageTypes = hashMapOf<Int, Class<out ApplicationMessage>>()
-    private val messageTypesX = hashMapOf<Int, (String) -> ApplicationMessage>()
-
     override fun read(message: Message) {
-        println("Message read ${message.type} of content '${message.content}'")
+        logger.info { "Reading message of type ${message.type} and content '${message.content}'" }
         val am = ApplicationMessage.fromJson(message.content, message.type)
         am?.let {
             reader.read(am, message.id)
+        } ?: run {
+            logger.error { "Could not read an ApplicationMessage because ApplicationReader is null" }
         }
     }
 }

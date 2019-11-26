@@ -11,6 +11,7 @@ import networking.Network
 import networking.messages.ApplicationMessage
 import networking.messages.GetLobbiesMessage
 import networking.messages.GetLobbiesResponse
+import org.slf4j.LoggerFactory
 
 import tornadofx.*
 
@@ -29,7 +30,6 @@ class MainMenuView : View() {
     val controller: MainMenuController by inject()
 
     override val root = borderpane {
-
         top = menubar {
             serverMenu = menu("127.0.0.1") {
                 item("Change server") {
@@ -73,7 +73,6 @@ class MainMenuView : View() {
                     vGrow = Priority.ALWAYS
                 }
                 onDoubleClick {
-                    println(this.selectedItem?.id)
                     this.selectedItem?.let {
                         controller.onJoinLobby(it.id)
                     }
@@ -123,14 +122,8 @@ class MainMenuView : View() {
         }
 
         private fun save() {
-            // Flush changes from the text fields into the model
             model.commit()
 
-            // The edited person is contained in the model
-
-
-            // A real application would persist the person here
-            println("Saving ${model.hostName} / ${model.port}")
             mainViewController?.connectTo(model.hostName.value, model.port.value.toInt())
             close()
         }
