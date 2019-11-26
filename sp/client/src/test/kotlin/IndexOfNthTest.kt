@@ -44,4 +44,9 @@ class IndexOfNthTest {
         assertEquals(-1, "foobarbaz".indexOfNth('x', 1))
     }
 
+    @Test
+    internal fun indexOfNotFound4() {
+        assertEquals(-1, "foofbarbaz".indexOfNth('f', 3))
+    }
+
 }

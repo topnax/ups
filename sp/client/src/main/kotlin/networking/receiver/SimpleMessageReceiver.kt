@@ -88,8 +88,8 @@ fun String.indexOfNth(char: Char, n: Int): Int {
     var found = 0
     while (true) {
         lastIndex = this.indexOf(char, lastIndex)
-        found++
         if (lastIndex != -1) {
+            found++
             if (found == n) {
                 return lastIndex
             }

@@ -106,7 +106,7 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
 
         logger.info { "Printing message of type ${message.type} and content '$json' to server" }
 
-        tcpLayer?.write("${SimpleMessageReceiver.START_CHAR}${json.length}${SimpleMessageReceiver.SEPARATOR}${message.type}${SimpleMessageReceiver.SEPARATOR}${messageId}${SimpleMessageReceiver.SEPARATOR}$json")
+        tcpLayer?.write("${SimpleMessageReceiver.START_CHAR}${json.toByteArray().size}${SimpleMessageReceiver.SEPARATOR}${message.type}${SimpleMessageReceiver.SEPARATOR}${messageId}${SimpleMessageReceiver.SEPARATOR}$json")
 
         messageId++
 
