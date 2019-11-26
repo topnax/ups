@@ -14,7 +14,7 @@ class SimpleMessageReaderTest {
     internal fun validMessageReadTest() {
         val messages = mutableListOf<ApplicationMessage>()
         val reader = SimpleMessageReader(object : ApplicationMessageReader {
-            override fun read(message: ApplicationMessage) {
+            override fun read(message: ApplicationMessage, mid: Int) {
                 messages.add(message)
             }
         })
@@ -36,7 +36,7 @@ class SimpleMessageReaderTest {
     internal fun invalidMessageReadTest() {
         val messages = mutableListOf<ApplicationMessage>()
         val reader = SimpleMessageReader(object : ApplicationMessageReader {
-            override fun read(message: ApplicationMessage) {
+            override fun read(message: ApplicationMessage, mid: Int) {
                 messages.add(message)
             }
         })
