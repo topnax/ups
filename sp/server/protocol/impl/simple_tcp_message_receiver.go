@@ -5,7 +5,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
-	"unicode/utf8"
 	"ups/sp/server/protocol/def"
 )
 
@@ -25,7 +24,7 @@ type SimpleTcpMessageBuffer struct {
 	ClientUID   int
 	Length      int
 	MessageType int
-	buffer      string
+	buffer      []byte
 	MessageId   int
 }
 
@@ -65,23 +64,20 @@ func (s *SimpleTcpMessageReceiver) Receive(UID int, bytes []byte, length int) {
 		return
 	}
 
-	var messages []string
+	var messages [][]byte
 	var prevChar rune
 	lastGroupStart := 0
 
-	runes := []rune(message)
-
 	for pos, char := range message {
 		if char == StartChar && prevChar != '\\' && lastGroupStart != pos {
-			messages = append(messages, string(runes[lastGroupStart:pos]))
+			messages = append(messages, bytes[lastGroupStart:pos])
 			lastGroupStart = pos
 		}
 		prevChar = char
 	}
 
-	utfLen := utf8.RuneCountInString(message)
-	if lastGroupStart != utfLen {
-		messages = append(messages, string(runes[lastGroupStart:utfLen]))
+	if lastGroupStart != len(bytes) {
+		messages = append(messages, bytes[lastGroupStart:length])
 	}
 
 	for _, mess := range messages {
@@ -90,10 +86,10 @@ func (s *SimpleTcpMessageReceiver) Receive(UID int, bytes []byte, length int) {
 	}
 }
 
-func (s *SimpleTcpMessageReceiver) ReceiveMessage(UID int, message string) {
+func (s *SimpleTcpMessageReceiver) ReceiveMessage(UID int, bytes []byte) {
 
 	// if, after the removal of the line break, the message is empty, return
-	if len(message) < 1 {
+	if len(bytes) < 1 {
 		return
 	}
 
@@ -111,8 +107,10 @@ func (s *SimpleTcpMessageReceiver) ReceiveMessage(UID int, message string) {
 			ClientUID: UID,
 		}
 	}
-
+	message := string(bytes)
 	buffer := s.buffers[UID]
+	log.Debugf("Received message content is '%s'\n", message)
+
 	if message[0] == StartChar && (len(s.buffers[UID].buffer) <= 0 || (len(buffer.buffer) > 0 && buffer.buffer[len(buffer.buffer)-1] != '\\')) {
 		// if buffer length is equal or less than 0, a new message is received, empty the buffer
 		parts := strings.Split(message[1:], Separator)
@@ -131,19 +129,21 @@ func (s *SimpleTcpMessageReceiver) ReceiveMessage(UID int, message string) {
 			buffer.Length = length
 			buffer.MessageType = messageType
 			buffer.MessageId = messageId
-			buffer.buffer = parts[3]
+			index := IndexOfNth(message, Separator, 3) + 1
+			buffer.buffer = bytes[index:]
 			s.checkBufferReady(buffer)
 		}
 	} else {
-		buffer.buffer += message
+		//buffer.buffer += message
+		buffer.buffer = append(buffer.buffer, bytes[0:]...)
 		s.checkBufferReady(buffer)
 	}
 }
 
 func (s *SimpleTcpMessageReceiver) checkBufferReady(buffer *SimpleTcpMessageBuffer) {
-	strlen := utf8.RuneCountInString(buffer.buffer)
+	//strlen := utf8.RuneCountInString(buffer.buffer)
 	//if len(buffer.buffer) == buffer.Length {
-	if strlen == buffer.Length {
+	if len(buffer.buffer) == buffer.Length {
 		s.clearBuffer(buffer)
 	}
 }
@@ -155,7 +155,7 @@ func (s *SimpleTcpMessageReceiver) clearBuffer(buffer *SimpleTcpMessageBuffer) {
 		response = s.messageReader.Read(SimpleMessage{
 			clientID:    buffer.ClientUID,
 			messageType: buffer.MessageType,
-			content:     buffer.buffer,
+			content:     string(buffer.buffer),
 			id:          buffer.MessageId,
 			msgType:     buffer.MessageType,
 		})
@@ -192,8 +192,33 @@ func (s *SimpleTcpMessageReceiver) Send(response def.Response, clientUID int, ms
 }
 
 func (buffer *SimpleTcpMessageBuffer) reset() {
-	buffer.buffer = ""
+	buffer.buffer = []byte{}
 	buffer.Length = 0
 	buffer.MessageType = 0
 	buffer.MessageId = 0
+}
+
+func IndexOfNth(str string, tbf string, n int) int {
+	if n < 1 {
+		return -1
+	}
+
+	lastIndex := 0
+	found := 0
+	strlen := len(str)
+
+	for {
+		//fmt.Printf("substring from %s find %s at n=%d, lastIndex=%d, strlen=%d, substring=%s, indexof=%d\n", str, tbf, n, lastIndex, strlen, str[lastIndex:strlen],strings.Index(str[lastIndex:strlen], tbf))
+		index := strings.Index(str[lastIndex:strlen], tbf)
+		lastIndex += strings.Index(str[lastIndex:strlen], tbf)
+		if index != -1 {
+			found++
+			if found == n {
+				return lastIndex
+			}
+			lastIndex++
+		} else {
+			return -1
+		}
+	}
 }

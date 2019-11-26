@@ -1,6 +1,8 @@
 package protocol
 
 import (
+	"fmt"
+	"github.com/sirupsen/logrus"
 	"testing"
 	"ups/sp/server/protocol/def"
 	"ups/sp/server/protocol/impl"
@@ -32,6 +34,28 @@ func TestReceive(t *testing.T) {
 		t.Errorf("Got client UID %d, want %d", jsonReader.lastMessage.ClientID(), 1)
 	} else if jsonReader.lastMessage.ID() != 10 {
 		t.Errorf("Got client UID %d, want %d", jsonReader.lastMessage.ID(), 10)
+	}
+}
+
+func TestReceive2(t *testing.T) {
+	logrus.SetLevel(logrus.DebugLevel)
+	jsonReader := SimpleOutput{}
+	smr := impl.SimpleTcpMessageReceiver{}
+	smr.SetMessageReader(&jsonReader)
+
+	bytec := len([]byte("{\"player_name\" : \"alzáček\"}"))
+
+	sent := fmt.Sprintf("$%d#2#3#{\"player_name\" : \"alzáček\"}", bytec)
+	bytes := []byte(sent)
+	smr.Receive(1, bytes, len(bytes))
+	if jsonReader.lastMessage.Content() != "{\"player_name\" : \"alzáček\"}" {
+		t.Errorf("Got message %s, want %s", jsonReader.lastMessage.Content(), "$%d#2#3#{\"player_name\" : \"alzáček\"}")
+	} else if jsonReader.lastMessage.Type() != 2 {
+		t.Errorf("Got message type %d, want %d", jsonReader.lastMessage.Type(), 2)
+	} else if jsonReader.lastMessage.ClientID() != 1 {
+		t.Errorf("Got client UID %d, want %d", jsonReader.lastMessage.ClientID(), 1)
+	} else if jsonReader.lastMessage.ID() != 3 {
+		t.Errorf("Got client UID %d, want %d", jsonReader.lastMessage.ID(), 3)
 	}
 }
 
@@ -116,7 +140,9 @@ func TestReceiveMultiple(t *testing.T) {
 	smr := impl.SimpleTcpMessageReceiver{}
 	smr.SetMessageReader(&jsonReader)
 
-	sent := "$10#5#10#Hello\\$guy$5#7#11#Pěšák"
+	bytec := len([]byte("Pěšák"))
+
+	sent := fmt.Sprintf("$10#5#10#Hello\\$guy$%d#7#11#Pěšák", bytec)
 	bytes := []byte(sent)
 	smr.Receive(1, bytes, len(bytes))
 
@@ -147,7 +173,9 @@ func TestReceiveMultiple2(t *testing.T) {
 	smr := impl.SimpleTcpMessageReceiver{}
 	smr.SetMessageReader(&jsonReader)
 
-	sent := "$10#5#10#Hello\\$guy$10#7#11#Pěšáčečíkk"
+	bytec := len([]byte("Pěšáčečíkk"))
+
+	sent := fmt.Sprintf("$10#5#10#Hello\\$guy$%d#7#11#Pěšáčečíkk", bytec)
 	bytes := []byte(sent)
 	smr.Receive(1, bytes, len(bytes))
 
@@ -178,7 +206,9 @@ func TestReceiveMultipleSplit(t *testing.T) {
 	smr := impl.SimpleTcpMessageReceiver{}
 	smr.SetMessageReader(&jsonReader)
 
-	sent := "$10#5#10#Hello\\$guy$5#7#11#Pěš"
+	bytec := len([]byte("Pěšák"))
+
+	sent := fmt.Sprintf("$10#5#10#Hello\\$guy$%d#7#11#Pěš", bytec)
 	bytes := []byte(sent)
 	smr.Receive(1, bytes, len(bytes))
 
