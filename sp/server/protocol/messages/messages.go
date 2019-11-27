@@ -33,14 +33,10 @@ func (p PlayerJoinedMessage) GetType() int {
 ////////////////////////////////////////////
 
 type CreateLobbyMessage struct {
-	PlayerName string `json:"player_name"`
 }
 
 func (p CreateLobbyMessage) Handle(message def.Message, amr def.ApplicationMessageReader) def.Response {
-	if parse(message, &p) {
-		return amr.Read(p, message.ClientID())
-	}
-	return failedToParse(message)
+	return amr.Read(p, message.ClientID())
 }
 
 func (p CreateLobbyMessage) GetType() int {
@@ -66,8 +62,7 @@ func (p GetLobbiesMessage) GetType() int {
 ////////////////////////////////////////////
 
 type JoinLobbyMessage struct {
-	PlayerName string `json:"player_name"`
-	LobbyID    int    `json:"lobby_id"`
+	LobbyID int `json:"lobby_id"`
 }
 
 func (p JoinLobbyMessage) Handle(message def.Message, amr def.ApplicationMessageReader) def.Response {

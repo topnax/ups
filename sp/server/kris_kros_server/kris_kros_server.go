@@ -62,11 +62,12 @@ func (k *KrisKrosServer) OnPlayerJoined(message messages.PlayerJoinedMessage, cl
 }
 
 func (k *KrisKrosServer) OnJoinLobby(message messages.JoinLobbyMessage, clientUID int) def.Response {
+	user := k.usersById[k.Router.SocketToUserID[clientUID]]
 	_, exists := k.lobbies[message.LobbyID]
 	if exists {
 		newPlayer := game.Player{
-			Name:  message.PlayerName,
-			ID:    clientUID,
+			Name:  user.Name,
+			ID:    user.ID,
 			Ready: false,
 		}
 
@@ -91,12 +92,13 @@ func (k *KrisKrosServer) OnJoinLobby(message messages.JoinLobbyMessage, clientUI
 }
 
 func (k *KrisKrosServer) OnCreateLobby(msg messages.CreateLobbyMessage, clientUID int) def.Response {
+	user := k.usersById[k.Router.SocketToUserID[clientUID]]
 	log.Infof("Receiver create message from %d", clientUID)
-	_, exists := k.lobbiesByOwnerID[clientUID]
+	_, exists := k.lobbiesByOwnerID[user.ID]
 	if !exists {
 		player := game.Player{
-			Name:  msg.PlayerName,
-			ID:    clientUID,
+			Name:  user.Name,
+			ID:    user.ID,
 			Ready: false,
 		}
 		k.lobbies[k.lobbyUIQ] = &model.Lobby{
