@@ -18,8 +18,9 @@ class InitialScreenController : Controller(), ConnectionStatusListener {
     fun init(mainMenuView: InitialScreen) {
         this.initialScreen = mainMenuView
         mainMenuView.primaryStage.setOnCloseRequest {
+            alert(Alert.AlertType.INFORMATION, "Primary stage closing")
             logger.debug { "Primary stage closing" }
-            Network.getInstance().stop()
+            Network.getInstance().send(UserLeavingMessage(), callAfterWrite = { Network.getInstance().stop() })
         }
         Network.getInstance().connectionStatusListeners.add(this)
         connectTo("localhost", 10000)
@@ -61,8 +62,7 @@ class InitialScreenController : Controller(), ConnectionStatusListener {
 
     fun onJoinButtonPressed() {
         if (validateName()) {
-            Network.getInstance().send(UserAuthenticationMessage(initialScreen.nameTextField.text), {
-                am : ApplicationMessage ->
+            Network.getInstance().send(UserAuthenticationMessage(initialScreen.nameTextField.text), { am: ApplicationMessage ->
                 Platform.runLater {
                     if (am is UserAuthenticatedResponse) {
 //                        initialScreen.replaceWith<MainMen>()

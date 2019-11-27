@@ -21,6 +21,7 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
         const val LEAVE_LOBBY_MESSAGE_TYPE = 5
         const val PLAYER_READY_TOGGLE_MESSAGE_TYPE = 6
         const val USER_AUTHENTICATION_MESSAGE_TYPE = 7
+        const val USER_LEAVING_MESSAGE_TYPE = 8
 
         const val GET_LOBBIES_RESPONSE_TYPE = 101
         const val LOBBY_UPDATED_RESPONSE_TYPE = 103
@@ -104,4 +105,4 @@ data class UserAuthenticationMessage(val name: String) : ApplicationMessage(USER
 
 data class UserAuthenticatedResponse(val user: User) : ApplicationMessage(USER_AUTHENTICATED_RESPONSE_TYPE)
 
-
+class UserLeavingMessage() : EmptyMessage(USER_LEAVING_MESSAGE_TYPE)

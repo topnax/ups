@@ -97,7 +97,7 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
         }
     }
 
-    fun send(message: ApplicationMessage, callback: ((ApplicationMessage) -> Unit)? = null, desiredMessageId: Int = 0) {
+    fun send(message: ApplicationMessage, callback: ((ApplicationMessage) -> Unit)? = null, desiredMessageId: Int = 0, callAfterWrite: (() -> Unit)? = null) {
         val json = message.toJson()
 
         callback?.let {
@@ -113,6 +113,8 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
         if (messageId > MESSAGE_ID_CEILING) {
             messageId = MESSAGE_STARTING_ID
         }
+
+        callAfterWrite?.invoke()
     }
 
     fun stop() {
