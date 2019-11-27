@@ -39,6 +39,7 @@ func (i InitialState) Id() int {
 func (i InitialState) Routes() map[int]int {
 	m := make(map[int]int)
 	m[messages.UserAuthenticationMessageType] = AuthorizedState{}.Id()
+	m[messages.UserLeavingMessageType] = InitialState{}.Id()
 	return m
 }
 

@@ -163,8 +163,13 @@ func (s *SimpleTcpMessageReceiver) clearBuffer(buffer *SimpleTcpMessageBuffer) {
 		response = ErrorResponseID("Cannot send message to JSON parser because it's null", NoMessageReader, buffer.MessageId)
 	}
 
-	s.Send(response, buffer.ClientUID, buffer.MessageId)
-	log.Debugf("Responding to client %d '%s'", buffer.ClientUID, response.Content())
+	if response.Type() > -1 {
+		s.Send(response, buffer.ClientUID, buffer.MessageId)
+		log.Debugf("Responding to client %d '%s'", buffer.ClientUID, response.Content())
+	} else {
+		log.Debugf("Not responding to message of ID %d and Type %d", buffer.MessageId, buffer.MessageType)
+	}
+
 	buffer.reset()
 }
 

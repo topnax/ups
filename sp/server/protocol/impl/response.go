@@ -88,3 +88,7 @@ func MessageResponse(message interface{}, messageType int) SimpleResponse {
 		return ErrorResponseID(fmt.Sprintf("Could not marshal a message of type %d, error %s", messageType, err), MarshalError, 0)
 	}
 }
+
+func DoNotRespond() SimpleResponse {
+	return GetResponse("", -1, 0)
+}

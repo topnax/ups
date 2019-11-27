@@ -2,6 +2,7 @@ package kris_kros_server
 
 import (
 	"ups/sp/server/protocol/def"
+	"ups/sp/server/protocol/impl"
 	"ups/sp/server/protocol/messages"
 )
 
@@ -13,6 +14,7 @@ func (router *KrisKrosRouter) registerRoutes() {
 	router.register(messages.LeaveLobbyMessage{}, leaveLobbyRoute)
 	router.register(messages.PlayerReadyToggle{}, playerReadyRoute)
 	router.register(messages.UserAuthenticationMessage{}, userAuthenticationRoute)
+	router.register(messages.UserLeavingMessage{}, userLeavingRoute)
 }
 
 func playerJoinedRoute(handler def.MessageHandler, server *KrisKrosServer, clientUID int) def.Response {
@@ -83,4 +85,9 @@ func userAuthenticationRoute(handler def.MessageHandler, server *KrisKrosServer,
 	}
 
 	return failedToCast(handler)
+}
+
+func userLeavingRoute(handler def.MessageHandler, server *KrisKrosServer, clientUID int) def.Response {
+	server.OnUserDisconnecting(clientUID)
+	return impl.DoNotRespond()
 }

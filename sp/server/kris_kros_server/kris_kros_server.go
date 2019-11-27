@@ -47,7 +47,11 @@ func NewKrisKrosServer(sender def.ResponseSender) KrisKrosServer {
 
 func (k KrisKrosServer) Read(message def.MessageHandler, clientUID int) def.Response {
 	res := k.Router.route(message, clientUID)
-	log.Infoln("Server returning: ", res.Content())
+	if res != nil {
+		log.Infoln("Server returning: ", res.Content())
+	} else {
+		log.Infoln("Response from router is NIL")
+	}
 	return res
 }
 
@@ -248,12 +252,12 @@ func (k *KrisKrosServer) OnClientDisconnected(clientUID int) {
 	userID, exists := k.Router.SocketToUserID[clientUID]
 	log.Debugf("User of Socket ID %d has disconnected\n", clientUID)
 	if exists {
-		user, exists := k.usersById[userID]
-		if exists {
-			delete(k.usersById, userID)
-			delete(k.usersByName, user.Name)
-			log.Infof("Deleting a player of name %s", user.Name)
-		}
+		//user, exists := k.usersById[userID]
+		//if exists {
+		//	delete(k.usersById, userID)
+		//	delete(k.usersByName, user.Name)
+		//	log.Infof("Deleting a player of name %s", user.Name)
+		//}
 		log.Infof("Deleting a socket %d and %d from UserIDToSocket map", clientUID, userID)
 		delete(k.Router.SocketToUserID, clientUID)
 		delete(k.Router.UserIDToSocket, userID)

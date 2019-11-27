@@ -5,6 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"ups/sp/server/protocol/def"
 	"ups/sp/server/protocol/impl"
+	"ups/sp/server/protocol/messages"
 	"ups/sp/server/protocol/responses"
 )
 
@@ -39,10 +40,14 @@ func (router *KrisKrosRouter) route(message def.MessageHandler, clientUID int) d
 		userID = -1
 	}
 
+	if message.GetType() == messages.UserLeavingMessageType {
+		userState = InitialState{}
+	}
+
 	newStateID, exists := userState.Routes()[message.GetType()]
 
 	if exists {
-		log.Infof("Routing message of type %d when current state of user of id %d is of type %s", message.GetType(), userID, newStateID)
+		log.Infof("Routing message of type %d when current state of user of id %d is of type %d", message.GetType(), userID, newStateID)
 		route, exists := router.callbacks[message.GetType()]
 
 		if exists {
@@ -54,7 +59,7 @@ func (router *KrisKrosRouter) route(message def.MessageHandler, clientUID int) d
 					state, exists := router.states[newStateID]
 					if exists {
 						router.UserStates[userID] = state
-						log.Infof("Routed message of type %d and switched to type %ď", message.GetType(), state)
+						log.Infof("Routed message of type %d and switched to type %ď", message.GetType(), state.Id())
 					} else {
 						log.Errorf("Could not get state from state map of ID %d", state)
 					}
