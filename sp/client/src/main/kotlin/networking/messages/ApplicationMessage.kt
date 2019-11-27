@@ -6,6 +6,7 @@ import com.beust.klaxon.Klaxon
 import com.beust.klaxon.KlaxonException
 import model.lobby.Lobby
 import model.lobby.Player
+import model.lobby.User
 import mu.KotlinLogging
 
 val logger = KotlinLogging.logger { }
@@ -19,11 +20,13 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
         const val JOIN_LOBBY_MESSAGE_TYPE = 4
         const val LEAVE_LOBBY_MESSAGE_TYPE = 5
         const val PLAYER_READY_TOGGLE_MESSAGE_TYPE = 6
+        const val USER_AUTHENTICATION_MESSAGE_TYPE = 7
 
         const val GET_LOBBIES_RESPONSE_TYPE = 101
         const val LOBBY_UPDATED_RESPONSE_TYPE = 103
         const val LOBBY_DESTROYED_RESPONSE_TYPE = 105
         const val LOBBY_JOINED_RESPONSE_TYPE = 106
+        const val USER_AUTHENTICATED_RESPONSE_TYPE = 107
 
         const val ERROR_RESPONSE_TYPE = 401
         const val SUCCESS_RESPONSE_TYPE = 701
@@ -41,7 +44,9 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
 
             return try {
                 if (type in 401..499) {
-                    fromJson<ErrorResponseMessage>(json)
+                    val error = fromJson<ErrorResponseMessage>(json)
+                    error?.let { logger.error {"Received an error of type $type and content ${error.content}"} }
+                    error
                 } else {
                     when (type) {
                         SUCCESS_RESPONSE_TYPE -> fromJson<SuccessResponseMessage>(json)
@@ -49,6 +54,7 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
                         LOBBY_UPDATED_RESPONSE_TYPE -> fromJson<LobbyUpdatedResponse>(json)
                         LOBBY_DESTROYED_RESPONSE_TYPE -> fromJson<LobbyDestroyedResponse>(json)
                         LOBBY_JOINED_RESPONSE_TYPE -> fromJson<LobbyJoinedResponse>(json)
+                        USER_AUTHENTICATED_RESPONSE_TYPE -> fromJson<UserAuthenticatedResponse>(json)
                         else -> null
                     }
                 }
@@ -93,3 +99,9 @@ data class LobbyJoinedResponse(val player: Player, val lobby: Lobby) : Applicati
 class LobbyDestroyedResponse : EmptyMessage(LOBBY_DESTROYED_RESPONSE_TYPE)
 
 data class SuccessResponseMessage(val content: String) : ApplicationMessage(SUCCESS_RESPONSE_TYPE)
+
+data class UserAuthenticationMessage(val name: String) : ApplicationMessage(USER_AUTHENTICATION_MESSAGE_TYPE)
+
+data class UserAuthenticatedResponse(val user: User) : ApplicationMessage(USER_AUTHENTICATED_RESPONSE_TYPE)
+
+

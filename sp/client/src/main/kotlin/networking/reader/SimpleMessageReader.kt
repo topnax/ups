@@ -14,7 +14,7 @@ class SimpleMessageReader(private val reader: ApplicationMessageReader) : Messag
         am?.let {
             reader.read(am, message.id)
         } ?: run {
-            logger.error { "Could not read an ApplicationMessage because ApplicationReader is null" }
+            logger.error { "Could not read an ApplicationMessage because it could not be parsed" }
         }
     }
 }
