@@ -6,12 +6,15 @@ import (
 )
 
 const (
-	getLobbiesResponse      = 101
-	playerJoinedResponse    = 102
-	lobbyUpdatedResponse    = 103
-	playerLeftLobbyResponse = 104
-	lobbyDestroyedResponse  = 105
-	lobbyJoinedResponse     = 106
+	ValidResponseCeiling = 400
+
+	getLobbiesResponse        = 101
+	playerJoinedResponse      = 102
+	lobbyUpdatedResponse      = 103
+	playerLeftLobbyResponse   = 104
+	lobbyDestroyedResponse    = 105
+	lobbyJoinedResponse       = 106
+	userAuthenticatedResponse = 107
 )
 
 type TypedResponse interface {
@@ -83,4 +86,14 @@ type LobbyJoinedResponse struct {
 
 func (g LobbyJoinedResponse) Type() int {
 	return lobbyJoinedResponse
+}
+
+//////////////////////////////////////
+
+type UserAuthenticatedResponse struct {
+	User model.User `json:"user"`
+}
+
+func (g UserAuthenticatedResponse) Type() int {
+	return userAuthenticatedResponse
 }

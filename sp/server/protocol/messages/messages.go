@@ -5,12 +5,13 @@ import (
 )
 
 const (
-	PlayerJoinedLobbyType  = 1
-	CreateLobbyType        = 2
-	GetLobbiesType         = 3
-	JoinLobbyMessageType   = 4
-	LeaveLobbyMessageType  = 5
-	PlayerReadyMessageType = 6
+	PlayerJoinedLobbyType         = 1
+	CreateLobbyType               = 2
+	GetLobbiesType                = 3
+	JoinLobbyMessageType          = 4
+	LeaveLobbyMessageType         = 5
+	PlayerReadyMessageType        = 6
+	UserAuthenticationMessageType = 7
 )
 
 type PlayerJoinedMessage struct {
@@ -109,4 +110,21 @@ func (p PlayerReadyToggle) Handle(message def.Message, amr def.ApplicationMessag
 
 func (p PlayerReadyToggle) GetType() int {
 	return PlayerReadyMessageType
+}
+
+////////////////////////////////////////////
+
+type UserAuthenticationMessage struct {
+	Name string `json:"name"`
+}
+
+func (p UserAuthenticationMessage) Handle(message def.Message, amr def.ApplicationMessageReader) def.Response {
+	if parse(message, &p) {
+		return amr.Read(p, message.ClientID())
+	}
+	return failedToParse(message)
+}
+
+func (p UserAuthenticationMessage) GetType() int {
+	return UserAuthenticationMessageType
 }

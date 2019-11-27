@@ -17,6 +17,10 @@ type KrisKrosServer struct {
 	sender def.ResponseSender
 
 	lobbyUIQ int
+	userUIQ  int
+
+	usersById   map[int]*model.User
+	usersByName map[string]*model.User
 
 	lobbies           map[int]*model.Lobby
 	lobbiesByOwnerID  map[int]*model.Lobby
@@ -32,6 +36,8 @@ func NewKrisKrosServer(sender def.ResponseSender) KrisKrosServer {
 		lobbies:           make(map[int]*model.Lobby),
 		lobbiesByOwnerID:  make(map[int]*model.Lobby),
 		lobbiesByPlayerID: make(map[int]*model.Lobby),
+		usersById:         make(map[int]*model.User),
+		usersByName:       make(map[string]*model.User),
 	}
 
 	kks.Router = newKrisKrosRouter(&kks)
@@ -121,6 +127,7 @@ func (k *KrisKrosServer) OnGetLobbies(message messages.GetLobbiesMessage, client
 
 func (k *KrisKrosServer) ClientDisconnected(clientUID int) {
 	k.removeClientFromLobby(clientUID)
+	k.OnClientDisconnected(clientUID)
 }
 
 func (k *KrisKrosServer) removeClientFromLobby(clientUID int) bool {
@@ -205,6 +212,65 @@ func (k *KrisKrosServer) OnPlayerReadyToggle(playerID int, ready bool) def.Respo
 		}
 	}
 	return impl.ErrorResponse("Could not find such user in a lobby", impl.CouldNotFindSuchUserInLobby)
+}
+
+func (k *KrisKrosServer) OnUserAuthenticate(clientUID int, message messages.UserAuthenticationMessage) def.Response {
+	user, exists := k.usersByName[message.Name]
+
+	if !exists {
+		user = &model.User{
+			Name: message.Name,
+			ID:   k.userUIQ,
+		}
+		k.userUIQ++
+		k.usersById[user.ID] = user
+		k.usersByName[user.Name] = user
+		k.Router.SocketToUserID[clientUID] = user.ID
+		k.Router.UserIDToSocket[user.ID] = clientUID
+		k.Router.UserStates[user.ID] = AuthorizedState{}
+		resp := responses.UserAuthenticatedResponse{User: *user}
+		return impl.MessageResponse(resp, resp.Type())
+	} else {
+		_, exists = k.Router.UserIDToSocket[user.ID]
+		if !exists {
+			log.Infof("An user of ID %d and name %s has reconnected via socket %d", user.ID, user.Name, clientUID)
+			k.Router.SocketToUserID[clientUID] = user.ID
+			k.Router.UserIDToSocket[user.ID] = clientUID
+			resp := responses.UserAuthenticatedResponse{User: *user}
+			return impl.MessageResponse(resp, resp.Type())
+		}
+	}
+
+	return impl.ErrorResponse(fmt.Sprintf("User of name %s is already logged on the server under ID of %d", user.Name, user.ID), impl.PlayerNameAlreadyTaken)
+}
+
+func (k *KrisKrosServer) OnClientDisconnected(clientUID int) {
+	userID, exists := k.Router.SocketToUserID[clientUID]
+	log.Debugf("User of Socket ID %d has disconnected\n", clientUID)
+	if exists {
+		user, exists := k.usersById[userID]
+		if exists {
+			delete(k.usersById, userID)
+			delete(k.usersByName, user.Name)
+			log.Infof("Deleting a player of name %s", user.Name)
+		}
+		log.Infof("Deleting a socket %d and %d from UserIDToSocket map", clientUID, userID)
+		delete(k.Router.SocketToUserID, clientUID)
+		delete(k.Router.UserIDToSocket, userID)
+	}
+}
+
+func (k *KrisKrosServer) OnUserDisconnecting(clientUID int) {
+	userID, exists := k.Router.SocketToUserID[clientUID]
+	log.Debugf("User of Socket ID %d wants to leave\n", clientUID)
+	if exists {
+		user, exists := k.usersById[userID]
+		if exists {
+			delete(k.usersById, userID)
+			delete(k.usersByName, user.Name)
+			log.Infof("Deleting a player of name %s", user.Name)
+		}
+	}
 }
 
 //func (k *KrisKrosServer) OnGetLobbies(mes encoding.Message, clientUID int) encoding.ResponseMessage {

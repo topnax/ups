@@ -10,17 +10,19 @@ const (
 	NoID        = 0
 	ErrorPrefix = 400
 
-	MarshalError     = 1
-	NoMessageReader  = 2
-	NoMessageHandler = 3
-	FailedToParse    = 4
-	FailedToCast     = 5
-	FailedToRoute    = 6
+	MarshalError               = 1
+	NoMessageReader            = 2
+	NoMessageHandler           = 3
+	FailedToParse              = 4
+	FailedToCast               = 5
+	FailedToRoute              = 6
+	OperationCannotBePerformed = 6
 
 	PlayerAlreadyCreatedLobby   = 20
 	LobbyDoesNotExist           = 21
 	CouldNotLeaveLobby          = 22
 	CouldNotFindSuchUserInLobby = 23
+	PlayerNameAlreadyTaken      = 24
 
 	PlainSuccess = 701
 )
@@ -66,7 +68,7 @@ func SuccessResponse(content string) SimpleResponse {
 }
 
 func ErrorResponse(content string, errorType int) SimpleResponse {
-	return ErrorResponseID(content, errorType+ErrorPrefix, NoID)
+	return ErrorResponseID(content, errorType, NoID)
 }
 
 func MessageResponseID(message interface{}, messageType int, id int) SimpleResponse {
