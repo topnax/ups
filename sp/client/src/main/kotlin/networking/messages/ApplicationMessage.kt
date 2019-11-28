@@ -21,6 +21,7 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
         const val LEAVE_LOBBY_MESSAGE_TYPE = 5
         const val PLAYER_READY_TOGGLE_MESSAGE_TYPE = 6
         const val USER_AUTHENTICATION_MESSAGE_TYPE = 7
+        const val USER_LEAVING_MESSAGE_TYPE = 8
 
         const val GET_LOBBIES_RESPONSE_TYPE = 101
         const val LOBBY_UPDATED_RESPONSE_TYPE = 103
@@ -45,7 +46,7 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
             return try {
                 if (type in 401..499) {
                     val error = fromJson<ErrorResponseMessage>(json)
-                    error?.let { logger.error {"Received an error of type $type and content ${error.content}"} }
+                    error?.let { logger.error { "Received an error of type $type and content ${error.content}" } }
                     error
                 } else {
                     when (type) {
@@ -80,11 +81,11 @@ open class EmptyMessage(messageType: Int) : ApplicationMessage(messageType) {
 
 data class ErrorResponseMessage(val content: String) : ApplicationMessage(ERROR_RESPONSE_TYPE)
 
-data class CreateLobbyMessage(val playerName: String) : ApplicationMessage(CREATE_LOBBY_MESSAGE_TYPE)
+class CreateLobbyMessage() : EmptyMessage(CREATE_LOBBY_MESSAGE_TYPE)
 
 class GetLobbiesMessage : EmptyMessage(GET_LOBBIES_MESSAGE_TYPE)
 
-data class JoinLobbyMessage(val lobbyId: Int, val playerName: String) : ApplicationMessage(JOIN_LOBBY_MESSAGE_TYPE)
+data class JoinLobbyMessage(val lobbyId: Int) : ApplicationMessage(JOIN_LOBBY_MESSAGE_TYPE)
 
 class LeaveLobbyMessage : EmptyMessage(LEAVE_LOBBY_MESSAGE_TYPE)
 
@@ -104,4 +105,4 @@ data class UserAuthenticationMessage(val name: String) : ApplicationMessage(USER
 
 data class UserAuthenticatedResponse(val user: User) : ApplicationMessage(USER_AUTHENTICATED_RESPONSE_TYPE)
 
-
+class UserLeavingMessage() : EmptyMessage(USER_LEAVING_MESSAGE_TYPE)

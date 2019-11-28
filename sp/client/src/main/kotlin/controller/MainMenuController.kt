@@ -24,13 +24,9 @@ class MainMenuController : Controller(), ConnectionStatusListener {
 
     fun init(mainMenuView: MainMenuView) {
         this.mainMenuView = mainMenuView
-        mainMenuView.primaryStage.setOnCloseRequest {
-            logger.debug { "Primary stage closing" }
-            Network.getInstance().stop()
-        }
 
         Network.getInstance().connectionStatusListeners.add(this)
-        connectTo("localhost", 10000)
+
     }
 
     override fun onConnected() {
@@ -55,21 +51,18 @@ class MainMenuController : Controller(), ConnectionStatusListener {
     }
 
     fun newLobby() {
-        if (validateName()) {
-            val name = mainMenuView.nameTextField.text.trim()
-            Network.getInstance().send(CreateLobbyMessage(name), { am: ApplicationMessage ->
-                run {
-                    when (am) {
-                        is LobbyJoinedResponse -> {
-                            Platform.runLater {
-                                mainMenuView.replaceWith(find<LobbyView>(mapOf(LobbyView::lobby to am.lobby, LobbyView::player to am.player)))
-                            }
+        Network.getInstance().send(CreateLobbyMessage(), { am: ApplicationMessage ->
+            run {
+                when (am) {
+                    is LobbyJoinedResponse -> {
+                        Platform.runLater {
+                            mainMenuView.replaceWith(find<LobbyView>(mapOf(LobbyView::lobby to am.lobby, LobbyView::player to am.player)))
                         }
-                        is ErrorResponseMessage -> logger.error { "Could not create a new lobby. Response content '${am.content}'" }
                     }
+                    is ErrorResponseMessage -> logger.error { "Could not create a new lobby. Response content '${am.content}'" }
                 }
-            })
-        }
+            }
+        })
     }
 
     fun refreshLobbies() {
@@ -88,30 +81,15 @@ class MainMenuController : Controller(), ConnectionStatusListener {
         })
     }
 
-    fun connectTo(hostname: String, port: Int) {
-        mainMenuView.setNetworkElementsEnabled(false)
-        Network.getInstance().connectTo(hostname, port)
-    }
-
     fun onJoinLobby(id: Int) {
-        if (validateName()) {
-            Network.getInstance().send(JoinLobbyMessage(id, mainMenuView.nameTextField.text.trim()), { am: ApplicationMessage ->
-                run {
-                    Platform.runLater {
-                        if (am is LobbyJoinedResponse) {
-                            mainMenuView.replaceWith(find<LobbyView>(mapOf(LobbyView::lobby to am.lobby)))
-                        }
+        Network.getInstance().send(JoinLobbyMessage(id), { am: ApplicationMessage ->
+            run {
+                Platform.runLater {
+                    if (am is LobbyJoinedResponse) {
+                        mainMenuView.replaceWith(find<LobbyView>(mapOf(LobbyView::lobby to am.lobby)))
                     }
                 }
-            })
-        }
-    }
-
-    private fun validateName(): Boolean {
-        if (mainMenuView.nameTextField.text.trim().isNotEmpty()) {
-            return true
-        }
-        alert(Alert.AlertType.ERROR, "Error", "Name must be of non-zero length")
-        return false
+            }
+        })
     }
 }
