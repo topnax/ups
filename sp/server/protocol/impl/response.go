@@ -25,6 +25,7 @@ const (
 	PlayerNameAlreadyTaken      = 24
 	NameMustNotBeEmpty          = 25
 	GeneralError                = 26
+	LobbyPlayerLimitExceeded    = 27
 
 	PlainSuccess = 701
 )

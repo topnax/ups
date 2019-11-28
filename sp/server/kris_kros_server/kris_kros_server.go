@@ -61,7 +61,22 @@ func (k KrisKrosServer) Send(response def.Response, userId int, responseId int) 
 	if exists {
 		k.sender.Send(response, socket, responseId)
 	} else {
-		log.Errorf("Could not send resposne of type %d and content '%s'", response.Content(), response.Content())
+		log.Errorf("Could not send response of type %d and content '%s'", response.Type(), response.Content())
+	}
+}
+
+func (k KrisKrosServer) SendToPlayersOfState(response def.Response, targetStateID int, responseId int, userToBeIgnoredID int) {
+	_, exists := k.Router.states[targetStateID]
+
+	if exists {
+		for userID, state := range k.Router.UserStates {
+			if state.Id() == targetStateID && userID != userToBeIgnoredID {
+				log.Debugf("SendToPlayersOfState targetStateID=%d sending to player of ID=%d", targetStateID, userID)
+				k.Send(response, userID, responseId)
+			}
+		}
+	} else {
+		log.Errorf("Cannot send response to players of state of id %d, because such state does not exist.", targetStateID)
 	}
 }
 
@@ -72,15 +87,19 @@ func (k *KrisKrosServer) OnPlayerJoined(user model.User) def.Response {
 }
 
 func (k *KrisKrosServer) OnJoinLobby(message messages.JoinLobbyMessage, user model.User) def.Response {
-	_, exists := k.lobbies[message.LobbyID]
+	lobby, exists := k.lobbies[message.LobbyID]
 	if exists {
+
+		if len(lobby.Players) > 3 {
+			return impl.ErrorResponse("Cannot join lobby. Player limit exceeded.", impl.LobbyPlayerLimitExceeded)
+		}
+
 		newPlayer := game.Player{
 			Name:  user.Name,
 			ID:    user.ID,
 			Ready: false,
 		}
 
-		lobby := k.lobbies[message.LobbyID]
 		lobby.Players = append(lobby.Players, newPlayer)
 
 		k.lobbiesByPlayerID[newPlayer.ID] = lobby
@@ -94,6 +113,11 @@ func (k *KrisKrosServer) OnJoinLobby(message messages.JoinLobbyMessage, user mod
 				k.Send(impl.MessageResponse(resp, resp.Type()), player.ID, 0)
 			}
 		}
+
+		// send notification to players looking for lobbies
+		notif := k.OnGetLobbies(messages.GetLobbiesMessage{}, model.User{})
+		k.SendToPlayersOfState(notif, AUTHORIZED_STATE_ID, 0, user.ID)
+
 		resp := responses.LobbyJoinedResponse{Player: newPlayer, Lobby: *lobby}
 		return impl.MessageResponse(resp, resp.Type())
 	}
@@ -120,6 +144,11 @@ func (k *KrisKrosServer) OnCreateLobby(msg messages.CreateLobbyMessage, user mod
 
 		k.lobbiesByOwnerID[user.ID] = k.lobbies[k.lobbyUIQ]
 		lobby.Players = append(lobby.Players, player)
+
+		// send notification to players looking for lobbies
+		notif := k.OnGetLobbies(messages.GetLobbiesMessage{}, model.User{})
+		k.SendToPlayersOfState(notif, AUTHORIZED_STATE_ID, 0, user.ID)
+
 		resp := responses.LobbyJoinedResponse{Player: player, Lobby: *lobby}
 		return impl.MessageResponse(resp, resp.Type())
 	} else {
@@ -139,9 +168,12 @@ func (k *KrisKrosServer) OnGetLobbies(message messages.GetLobbiesMessage, user m
 	return impl.MessageResponse(resp, resp.Type())
 }
 
-func (k *KrisKrosServer) ClientDisconnected(clientUID int) {
-	k.removeClientFromLobby(clientUID)
-	k.OnClientDisconnected(clientUID)
+func (k *KrisKrosServer) ClientDisconnected(socket int) {
+	userID, exists := k.Router.SocketToUserID[socket]
+	if exists {
+		k.removeClientFromLobby(userID)
+	}
+	k.OnClientDisconnected(socket)
 }
 
 func (k *KrisKrosServer) removeClientFromLobby(userID int) bool {
@@ -172,6 +204,11 @@ func (k *KrisKrosServer) removeClientFromLobby(userID int) bool {
 				}
 			}
 		}
+
+		// send notification to players looking for lobbies
+		notif := k.OnGetLobbies(messages.GetLobbiesMessage{}, model.User{})
+		k.SendToPlayersOfState(notif, AUTHORIZED_STATE_ID, 0, userID)
+
 		return true
 	}
 	return false
@@ -184,6 +221,7 @@ func (k *KrisKrosServer) destroyLobby(lobby *model.Lobby) {
 			resp := responses.LobbyDestroyedResponse{}
 			delete(k.lobbiesByPlayerID, player.ID)
 			k.Send(impl.MessageResponse(resp, resp.Type()), player.ID, 0)
+			k.Router.UserStates[player.ID] = AuthorizedState{}
 		}
 	}
 
