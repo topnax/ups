@@ -13,7 +13,7 @@ class LobbyViewModel(id: Int, owner: String, playerCount: Int) {
     val ownerProperty = SimpleStringProperty(owner)
     var ownerName by ownerProperty
 
-    val playersProperty = SimpleIntegerProperty(playerCount)
+    val playersProperty = SimpleStringProperty("$playerCount / 4")
     var playerCount by playersProperty
 
 }

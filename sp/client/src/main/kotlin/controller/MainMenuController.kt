@@ -4,6 +4,7 @@ import MainMenuView
 import javafx.application.Platform
 import javafx.collections.ObservableList
 import javafx.scene.control.Alert
+import model.lobby.Lobby
 import model.lobby.LobbyViewModel
 import mu.KotlinLogging
 import networking.ConnectionStatusListener
@@ -67,18 +68,24 @@ class MainMenuController : Controller(), ConnectionStatusListener {
 
     fun refreshLobbies() {
         Network.getInstance().send(GetLobbiesMessage(), { am: ApplicationMessage ->
-            run {
+
+            Platform.runLater {
                 when (am) {
                     is GetLobbiesResponse -> {
-                        lobbyViewModels.clear()
-                        am.lobbies.forEach {
-                            lobbyViewModels.add(LobbyViewModel(it.id, it.owner.name, it.players.size))
-                        }
+                        updateLobbiesTable(am.lobbies)
                     }
                     else -> lobbyViewModels.clear()
                 }
             }
+
         })
+    }
+
+    fun updateLobbiesTable(lobbies: List<Lobby>) {
+        lobbyViewModels.clear()
+        lobbies.forEach {
+            lobbyViewModels.add(LobbyViewModel(it.id, it.owner.name, it.players.size))
+        }
     }
 
     fun onJoinLobby(id: Int) {
