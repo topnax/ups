@@ -1,4 +1,5 @@
 import controller.MainMenuController
+import javafx.application.Platform
 import javafx.beans.property.SimpleIntegerProperty
 import javafx.beans.property.SimpleStringProperty
 import javafx.scene.control.Button
@@ -7,7 +8,12 @@ import javafx.scene.control.MenuItem
 import javafx.scene.control.TextField
 import javafx.scene.layout.Priority
 import model.lobby.LobbyViewModel
+import networking.Network
+import networking.messages.GetLobbiesResponse
+import networking.messages.LobbyUpdatedResponse
 import tornadofx.*
+import java.util.*
+import kotlin.concurrent.schedule
 
 class MainMenuView : View() {
 
@@ -59,8 +65,27 @@ class MainMenuView : View() {
 
     override fun onDock() {
         super.onDock()
-        controller.refreshLobbies()
+        Timer().schedule(1000) {
+            if (isDocked) {
+                controller.refreshLobbies()
+            }
+        }
+
+        Network.getInstance().addMessageListener(::onLobbyUpdated)
     }
+
+    override fun onUndock() {
+        super.onUndock()
+        Network.getInstance().removeMessageListener(::onLobbyUpdated)
+    }
+
+
+    private fun onLobbyUpdated(message: GetLobbiesResponse) {
+        Platform.runLater {
+            controller.updateLobbiesTable(message.lobbies)
+        }
+    }
+
 }
 
 

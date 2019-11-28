@@ -70,9 +70,7 @@ class LobbyView : View() {
     }
 
     private fun onReadyButtonClicked() {
-        Network.getInstance().send(PlayerReadyToggleMessage(
-                !ready
-        ), { am ->
+        Network.getInstance().send(PlayerReadyToggleMessage(!ready), { am ->
             run {
                 when (am) {
                     is LobbyUpdatedResponse -> {
@@ -94,7 +92,6 @@ class LobbyView : View() {
                 mainMenuView.controller.refreshLobbies()
             }
         }
-
     }
 
     fun update(lobby: Lobby) {
@@ -108,7 +105,12 @@ class LobbyView : View() {
         }
         if (player == lobby.owner) {
             startButton.visibleProperty().set(true)
+        } else {
+            startButton.visibleProperty().set(false)
         }
+
+        startButton.disableProperty().set(lobby.players.filter{ it.ready  }.count() != lobby.players.size || lobby.players.size < 2)
+
     }
 
     override fun onDock() {

@@ -7,6 +7,7 @@ import mu.KotlinLogging
 import networking.applicationmessagereader.ApplicationMessageReader
 import networking.messages.ApplicationMessage
 import networking.messages.ErrorResponseMessage
+import networking.messages.GetLobbiesMessage
 import networking.reader.SimpleMessageReader
 import networking.receiver.SimpleMessageReceiver
 import tornadofx.alert
@@ -36,6 +37,11 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
     var tcpLayer: TCPLayer? = null
 
     var messageListeners = mutableMapOf<Class<out ApplicationMessage>, MutableList<(T: ApplicationMessage) -> Unit>>()
+        get() {
+            synchronized(field) {
+                return field
+            }
+        }
 
     private var responseListeners = mutableMapOf<Int, MutableList<(ApplicationMessage) -> Unit>>()
 
@@ -108,6 +114,10 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
 
     fun send(message: ApplicationMessage, callback: ((ApplicationMessage) -> Unit)? = null, desiredMessageId: Int = 0, callAfterWrite: (() -> Unit)? = null, ignoreErrors: Boolean = false) {
         val json = message.toJson()
+
+        if (message is GetLobbiesMessage) {
+            println()
+        }
 
         callback?.let {
             addResponseListener(if (desiredMessageId != 0) desiredMessageId else messageId, callback)
