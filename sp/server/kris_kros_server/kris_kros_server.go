@@ -3,6 +3,7 @@ package kris_kros_server
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"strings"
 	"ups/sp/server/game"
 	"ups/sp/server/model"
 	"ups/sp/server/protocol/def"
@@ -55,14 +56,22 @@ func (k KrisKrosServer) Read(message def.MessageHandler, clientUID int) def.Resp
 	return res
 }
 
-func (k *KrisKrosServer) OnPlayerJoined(message messages.PlayerJoinedMessage, clientUID int) def.Response {
-	log.Infoln("On player joined:)", message.PlayerName, k.count)
-	k.count++
-	return impl.SuccessResponse("Successfully :) " + message.PlayerName)
+func (k KrisKrosServer) Send(response def.Response, userId int, responseId int) {
+	socket, exists := k.Router.UserIDToSocket[userId]
+	if exists {
+		k.sender.Send(response, socket, responseId)
+	} else {
+		log.Errorf("Could not send resposne of type %d and content '%s'", response.Content(), response.Content())
+	}
 }
 
-func (k *KrisKrosServer) OnJoinLobby(message messages.JoinLobbyMessage, clientUID int) def.Response {
-	user := k.usersById[k.Router.SocketToUserID[clientUID]]
+func (k *KrisKrosServer) OnPlayerJoined(user model.User) def.Response {
+	log.Infoln("On player joined:)", user.Name, k.count)
+	k.count++
+	return impl.SuccessResponse("Successfully :)")
+}
+
+func (k *KrisKrosServer) OnJoinLobby(message messages.JoinLobbyMessage, user model.User) def.Response {
 	_, exists := k.lobbies[message.LobbyID]
 	if exists {
 		newPlayer := game.Player{
@@ -82,7 +91,7 @@ func (k *KrisKrosServer) OnJoinLobby(message messages.JoinLobbyMessage, clientUI
 			if player.ID != newPlayer.ID {
 				//resp := responses.PlayerJoinedResponse{PlayerName: newPlayer.Name, PlayerID: newPlayer.ID}
 				resp := responses.LobbyUpdatedResponse{Lobby: *lobby}
-				k.sender.Send(impl.MessageResponse(resp, resp.Type()), player.ID, 0)
+				k.Send(impl.MessageResponse(resp, resp.Type()), player.ID, 0)
 			}
 		}
 		resp := responses.LobbyJoinedResponse{Player: newPlayer, Lobby: *lobby}
@@ -91,9 +100,8 @@ func (k *KrisKrosServer) OnJoinLobby(message messages.JoinLobbyMessage, clientUI
 	return impl.ErrorResponse(fmt.Sprintf("Lobby of ID %d does not exist", message.LobbyID), impl.LobbyDoesNotExist)
 }
 
-func (k *KrisKrosServer) OnCreateLobby(msg messages.CreateLobbyMessage, clientUID int) def.Response {
-	user := k.usersById[k.Router.SocketToUserID[clientUID]]
-	log.Infof("Receiver create message from %d", clientUID)
+func (k *KrisKrosServer) OnCreateLobby(msg messages.CreateLobbyMessage, user model.User) def.Response {
+	log.Infof("Receiver create message from user of ID %d", user.ID)
 	_, exists := k.lobbiesByOwnerID[user.ID]
 	if !exists {
 		player := game.Player{
@@ -110,16 +118,16 @@ func (k *KrisKrosServer) OnCreateLobby(msg messages.CreateLobbyMessage, clientUI
 
 		k.lobbyUIQ++
 
-		k.lobbiesByOwnerID[clientUID] = k.lobbies[k.lobbyUIQ]
+		k.lobbiesByOwnerID[user.ID] = k.lobbies[k.lobbyUIQ]
 		lobby.Players = append(lobby.Players, player)
 		resp := responses.LobbyJoinedResponse{Player: player, Lobby: *lobby}
 		return impl.MessageResponse(resp, resp.Type())
 	} else {
-		return impl.ErrorResponse(fmt.Sprintf("Player #%d already created a lobby", clientUID), impl.PlayerAlreadyCreatedLobby)
+		return impl.ErrorResponse(fmt.Sprintf("Player #%d already created a lobby", user.ID), impl.PlayerAlreadyCreatedLobby)
 	}
 }
 
-func (k *KrisKrosServer) OnGetLobbies(message messages.GetLobbiesMessage, clientID int) def.Response {
+func (k *KrisKrosServer) OnGetLobbies(message messages.GetLobbiesMessage, user model.User) def.Response {
 	lobbies := []model.Lobby{}
 
 	for _, lobby := range k.lobbies {
@@ -136,14 +144,14 @@ func (k *KrisKrosServer) ClientDisconnected(clientUID int) {
 	k.OnClientDisconnected(clientUID)
 }
 
-func (k *KrisKrosServer) removeClientFromLobby(clientUID int) bool {
-	lobby, ok := k.lobbiesByPlayerID[clientUID]
-	log.Infof("Inside remove client from lobby, clientuid %d, exists : %v", clientUID, ok)
+func (k *KrisKrosServer) removeClientFromLobby(userID int) bool {
+	lobby, ok := k.lobbiesByPlayerID[userID]
+	log.Infof("Inside remove client from lobby, user ID %d, lobby exists : %v", userID, ok)
 	if ok {
 		var dcdPlayer game.Player
 		dcdPlayerIndex := -1
 		for i, player := range lobby.Players {
-			if player.ID == clientUID {
+			if player.ID == userID {
 				dcdPlayer = player
 				dcdPlayer.Ready = false
 				dcdPlayerIndex = i
@@ -155,16 +163,16 @@ func (k *KrisKrosServer) removeClientFromLobby(clientUID int) bool {
 		} else {
 
 			lobby.Players = append(lobby.Players[:dcdPlayerIndex], lobby.Players[dcdPlayerIndex+1:]...)
-			delete(k.lobbiesByPlayerID, clientUID)
+			delete(k.lobbiesByPlayerID, userID)
 
 			for _, player := range lobby.Players {
-				if player.ID != clientUID {
+				if player.ID != userID {
 					resp := responses.LobbyUpdatedResponse{Lobby: *lobby}
-					k.sender.Send(impl.MessageResponse(resp, resp.Type()), player.ID, 0)
+					k.Send(impl.MessageResponse(resp, resp.Type()), player.ID, 0)
 				}
 			}
 		}
-		return false
+		return true
 	}
 	return false
 }
@@ -175,7 +183,7 @@ func (k *KrisKrosServer) destroyLobby(lobby *model.Lobby) {
 		if player.ID != lobby.Owner.ID {
 			resp := responses.LobbyDestroyedResponse{}
 			delete(k.lobbiesByPlayerID, player.ID)
-			k.sender.Send(impl.MessageResponse(resp, resp.Type()), player.ID, 0)
+			k.Send(impl.MessageResponse(resp, resp.Type()), player.ID, 0)
 		}
 	}
 
@@ -183,8 +191,8 @@ func (k *KrisKrosServer) destroyLobby(lobby *model.Lobby) {
 	delete(k.lobbies, lobby.ID)
 }
 
-func (k *KrisKrosServer) OnLeaveLobby(clientUID int) def.Response {
-	if k.removeClientFromLobby(clientUID) {
+func (k *KrisKrosServer) OnLeaveLobby(userID int) def.Response {
+	if k.removeClientFromLobby(userID) {
 		return impl.SuccessResponse("Successfully left lobby")
 	} else {
 		return impl.ErrorResponse("Could not leave the lobby", impl.CouldNotLeaveLobby)
@@ -209,7 +217,7 @@ func (k *KrisKrosServer) OnPlayerReadyToggle(playerID int, ready bool) def.Respo
 			for _, player := range lobby.Players {
 				if player.ID != playerID {
 					resp := responses.LobbyUpdatedResponse{Lobby: *lobby}
-					k.sender.Send(impl.MessageResponse(resp, resp.Type()), player.ID, 0)
+					k.Send(impl.MessageResponse(resp, resp.Type()), player.ID, 0)
 				}
 			}
 			resp := responses.LobbyUpdatedResponse{Lobby: *lobby}
@@ -221,6 +229,9 @@ func (k *KrisKrosServer) OnPlayerReadyToggle(playerID int, ready bool) def.Respo
 }
 
 func (k *KrisKrosServer) OnUserAuthenticate(clientUID int, message messages.UserAuthenticationMessage) def.Response {
+	if len(strings.Trim(message.Name, " ")) == 0 {
+		return impl.ErrorResponse(fmt.Sprintf("Name must not be empty"), impl.NameMustNotBeEmpty)
+	}
 	user, exists := k.usersByName[message.Name]
 
 	if !exists {

@@ -15,9 +15,7 @@ const (
 	UserLeavingMessageType        = 8
 )
 
-type PlayerJoinedMessage struct {
-	PlayerName string `json:"player_name"`
-}
+type PlayerJoinedMessage struct{}
 
 func (p PlayerJoinedMessage) Handle(message def.Message, amr def.ApplicationMessageReader) def.Response {
 	if parse(message, &p) {

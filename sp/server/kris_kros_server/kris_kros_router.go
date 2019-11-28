@@ -3,6 +3,7 @@ package kris_kros_server
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"ups/sp/server/model"
 	"ups/sp/server/protocol/def"
 	"ups/sp/server/protocol/impl"
 	"ups/sp/server/protocol/messages"
@@ -10,7 +11,7 @@ import (
 )
 
 type KrisKrosRouter struct {
-	callbacks      map[int]func(handler def.MessageHandler, server *KrisKrosServer, clientUID int) def.Response
+	callbacks      map[int]func(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response
 	server         *KrisKrosServer
 	Handlers       []def.MessageHandler
 	states         map[int]State
@@ -19,7 +20,7 @@ type KrisKrosRouter struct {
 	UserIDToSocket map[int]int
 }
 
-func (router *KrisKrosRouter) register(handler def.MessageHandler, callback func(handler def.MessageHandler, server *KrisKrosServer, clientUID int) def.Response) {
+func (router *KrisKrosRouter) register(handler def.MessageHandler, callback func(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response) {
 	router.callbacks[handler.GetType()] = callback
 	router.Handlers = append(router.Handlers, handler)
 }
@@ -52,9 +53,16 @@ func (router *KrisKrosRouter) route(message def.MessageHandler, clientUID int) d
 
 		if exists {
 			log.Infof("Route of type %d found", message.GetType())
-			response := route(message, router.server, clientUID)
+			user, exists := router.server.usersById[userID]
+			if !exists {
+				user = &model.User{
+					ID:   clientUID,
+					Name: "NOT_CREATED",
+				}
+			}
+			response := route(message, router.server, *user)
 			log.Infoln("responding:", response.Content())
-			if response.Type() < responses.ValidResponseCeiling {
+			if response.Type() < responses.ValidResponseCeiling || response.Type() == impl.PlainSuccess {
 				if userID != -1 {
 					state, exists := router.states[newStateID]
 					if exists {
@@ -76,7 +84,7 @@ func (router *KrisKrosRouter) route(message def.MessageHandler, clientUID int) d
 
 func newKrisKrosRouter(server *KrisKrosServer) KrisKrosRouter {
 	router := KrisKrosRouter{server: server}
-	router.callbacks = make(map[int]func(handler def.MessageHandler, server *KrisKrosServer, clientUID int) def.Response)
+	router.callbacks = make(map[int]func(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response)
 	router.registerRoutes()
 	router.registerStates()
 	router.UserStates = make(map[int]State)

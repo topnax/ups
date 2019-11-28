@@ -54,7 +54,7 @@ func (a AuthorizedState) Id() int {
 func (a AuthorizedState) Routes() map[int]int {
 	m := make(map[int]int)
 	m[messages.GetLobbiesType] = AuthorizedState{}.Id()
-	m[messages.JoinLobbyMessageType] = AuthorizedState{}.Id()
+	m[messages.JoinLobbyMessageType] = LobbyJoinedState{}.Id()
 	m[messages.CreateLobbyType] = LobbyCreatedState{}.Id()
 	return m
 }

@@ -23,6 +23,8 @@ const (
 	CouldNotLeaveLobby          = 22
 	CouldNotFindSuchUserInLobby = 23
 	PlayerNameAlreadyTaken      = 24
+	NameMustNotBeEmpty          = 25
+	GeneralError                = 26
 
 	PlainSuccess = 701
 )
