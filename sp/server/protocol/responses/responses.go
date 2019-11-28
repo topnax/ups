@@ -15,6 +15,7 @@ const (
 	lobbyDestroyedResponse    = 105
 	lobbyJoinedResponse       = 106
 	userAuthenticatedResponse = 107
+	lobbyStartedResponse      = 108
 )
 
 type TypedResponse interface {
@@ -96,4 +97,12 @@ type UserAuthenticatedResponse struct {
 
 func (g UserAuthenticatedResponse) Type() int {
 	return userAuthenticatedResponse
+}
+
+//////////////////////////////////////
+
+type LobbyStartedResponse struct{}
+
+func (g LobbyStartedResponse) Type() int {
+	return lobbyStartedResponse
 }

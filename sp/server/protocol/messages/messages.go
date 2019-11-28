@@ -13,6 +13,7 @@ const (
 	PlayerReadyMessageType        = 6
 	UserAuthenticationMessageType = 7
 	UserLeavingMessageType        = 8
+	StartLobbyMessageType         = 9
 )
 
 type PlayerJoinedMessage struct{}
@@ -136,4 +137,16 @@ func (p UserLeavingMessage) Handle(message def.Message, amr def.ApplicationMessa
 
 func (p UserLeavingMessage) GetType() int {
 	return UserLeavingMessageType
+}
+
+////////////////////////////////////////////
+
+type StartLobbyMessage struct{}
+
+func (p StartLobbyMessage) Handle(message def.Message, amr def.ApplicationMessageReader) def.Response {
+	return amr.Read(p, message.ClientID())
+}
+
+func (p StartLobbyMessage) GetType() int {
+	return StartLobbyMessageType
 }

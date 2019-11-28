@@ -16,6 +16,7 @@ func (router *KrisKrosRouter) registerRoutes() {
 	router.register(messages.PlayerReadyToggle{}, playerReadyRoute)
 	router.register(messages.UserAuthenticationMessage{}, userAuthenticationRoute)
 	router.register(messages.UserLeavingMessage{}, userLeavingRoute)
+	router.register(messages.StartLobbyMessage{}, startLobbyRoute)
 }
 
 func playerJoinedRoute(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response {
@@ -85,4 +86,8 @@ func userAuthenticationRoute(handler def.MessageHandler, server *KrisKrosServer,
 func userLeavingRoute(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response {
 	server.OnUserDisconnecting(user.ID)
 	return impl.DoNotRespond()
+}
+
+func startLobbyRoute(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response {
+	return server.OnStartLobby(user.ID)
 }

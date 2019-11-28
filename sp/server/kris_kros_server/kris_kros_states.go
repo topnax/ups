@@ -11,7 +11,7 @@ const (
 	LOBBY_JOINED_READY_ID  = 4
 	LOBBY_CREATED_ID       = 5
 	LOBBY_CREATED_READY_ID = 6
-	GAME_STARTED_ID        = 7
+	LOBBY_STARTED_STATE    = 7
 )
 
 type State interface {
@@ -27,7 +27,7 @@ func (router *KrisKrosRouter) registerStates() {
 	router.registerState(LobbyJoinedReadyState{})
 	router.registerState(LobbyCreatedState{})
 	router.registerState(LobbyCreatedReadyState{})
-	router.registerState(GameStartedState{})
+	router.registerState(LobbyStartedState{})
 }
 
 type InitialState struct{}
@@ -100,7 +100,7 @@ func (a LobbyCreatedState) Id() int {
 func (a LobbyCreatedState) Routes() map[int]int {
 	m := make(map[int]int)
 	m[messages.LeaveLobbyMessageType] = AuthorizedState{}.Id()
-	m[messages.PlayerReadyMessageType] = LobbyJoinedReadyState{}.Id()
+	m[messages.PlayerReadyMessageType] = LobbyCreatedReadyState{}.Id()
 	return m
 }
 
@@ -114,22 +114,22 @@ func (a LobbyCreatedReadyState) Id() int {
 
 func (a LobbyCreatedReadyState) Routes() map[int]int {
 	m := make(map[int]int)
-	m[messages.PlayerReadyMessageType] = LobbyJoinedState{}.Id()
+	m[messages.PlayerReadyMessageType] = LobbyCreatedState{}.Id()
 	m[messages.LeaveLobbyMessageType] = AuthorizedState{}.Id()
+	m[messages.StartLobbyMessageType] = LobbyStartedState{}.Id()
 	return m
 }
 
 ////////////////////////////////////////////
 
-type GameStartedState struct{}
+type LobbyStartedState struct{}
 
-func (a GameStartedState) Id() int {
-	return GAME_STARTED_ID
+func (a LobbyStartedState) Id() int {
+	return LOBBY_STARTED_STATE
 }
 
-func (a GameStartedState) Routes() map[int]int {
+func (a LobbyStartedState) Routes() map[int]int {
 	m := make(map[int]int)
-	m[messages.PlayerReadyMessageType] = LobbyJoinedState{}.Id()
 	m[messages.LeaveLobbyMessageType] = AuthorizedState{}.Id()
 	return m
 }

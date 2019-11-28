@@ -139,10 +139,10 @@ func (k *KrisKrosServer) OnCreateLobby(msg messages.CreateLobbyMessage, user mod
 		}
 		lobby := k.lobbies[k.lobbyUIQ]
 		k.lobbiesByPlayerID[player.ID] = lobby
+		k.lobbiesByOwnerID[user.ID] = k.lobbies[k.lobbyUIQ]
 
 		k.lobbyUIQ++
 
-		k.lobbiesByOwnerID[user.ID] = k.lobbies[k.lobbyUIQ]
 		lobby.Players = append(lobby.Players, player)
 
 		// send notification to players looking for lobbies
@@ -235,6 +235,22 @@ func (k *KrisKrosServer) OnLeaveLobby(userID int) def.Response {
 	} else {
 		return impl.ErrorResponse("Could not leave the lobby", impl.CouldNotLeaveLobby)
 	}
+}
+
+func (k *KrisKrosServer) OnStartLobby(userID int) def.Response {
+	lobby, exists := k.lobbiesByOwnerID[userID]
+	if exists && lobby.IsStartable() {
+		resp := responses.LobbyStartedResponse{}
+		out := impl.MessageResponse(resp, resp.Type())
+		for _, player := range lobby.Players {
+			if player.ID != lobby.Owner.ID {
+				k.Send(out, player.ID, 0)
+				k.Router.UserStates[player.ID] = LobbyStartedState{}
+			}
+		}
+		return out
+	}
+	return impl.ErrorResponse(fmt.Sprintf("Cannot create a lobby because such user of ID=%d is not an owner of a lobby", userID), impl.GeneralError)
 }
 
 func (k *KrisKrosServer) OnPlayerReadyToggle(playerID int, ready bool) def.Response {
