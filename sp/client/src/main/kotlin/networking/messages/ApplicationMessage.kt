@@ -29,6 +29,7 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
         const val LOBBY_DESTROYED_RESPONSE_TYPE = 105
         const val LOBBY_JOINED_RESPONSE_TYPE = 106
         const val USER_AUTHENTICATED_RESPONSE_TYPE = 107
+        const val LOBBY_STARTED_MESSAGE_TYPE = 108
 
         const val ERROR_RESPONSE_TYPE = 401
         const val SUCCESS_RESPONSE_TYPE = 701
@@ -57,6 +58,7 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
                         LOBBY_DESTROYED_RESPONSE_TYPE -> fromJson<LobbyDestroyedResponse>(json)
                         LOBBY_JOINED_RESPONSE_TYPE -> fromJson<LobbyJoinedResponse>(json)
                         USER_AUTHENTICATED_RESPONSE_TYPE -> fromJson<UserAuthenticatedResponse>(json)
+                        LOBBY_STARTED_MESSAGE_TYPE -> fromJson<LobbyStartedResponse>(json)
                         else -> null
                     }
                 }
@@ -108,4 +110,6 @@ data class UserAuthenticatedResponse(val user: User) : ApplicationMessage(USER_A
 
 class UserLeavingMessage() : EmptyMessage(USER_LEAVING_MESSAGE_TYPE)
 
-class StartLobbyMessage() : EmptyMessage(USER_LEAVING_MESSAGE_TYPE)
+class StartLobbyMessage() : EmptyMessage(START_LOBBY_MESSAGE_TYPE)
+
+class LobbyStartedResponse() : EmptyMessage(LOBBY_STARTED_MESSAGE_TYPE)

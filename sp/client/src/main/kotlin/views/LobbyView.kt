@@ -66,7 +66,13 @@ class LobbyView : View() {
     }
 
     private fun startLobby() {
-        TODO("not implemented")
+        Network.getInstance().send(StartLobbyMessage(), { applicationMessage ->
+            Platform.runLater {
+                if (applicationMessage is LobbyStartedResponse) {
+                    alert(Alert.AlertType.INFORMATION, "Lobby started")
+                }
+            }
+        })
     }
 
     private fun onReadyButtonClicked() {
@@ -109,7 +115,7 @@ class LobbyView : View() {
             startButton.visibleProperty().set(false)
         }
 
-        startButton.disableProperty().set(lobby.players.filter{ it.ready  }.count() != lobby.players.size || lobby.players.size < 2)
+        startButton.disableProperty().set(lobby.players.filter { it.ready }.count() != lobby.players.size || lobby.players.size < 2)
 
     }
 
@@ -118,11 +124,23 @@ class LobbyView : View() {
         update(lobby)
         Network.getInstance().addMessageListener(::onLobbyUpdated)
         Network.getInstance().addMessageListener(::onLobbyDestroyed)
+        if (Network.User.id != lobby.owner.id) {
+            Network.getInstance().addMessageListener(::onLobbyStarted)
+        }
+    }
+
+    private fun onLobbyStarted(lobbyStartedResponse: LobbyStartedResponse) {
+        Platform.runLater {
+            alert(Alert.AlertType.INFORMATION, "Leader has started the lobby")
+        }
     }
 
     override fun onUndock() {
         super.onUndock()
         Network.getInstance().removeMessageListener(::onLobbyDestroyed)
         Network.getInstance().removeMessageListener(::onLobbyUpdated)
+        if (Network.User.id != lobby.owner.id) {
+            Network.getInstance().removeMessageListener(::onLobbyStarted)
+        }
     }
 }
