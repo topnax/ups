@@ -86,7 +86,7 @@ class LobbyView : View() {
     }
 
     private fun leaveLobby() {
-        Network.getInstance().send(LeaveLobbyMessage())
+        Network.getInstance().send(LeaveLobbyMessage(), ignoreErrors = true)
         val mainMenuView = find<MainMenuView>()
         replaceWith(mainMenuView)
         Timer().schedule(2000) {

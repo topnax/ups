@@ -1,10 +1,15 @@
 package networking
 
+import javafx.application.Platform
+import javafx.scene.control.Alert
+import model.lobby.User
 import mu.KotlinLogging
 import networking.applicationmessagereader.ApplicationMessageReader
 import networking.messages.ApplicationMessage
+import networking.messages.ErrorResponseMessage
 import networking.reader.SimpleMessageReader
 import networking.receiver.SimpleMessageReceiver
+import tornadofx.alert
 
 private val logger = KotlinLogging.logger { }
 
@@ -16,10 +21,14 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
 
         private var network: Network = Network()
 
+        public lateinit var User: User
+
         @Synchronized
         fun getInstance(): Network {
             return network
         }
+
+
     }
 
     private var messageId = MESSAGE_STARTING_ID
@@ -97,11 +106,21 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
         }
     }
 
-    fun send(message: ApplicationMessage, callback: ((ApplicationMessage) -> Unit)? = null, desiredMessageId: Int = 0, callAfterWrite: (() -> Unit)? = null) {
+    fun send(message: ApplicationMessage, callback: ((ApplicationMessage) -> Unit)? = null, desiredMessageId: Int = 0, callAfterWrite: (() -> Unit)? = null, ignoreErrors: Boolean = false) {
         val json = message.toJson()
 
         callback?.let {
             addResponseListener(if (desiredMessageId != 0) desiredMessageId else messageId, callback)
+            if (!ignoreErrors) {
+                addResponseListener(if (desiredMessageId != 0) desiredMessageId else messageId) { am: ApplicationMessage ->
+                    run {
+                        if (am is ErrorResponseMessage)
+                            Platform.runLater {
+                                alert(Alert.AlertType.ERROR, "Error", am.content)
+                            }
+                    }
+                }
+            }
         }
 
         logger.info { "Printing message of type ${message.type} and content '$json' to server" }

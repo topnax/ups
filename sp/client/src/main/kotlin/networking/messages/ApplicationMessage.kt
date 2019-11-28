@@ -46,7 +46,7 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
             return try {
                 if (type in 401..499) {
                     val error = fromJson<ErrorResponseMessage>(json)
-                    error?.let { logger.error {"Received an error of type $type and content ${error.content}"} }
+                    error?.let { logger.error { "Received an error of type $type and content ${error.content}" } }
                     error
                 } else {
                     when (type) {
@@ -81,11 +81,11 @@ open class EmptyMessage(messageType: Int) : ApplicationMessage(messageType) {
 
 data class ErrorResponseMessage(val content: String) : ApplicationMessage(ERROR_RESPONSE_TYPE)
 
-data class CreateLobbyMessage(val playerName: String) : ApplicationMessage(CREATE_LOBBY_MESSAGE_TYPE)
+class CreateLobbyMessage() : EmptyMessage(CREATE_LOBBY_MESSAGE_TYPE)
 
 class GetLobbiesMessage : EmptyMessage(GET_LOBBIES_MESSAGE_TYPE)
 
-data class JoinLobbyMessage(val lobbyId: Int, val playerName: String) : ApplicationMessage(JOIN_LOBBY_MESSAGE_TYPE)
+data class JoinLobbyMessage(val lobbyId: Int) : ApplicationMessage(JOIN_LOBBY_MESSAGE_TYPE)
 
 class LeaveLobbyMessage : EmptyMessage(LEAVE_LOBBY_MESSAGE_TYPE)
 

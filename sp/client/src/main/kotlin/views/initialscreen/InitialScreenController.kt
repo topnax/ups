@@ -6,6 +6,7 @@ import mu.KotlinLogging
 import networking.ConnectionStatusListener
 import networking.Network
 import networking.messages.*
+import MainMenuView
 
 import tornadofx.*
 
@@ -65,7 +66,8 @@ class InitialScreenController : Controller(), ConnectionStatusListener {
             Network.getInstance().send(UserAuthenticationMessage(initialScreen.nameTextField.text), { am: ApplicationMessage ->
                 Platform.runLater {
                     if (am is UserAuthenticatedResponse) {
-//                        initialScreen.replaceWith<MainMen>()
+                        Network.User = am.user
+                        initialScreen.replaceWith<MainMenuView>()
                     }
                 }
             })
