@@ -3,6 +3,8 @@ package game
 import (
 	"errors"
 	"fmt"
+	"math/rand"
+	"time"
 )
 
 type Game struct {
@@ -16,6 +18,8 @@ type Game struct {
 
 	PlayersThatAccepted *PlayerSet
 	idInc               int
+
+	letterBag []string
 }
 
 func (game *Game) AcceptTurn(player Player) bool {
@@ -26,12 +30,27 @@ func (game *Game) AcceptTurn(player Player) bool {
 	return len(game.PlayersThatAccepted.List) == len(game.Players)-1
 }
 
+func getLettersFromBag(bag []string, requested int) ([]string, []string) {
+	var randomLetters []string
+	rand.Seed(time.Now().UnixNano())
+	if len(bag) >= requested {
+		for i := 0; i < requested; i++ {
+			index := rand.Intn(len(bag))
+			randomLetters = append(randomLetters, bag[index])
+			fmt.Println("From index", index, "letter:", bag[index])
+			bag = append(bag[:i], bag[i+1:]...)
+		}
+	}
+	return randomLetters, bag
+}
+
 func (game *Game) Start() error {
 	if len(game.Players) > 1 && len(game.Players) <= 4 {
 		game.PointsTable = make(map[int]int)
 		for _, player := range game.Players {
 			game.PointsTable[player.ID] = 0
 		}
+		game.letterBag = generateLetterBag()
 		game.Desk.Create()
 		game.CurrentPlayerIndex = -1
 		game.Next()
@@ -40,6 +59,16 @@ func (game *Game) Start() error {
 	} else {
 		return errors.New("a game should consist of 2 to 4 players")
 	}
+}
+
+func generateLetterBag() []string {
+	var letterBag []string
+	for letter, info := range GetLetterPointsTable() {
+		for i := 0; i < info[1]; i++ {
+			letterBag = append(letterBag, letter)
+		}
+	}
+	return letterBag
 }
 
 func (game *Game) AddPlayer(name string) {

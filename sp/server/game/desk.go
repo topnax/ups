@@ -22,7 +22,7 @@ type Desk struct {
 	CurrentLetters *LetterSet
 	PlacedLetter   *LetterSet
 
-	LetterPointsTable map[string]int
+	LetterPointsTable map[string][2]int
 }
 
 func (desk *Desk) Create() {
@@ -75,7 +75,7 @@ func (desk *Desk) SetAt(letter string, row int, column int, playerID int) error 
 	}
 
 	desk.Tiles[row][column].Letter = Letter{
-		Points:   letterPoints,
+		Points:   letterPoints[0],
 		Value:    letter,
 		PlayerID: playerID,
 	}
