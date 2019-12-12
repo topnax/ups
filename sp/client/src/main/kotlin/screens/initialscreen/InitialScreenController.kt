@@ -1,4 +1,4 @@
-package views.initialscreen
+package screens.initialscreen
 
 import javafx.application.Platform
 import javafx.scene.control.*

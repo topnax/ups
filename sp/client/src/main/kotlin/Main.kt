@@ -1,8 +1,9 @@
+import screens.game.GameView
 import tornadofx.App
 import tornadofx.launch
-import views.initialscreen.InitialScreen
+import screens.initialscreen.InitialScreen
 
-class KrisKrosApp : App(InitialScreen::class)
+class KrisKrosApp : App(GameView::class)
 
 fun main(args: Array<String>) {
     launch<KrisKrosApp>(args)

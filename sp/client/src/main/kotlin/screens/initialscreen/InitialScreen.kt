@@ -1,13 +1,10 @@
-package views.initialscreen
+package screens.initialscreen
 
 import javafx.beans.property.SimpleIntegerProperty
 import javafx.beans.property.SimpleStringProperty
 import javafx.scene.control.Button
-import javafx.scene.control.Label
 import javafx.scene.control.MenuItem
 import javafx.scene.control.TextField
-import javafx.scene.layout.Priority
-import model.lobby.LobbyViewModel
 
 import tornadofx.*
 

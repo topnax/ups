@@ -1,4 +1,4 @@
-package views
+package screens
 
 import MainMenuView
 import javafx.application.Platform

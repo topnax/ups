@@ -1,16 +1,12 @@
 import controller.MainMenuController
 import javafx.application.Platform
-import javafx.beans.property.SimpleIntegerProperty
-import javafx.beans.property.SimpleStringProperty
 import javafx.scene.control.Button
 import javafx.scene.control.Label
 import javafx.scene.control.MenuItem
-import javafx.scene.control.TextField
 import javafx.scene.layout.Priority
 import model.lobby.LobbyViewModel
 import networking.Network
 import networking.messages.GetLobbiesResponse
-import networking.messages.LobbyUpdatedResponse
 import tornadofx.*
 import java.util.*
 import kotlin.concurrent.schedule
@@ -19,7 +15,6 @@ class MainMenuView : View() {
 
     fun setNetworkElementsEnabled(b: Boolean) {
         createLobbyButton.disableProperty().set(!b)
-        serverMenu.disableProperty().set(!b)
     }
 
     private lateinit var createLobbyButton: Button
