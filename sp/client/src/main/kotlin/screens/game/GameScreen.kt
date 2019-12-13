@@ -56,13 +56,7 @@ class GameView : View() {
             }
             gridLinesVisibleProperty().set(true)
             subscribe<DeskChange> {
-                val tv = TileView(it.tile)
-                Platform.runLater {
-                    tileViews[it.tile.column]!![it.tile.row]?.removeFromParent()
-                    this@gridpane.add(tv)
-                }
-                tileViews[it.tile.column]!![it.tile.row] = tv
-                logger.debug { "Firing desk change event" }
+                refreshTile(it.tile)
             }
 
             subscribe<TileSelectedEvent> {
@@ -82,6 +76,7 @@ class GameView : View() {
             subscribe<PlayerStateChangedEvent> {
                 logger.debug { "player state changed event" }
                 Platform.runLater {
+                    clear()
                     controller.players.forEach { label(it.name) { if (it.id == controller.activePlayerID) style { fontWeight = FontWeight.EXTRA_BOLD } } }
                 }
             }
@@ -102,7 +97,7 @@ class GameView : View() {
 
     }
 
-    private fun GridPane.refreshTile(tile: Tile) {
+    fun GridPane.refreshTile(tile: Tile) {
         val tv = TileView(tile)
         Platform.runLater {
             tileViews[tile.column]!![tile.row]?.removeFromParent()

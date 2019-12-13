@@ -55,9 +55,15 @@ class GameScreenController : Controller() {
     }
 
     init {
-        subscribe<TileSelectedEvent> {
-            logger.debug { "Tile $it.tile selected" }
-            selectedTile = it.tile
+        subscribe<TileSelectedEvent> { event ->
+            logger.debug { "Tile ${event.tile} selected" }
+            selectedTile?.let {
+                it.selected = false
+                fire(DeskChange(it))
+            }
+            selectedTile = event.tile
+            selectedTile?.selected = true
+            fire(DeskChange(event.tile))
         }
 
         subscribe<LetterPlacedEvent> {
@@ -70,9 +76,12 @@ class GameScreenController : Controller() {
                 tile.selected = false
                 fire(DeskChange(tile))
             }
+            activePlayerID += 1
+            activePlayerID = if (activePlayerID >= players.size) 0 else activePlayerID
+            fire(PlayerStateChangedEvent())
         }
 
-        subscribe<NewLetterSackEvent> {
+       subscribe<NewLetterSackEvent> {
             letters = it.letters.toMutableList()
         }
 

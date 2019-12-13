@@ -1,7 +1,7 @@
 package model.game
 
 
-class Tile(val row: Int, val column: Int, type: Int, var selected: Boolean = false) {
+class Tile(val row: Int, val column: Int, type: Int, var selected: Boolean = false, var highlighted: Boolean = false) {
     val type = if (type < TileType.values().size) TileType.values()[type] else TileType.BASIC
     var letter: Letter? = null
 }
