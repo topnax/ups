@@ -14,6 +14,9 @@ type Game struct {
 	CurrentPlayerIndex int
 	Round              int
 
+	playerIdToPlayerBag map[int][]Letter
+	letterPointsTable   map[string][2]int
+
 	PointsTable map[int]int
 
 	PlayersThatAccepted *PlayerSet
@@ -30,13 +33,17 @@ func (game *Game) AcceptTurn(player Player) bool {
 	return len(game.PlayersThatAccepted.List) == len(game.Players)-1
 }
 
-func getLettersFromBag(bag []string, requested int) ([]string, []string) {
-	var randomLetters []string
+func getLettersFromBag(bag []string, requested int, letterPointsTable map[string][2]int) ([]Letter, []string) {
+	var randomLetters []Letter
 	rand.Seed(time.Now().UnixNano())
 	if len(bag) >= requested {
 		for i := 0; i < requested; i++ {
 			index := rand.Intn(len(bag))
-			randomLetters = append(randomLetters, bag[index])
+			randomLetters = append(randomLetters, Letter{
+				Value:    bag[index],
+				Points:   letterPointsTable[bag[index]][0],
+				PlayerID: 0,
+			})
 			fmt.Println("From index", index, "letter:", bag[index])
 			bag = append(bag[:i], bag[i+1:]...)
 		}
@@ -47,8 +54,13 @@ func getLettersFromBag(bag []string, requested int) ([]string, []string) {
 func (game *Game) Start() error {
 	if len(game.Players) > 1 && len(game.Players) <= 4 {
 		game.PointsTable = make(map[int]int)
+		game.playerIdToPlayerBag = make(map[int][]Letter)
+		game.letterPointsTable = GetLetterPointsTable()
 		for _, player := range game.Players {
 			game.PointsTable[player.ID] = 0
+			letters, bag := getLettersFromBag(game.letterBag, 8, game.letterPointsTable)
+			game.letterBag = bag
+			game.playerIdToPlayerBag[player.ID] = letters
 		}
 		game.letterBag = generateLetterBag()
 		game.Desk.Create()

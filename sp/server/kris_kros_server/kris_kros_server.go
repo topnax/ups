@@ -26,6 +26,8 @@ type KrisKrosServer struct {
 	lobbies           map[int]*model.Lobby
 	lobbiesByOwnerID  map[int]*model.Lobby
 	lobbiesByPlayerID map[int]*model.Lobby
+
+	gamesByLobbyId map[int]*game.Game
 }
 
 func failedToCast(message def.MessageHandler) def.Response {
@@ -37,6 +39,7 @@ func NewKrisKrosServer(sender def.ResponseSender) KrisKrosServer {
 		lobbies:           make(map[int]*model.Lobby),
 		lobbiesByOwnerID:  make(map[int]*model.Lobby),
 		lobbiesByPlayerID: make(map[int]*model.Lobby),
+		gamesByLobbyId:    make(map[int]*game.Game),
 		usersById:         make(map[int]*model.User),
 		usersByName:       make(map[string]*model.User),
 	}
@@ -248,6 +251,11 @@ func (k *KrisKrosServer) OnStartLobby(userID int) def.Response {
 				k.Router.UserStates[player.ID] = LobbyStartedState{}
 			}
 		}
+		k.gamesByLobbyId[lobby.ID] = &game.Game{
+			Players: lobby.Players,
+		}
+		_ = k.gamesByLobbyId[lobby.ID].Start()
+
 		return out
 	}
 	return impl.ErrorResponse(fmt.Sprintf("Cannot create a lobby because such user of ID=%d is not an owner of a lobby", userID), impl.GeneralError)
