@@ -54,10 +54,12 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
     }
 
     fun removeMessageListener(messageClazz: Class<out ApplicationMessage>, callback: (ApplicationMessage) -> Unit) {
+        KotlinLogging.logger {  }.debug { "Adding a message listener of for messages of class ${messageClazz.simpleName}" }
         messageListeners[messageClazz]?.remove(callback)
     }
 
     inline fun <reified T : ApplicationMessage> addMessageListener(noinline callback: (T) -> Unit) {
+        KotlinLogging.logger {  }.debug { "Adding a message listener of for messages of class ${T::class.java.simpleName}" }
         messageListeners.putIfAbsent(T::class.java, mutableListOf())
         messageListeners[T::class.java]?.add(callback as (ApplicationMessage) -> Unit)
     }
@@ -96,8 +98,9 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
     override fun read(message: ApplicationMessage, mid: Int) {
         logger.info { "Received a message of type ${message.type}" }
         synchronized(messageListeners) {
-            logger.info { "About to invoke ${messageListeners.size} message listeners of type ${message.type}" }
-            for (callback: (ApplicationMessage) -> Unit in messageListeners.getOrDefault(message.javaClass, listOf<(ApplicationMessage) -> Unit>())) {
+            val typeMessageListeners = messageListeners.getOrDefault(message.javaClass, listOf<(ApplicationMessage) -> Unit>())
+            logger.info { "About to invoke ${typeMessageListeners.size} message listeners of type ${message.type}" }
+            for (callback: (ApplicationMessage) -> Unit in typeMessageListeners) {
                 callback.invoke(message)
             }
         }

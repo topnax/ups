@@ -10,8 +10,8 @@ import javafx.scene.text.FontWeight
 import model.game.Letter
 import model.game.Tile
 import model.game.TileType
-import model.lobby.Player
 import mu.KotlinLogging
+import networking.Network
 import tornadofx.*
 
 private val logger = KotlinLogging.logger { }
@@ -35,20 +35,9 @@ class GameView : View() {
             }
             useMaxWidth = true
             var pindex = 0
-            controller.desk.tiles.forEachIndexed { index, tile ->
+            controller.desk.tiles.forEachIndexed { index, row ->
                 tileViews[index] = arrayOfNulls<TileView>(15)
-                tile.forEachIndexed { i, tile ->
-
-                    if (pindex % 3 == 0) {
-                        tile.letter = Letter("s", 30)
-                    }
-
-                    if (pindex == 21) {
-                        tile.letter = Letter("ch", 30)
-                    }
-
-                    pindex++
-
+                row.forEachIndexed { i, tile ->
                     val tv = TileView(tile)
                     this@gridpane.add(tv)
                     tileViews[index]!![i] = tv
@@ -56,7 +45,9 @@ class GameView : View() {
             }
             gridLinesVisibleProperty().set(true)
             subscribe<DeskChange> {
-                refreshTile(it.tile)
+                Platform.runLater {
+                    refreshTile(it.tile)
+                }
             }
 
             subscribe<TileSelectedEvent> {
@@ -78,6 +69,7 @@ class GameView : View() {
                 Platform.runLater {
                     clear()
                     controller.players.forEach { label(it.name) { if (it.id == controller.activePlayerID) style { fontWeight = FontWeight.EXTRA_BOLD } } }
+                    label(if (controller.activePlayerID == Network.User.id) "Jste na tahu" else "Nejste na tahu")
                 }
             }
         }
@@ -93,8 +85,6 @@ class GameView : View() {
                 }
             }
         }
-
-
     }
 
     fun GridPane.refreshTile(tile: Tile) {
@@ -104,6 +94,16 @@ class GameView : View() {
             this.add(tv)
         }
         tileViews[tile.column]!![tile.row] = tv
+    }
+
+    override fun onDock() {
+        super.onDock()
+        controller.onDock()
+    }
+
+    override fun onUndock() {
+        super.onUndock()
+        controller.onUndock()
     }
 }
 
@@ -128,8 +128,7 @@ class LetterView(val letter: Letter) : View() {
             backgroundColor += Color.DARKGREEN
         }
         setOnMouseClicked {
-            removeFromParent()
-            fire(LetterPlacedEvent(letter))
+            fire(LetterPlacedEvent(letter, this@LetterView))
             logger.debug { "Letter ${letter.value} clicked" }
         }
     }
@@ -151,14 +150,14 @@ class TileView(val tile: Tile) : View() {
                 }
                 textFill = Color.WHITE
                 style {
-                    backgroundColor += Color.GREEN
+                    backgroundColor += if (tile.highlighted) Color.ORANGE else Color.GREEN
 
                     borderRadius += box(6.px)
                 }
 
             }
             style {
-                backgroundColor += if (!tile.selected) tile.type.getTileColor() else Color.PINK
+                backgroundColor += if (!tile.selected) tile.typeEnum.getTileColor() else Color.PINK
             }
             btn
         }
@@ -175,7 +174,7 @@ class TileView(val tile: Tile) : View() {
                 fire(TileSelectedEvent(tile))
             }
             style {
-                backgroundColor += if (!tile.selected) tile.type.getTileColor() else Color.PINK
+                backgroundColor += if (!tile.selected) tile.typeEnum.getTileColor() else Color.PINK
             }
         }
     }

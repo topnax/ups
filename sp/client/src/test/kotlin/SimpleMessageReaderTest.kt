@@ -29,7 +29,7 @@ class SimpleMessageReaderTest {
         assertEquals(1, messages.size)
         assertEquals(JoinLobbyMessage::class.java, messages[0].javaClass)
         assertEquals(10, (messages[0] as JoinLobbyMessage).lobbyId)
-        assertEquals("Topnax", (messages[0] as JoinLobbyMessage).playerName)
+        assertEquals(10, (messages[0] as JoinLobbyMessage).lobbyId)
     }
 
     @Test

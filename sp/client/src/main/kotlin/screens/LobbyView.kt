@@ -10,6 +10,10 @@ import model.lobby.Lobby
 import model.lobby.Player
 import networking.Network
 import networking.messages.*
+import screens.game.GameStartedEvent
+import screens.game.GameView
+import screens.game.NewLetterSackEvent
+import screens.game.PlayerStateChangedEvent
 import tornadofx.*
 import java.util.*
 import kotlin.concurrent.schedule
@@ -119,19 +123,25 @@ class LobbyView : View() {
 
     }
 
+    private fun onGameStarted(gameStartedResponse: GameStartedResponse) {
+        Platform.runLater {
+            this.replaceWith<GameView>()
+            fire(GameStartedEvent(gameStartedResponse))
+        }
+    }
+
+    private fun onLobbyStarted(lobbyStartedResponse: LobbyStartedResponse) {
+
+    }
+
     override fun onDock() {
         ready = false
         update(lobby)
         Network.getInstance().addMessageListener(::onLobbyUpdated)
         Network.getInstance().addMessageListener(::onLobbyDestroyed)
+        Network.getInstance().addMessageListener(::onGameStarted)
         if (Network.User.id != lobby.owner.id) {
             Network.getInstance().addMessageListener(::onLobbyStarted)
-        }
-    }
-
-    private fun onLobbyStarted(lobbyStartedResponse: LobbyStartedResponse) {
-        Platform.runLater {
-            alert(Alert.AlertType.INFORMATION, "Leader has started the lobby")
         }
     }
 
@@ -139,6 +149,7 @@ class LobbyView : View() {
         super.onUndock()
         Network.getInstance().removeMessageListener(::onLobbyDestroyed)
         Network.getInstance().removeMessageListener(::onLobbyUpdated)
+        Network.getInstance().removeMessageListener(::onGameStarted)
         if (Network.User.id != lobby.owner.id) {
             Network.getInstance().removeMessageListener(::onLobbyStarted)
         }

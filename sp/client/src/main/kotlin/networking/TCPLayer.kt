@@ -51,7 +51,7 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
 
             connectionStatusListener.onConnected()
 
-            val serverMessage = ByteArray(100)
+            var serverMessage = ByteArray(100)
 
             try {
                 while (run) {
@@ -74,6 +74,7 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
                         messageReceiver.receive(serverMessage, len)
                         logger.info { "received from server '$it' of length $len" }
                     }
+                    serverMessage = ByteArray(100)
                 }
                 logger.info { "read loop stopped" }
             } catch (e: IOException) {
