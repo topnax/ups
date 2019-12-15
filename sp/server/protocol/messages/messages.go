@@ -1,6 +1,7 @@
 package messages
 
 import (
+	"ups/sp/server/game"
 	"ups/sp/server/protocol/def"
 )
 
@@ -14,6 +15,10 @@ const (
 	UserAuthenticationMessageType = 7
 	UserLeavingMessageType        = 8
 	StartLobbyMessageType         = 9
+	LetterPlacedMessageType       = 10
+	LetterRemovedMessageType      = 11
+	FinishRoundMessageType        = 12
+	ApproveWordsMessageType       = 13
 )
 
 type PlayerJoinedMessage struct{}
@@ -149,4 +154,65 @@ func (p StartLobbyMessage) Handle(message def.Message, amr def.ApplicationMessag
 
 func (p StartLobbyMessage) GetType() int {
 	return StartLobbyMessageType
+}
+
+////////////////////////////////////////////
+
+type LetterPlacedMessage struct {
+	Letter game.Letter `json:"letter"`
+	Row    int         `json:"row"`
+	Column int         `json:"column"`
+}
+
+func (p LetterPlacedMessage) Handle(message def.Message, amr def.ApplicationMessageReader) def.Response {
+	if parse(message, &p) {
+		return amr.Read(p, message.ClientID())
+	}
+	return failedToParse(message)
+}
+
+func (p LetterPlacedMessage) GetType() int {
+	return LetterPlacedMessageType
+}
+
+////////////////////////////////////////////
+
+type LetterRemovedMessage struct {
+	Row    int `json:"row"`
+	Column int `json:"column"`
+}
+
+func (p LetterRemovedMessage) Handle(message def.Message, amr def.ApplicationMessageReader) def.Response {
+	if parse(message, &p) {
+		return amr.Read(p, message.ClientID())
+	}
+	return failedToParse(message)
+}
+
+func (p LetterRemovedMessage) GetType() int {
+	return LetterRemovedMessageType
+}
+
+////////////////////////////////////////////
+
+type FinishRoundMessage struct{}
+
+func (p FinishRoundMessage) Handle(message def.Message, amr def.ApplicationMessageReader) def.Response {
+	return amr.Read(p, message.ClientID())
+}
+
+func (p FinishRoundMessage) GetType() int {
+	return FinishRoundMessageType
+}
+
+////////////////////////////////////////////
+
+type ApproveWordsMessage struct{}
+
+func (p ApproveWordsMessage) Handle(message def.Message, amr def.ApplicationMessageReader) def.Response {
+	return amr.Read(p, message.ClientID())
+}
+
+func (p ApproveWordsMessage) GetType() int {
+	return ApproveWordsMessageType
 }

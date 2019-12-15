@@ -10,17 +10,20 @@ import (
 type Game struct {
 	Desk               Desk
 	Players            []Player
+	PlayersMap         map[int]Player
 	CurrentPlayer      Player
 	CurrentPlayerIndex int
 	Round              int
 
-	playerIdToPlayerBag map[int][]Letter
+	PlayerIdToPlayerBag map[int][]Letter
 	letterPointsTable   map[string][2]int
 
 	PointsTable map[int]int
 
 	PlayersThatAccepted *PlayerSet
 	idInc               int
+
+	EmptyRounds int
 
 	letterBag []string
 }
@@ -54,15 +57,17 @@ func getLettersFromBag(bag []string, requested int, letterPointsTable map[string
 func (game *Game) Start() error {
 	if len(game.Players) > 1 && len(game.Players) <= 4 {
 		game.PointsTable = make(map[int]int)
-		game.playerIdToPlayerBag = make(map[int][]Letter)
+		game.PlayerIdToPlayerBag = make(map[int][]Letter)
+		game.PlayersMap = make(map[int]Player)
 		game.letterPointsTable = GetLetterPointsTable()
+		game.letterBag = generateLetterBag()
 		for _, player := range game.Players {
+			game.PlayersMap[player.ID] = player
 			game.PointsTable[player.ID] = 0
 			letters, bag := getLettersFromBag(game.letterBag, 8, game.letterPointsTable)
 			game.letterBag = bag
-			game.playerIdToPlayerBag[player.ID] = letters
+			game.PlayerIdToPlayerBag[player.ID] = letters
 		}
-		game.letterBag = generateLetterBag()
 		game.Desk.Create()
 		game.CurrentPlayerIndex = -1
 		game.Next()
@@ -128,17 +133,43 @@ func (game *Game) Next() {
 		game.CurrentPlayerIndex++
 	}
 	game.CurrentPlayer = game.Players[game.CurrentPlayerIndex]
+
+	for tile, _ := range game.Desk.CurrentLetters.List {
+		tile.Highlighted = false
+	}
+
 	game.Desk.ClearCurrentWords()
 	game.Desk.PlacedLetter.Clear()
 	game.PlayersThatAccepted = NewPlayerSet()
+
+	newLetters, bag := getLettersFromBag(game.letterBag, 8-len(game.PlayerIdToPlayerBag[game.CurrentPlayer.ID]), game.letterPointsTable)
+	game.letterBag = bag
+	game.PlayerIdToPlayerBag[game.CurrentPlayer.ID] = append(game.PlayerIdToPlayerBag[game.CurrentPlayer.ID], newLetters...)
 }
 
 func (game *Game) HandleSetAtEvent(event SetLetterAtEvent) error {
-	return game.Desk.SetAt(event.Letter, event.Row, event.Column, event.PlayerID)
+
+	if event.PlayerID == game.CurrentPlayer.ID {
+		for _, letter := range game.PlayerIdToPlayerBag[event.PlayerID] {
+			if letter.Value == event.Letter {
+				return game.Desk.SetAt(event.Letter, event.Row, event.Column, event.PlayerID)
+			}
+		}
+	} else {
+		return errors.New("It's not players turn")
+	}
+
+	return errors.New("Such letter is not in player's bag")
 }
 
-func (game Game) HandleResetAtEvent(event ResetAtEvent) {
-	game.Desk.Tiles[event.Row][event.Column].Set = false
+func (game *Game) HandleResetAtEvent(event ResetAtEvent) error {
+	err := game.Desk.ResetAt(event.Row, event.Column, event.PlayerID)
+
+	if err == nil {
+		game.PlayerIdToPlayerBag[event.PlayerID] = append(game.PlayerIdToPlayerBag[event.PlayerID], game.Desk.Tiles[event.Row][event.Column].Letter)
+	}
+
+	return err
 }
 
 func (game Game) PrintPoints() {

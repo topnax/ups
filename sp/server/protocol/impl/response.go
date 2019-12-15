@@ -18,14 +18,18 @@ const (
 	FailedToRoute              = 6
 	OperationCannotBePerformed = 6
 
-	PlayerAlreadyCreatedLobby   = 20
-	LobbyDoesNotExist           = 21
-	CouldNotLeaveLobby          = 22
-	CouldNotFindSuchUserInLobby = 23
-	PlayerNameAlreadyTaken      = 24
-	NameMustNotBeEmpty          = 25
-	GeneralError                = 26
-	LobbyPlayerLimitExceeded    = 27
+	PlayerAlreadyCreatedLobby     = 20
+	LobbyDoesNotExist             = 21
+	CouldNotLeaveLobby            = 22
+	CouldNotFindSuchUserInLobby   = 23
+	PlayerNameAlreadyTaken        = 24
+	NameMustNotBeEmpty            = 25
+	GeneralError                  = 26
+	LobbyPlayerLimitExceeded      = 27
+	GameNotFoundByPlayerId        = 28
+	NotPlayersTurn                = 29
+	PlayerNotFound                = 30
+	PlayerCannotAcceptHisOwnWords = 31
 
 	PlainSuccess = 701
 )
@@ -89,6 +93,15 @@ func MessageResponse(message interface{}, messageType int) SimpleResponse {
 		return GetResponse(string(bytes), messageType, 0)
 	} else {
 		return ErrorResponseID(fmt.Sprintf("Could not marshal a message of type %d, error %s", messageType, err), MarshalError, 0)
+	}
+}
+
+func StructMessageResponse(message responses.TypedResponse) SimpleResponse {
+	bytes, err := json.Marshal(message)
+	if err == nil {
+		return GetResponse(string(bytes), message.Type(), 0)
+	} else {
+		return ErrorResponseID(fmt.Sprintf("Could not marshal a message of type %d, error %s", message.Type(), err), MarshalError, 0)
 	}
 }
 

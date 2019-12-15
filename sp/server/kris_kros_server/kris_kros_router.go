@@ -11,13 +11,14 @@ import (
 )
 
 type KrisKrosRouter struct {
-	callbacks      map[int]func(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response
-	server         *KrisKrosServer
-	Handlers       []def.MessageHandler
-	states         map[int]State
-	UserStates     map[int]State
-	SocketToUserID map[int]int
-	UserIDToSocket map[int]int
+	callbacks                   map[int]func(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response
+	server                      *KrisKrosServer
+	Handlers                    []def.MessageHandler
+	states                      map[int]State
+	UserStates                  map[int]State
+	SocketToUserID              map[int]int
+	UserIDToSocket              map[int]int
+	IgnoreTransitionStateChange bool
 }
 
 func (router *KrisKrosRouter) register(handler def.MessageHandler, callback func(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response) {
@@ -60,16 +61,21 @@ func (router *KrisKrosRouter) route(message def.MessageHandler, clientUID int) d
 					Name: "NOT_CREATED",
 				}
 			}
+			router.IgnoreTransitionStateChange = false
 			response := route(message, router.server, *user)
 			log.Infoln("responding:", response.Content())
 			if response.Type() < responses.ValidResponseCeiling || response.Type() == impl.PlainSuccess {
 				if userID != -1 {
 					state, exists := router.states[newStateID]
 					if exists {
-						router.UserStates[userID] = state
+						if router.IgnoreTransitionStateChange == false {
+							router.UserStates[userID] = state
+						} else {
+							log.Debugln("Ignored state transition...")
+						}
 						log.Infof("Routed message of type %d and switched to type %ď", message.GetType(), state.Id())
 					} else {
-						log.Errorf("Could not get state from state map of ID %d", state)
+						log.Errorf("Could not get state from state map of ID %d", newStateID)
 					}
 				}
 			}
@@ -82,7 +88,7 @@ func (router *KrisKrosRouter) route(message def.MessageHandler, clientUID int) d
 	return impl.ErrorResponse(fmt.Sprintf("Cannot perform operation of type %d because current state of id %d does not allow it.", message.GetType(), userState.Id()), impl.OperationCannotBePerformed)
 }
 
-func newKrisKrosRouter(server *KrisKrosServer) KrisKrosRouter {
+func newKrisKrosRouter(server *KrisKrosServer) *KrisKrosRouter {
 	router := KrisKrosRouter{server: server}
 	router.callbacks = make(map[int]func(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response)
 	router.registerRoutes()
@@ -90,5 +96,5 @@ func newKrisKrosRouter(server *KrisKrosServer) KrisKrosRouter {
 	router.UserStates = make(map[int]State)
 	router.SocketToUserID = make(map[int]int)
 	router.UserIDToSocket = make(map[int]int)
-	return router
+	return &router
 }

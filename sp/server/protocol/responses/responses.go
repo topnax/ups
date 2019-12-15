@@ -8,14 +8,21 @@ import (
 const (
 	ValidResponseCeiling = 400
 
-	getLobbiesResponse        = 101
-	playerJoinedResponse      = 102
-	lobbyUpdatedResponse      = 103
-	playerLeftLobbyResponse   = 104
-	lobbyDestroyedResponse    = 105
-	lobbyJoinedResponse       = 106
-	userAuthenticatedResponse = 107
-	lobbyStartedResponse      = 108
+	getLobbiesResponse          = 101
+	playerJoinedResponse        = 102
+	lobbyUpdatedResponse        = 103
+	playerLeftLobbyResponse     = 104
+	lobbyDestroyedResponse      = 105
+	lobbyJoinedResponse         = 106
+	userAuthenticatedResponse   = 107
+	lobbyStartedResponse        = 108
+	gameStartedResponse         = 109
+	tileUpdatedResponse         = 110
+	tilesUpdatedResponse        = 111
+	playerFinishedRoundResponse = 112
+	playerAcceptedRoundResponse = 113
+	newRoundResponse            = 114
+	yourNewRoundResponse        = 115
 )
 
 type TypedResponse interface {
@@ -105,4 +112,74 @@ type LobbyStartedResponse struct{}
 
 func (g LobbyStartedResponse) Type() int {
 	return lobbyStartedResponse
+}
+
+//////////////////////////////////////
+
+type GameStartedResponse struct {
+	Players        []game.Player `json:"players"`
+	Letters        []game.Letter `json:"letters"`
+	ActivePlayerID int           `json:"active_player_id"`
+}
+
+func (g GameStartedResponse) Type() int {
+	return gameStartedResponse
+}
+
+//////////////////////////////////////
+
+type TileUpdatedResponse struct {
+	Tile game.Tile `json:"tile"`
+}
+
+func (g TileUpdatedResponse) Type() int {
+	return tileUpdatedResponse
+}
+
+//////////////////////////////////////
+
+type TilesUpdatedResponse struct {
+	Tiles []game.Tile `json:"tiles"`
+}
+
+func (g TilesUpdatedResponse) Type() int {
+	return tilesUpdatedResponse
+}
+
+//////////////////////////////////////
+
+type PlayerFinishedResponse struct{}
+
+func (g PlayerFinishedResponse) Type() int {
+	return playerFinishedRoundResponse
+}
+
+//////////////////////////////////////
+
+type PlayerAcceptedRoundResponse struct {
+	PlayerID int `json:"player_id"`
+}
+
+func (g PlayerAcceptedRoundResponse) Type() int {
+	return playerAcceptedRoundResponse
+}
+
+//////////////////////////////////////
+
+type NewRoundResponse struct {
+	ActivePlayerID int `json:"active_player_id"`
+}
+
+func (g NewRoundResponse) Type() int {
+	return newRoundResponse
+}
+
+//////////////////////////////////////
+
+type YourNewRoundResponse struct {
+	Letters []game.Letter `json:"letters"`
+}
+
+func (g YourNewRoundResponse) Type() int {
+	return yourNewRoundResponse
 }

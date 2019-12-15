@@ -1,11 +1,12 @@
 package game
 
 type Tile struct {
-	Row    int
-	Column int
-	Set    bool
-	Type   int
-	Letter Letter
+	Row         int    `json:"row"`
+	Column      int    `json:"column"`
+	Set         bool   `json:"set"`
+	Highlighted bool   `json:"highlighted"`
+	Type        int    `json:"type"`
+	Letter      Letter `json:"letter"`
 }
 
 func (tile Tile) getWordMultiplicand() int {

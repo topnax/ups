@@ -11,8 +11,8 @@ import (
 const deskSize = 15
 
 type Letter struct {
-	Value    string
-	Points   int
+	Value    string `json:"value"`
+	Points   int    `json:"points"`
 	PlayerID int
 }
 
@@ -63,8 +63,8 @@ func (desk *Desk) SetAt(letter string, row int, column int, playerID int) error 
 		return errors.New("Letter " + letter + "not found in the letter table")
 	}
 
-	if (letter != "CH" && len(letter) > 1) || isNumber(letter) {
-		return errors.New("cannot set a letter longer than 1. 'CH' is an exception. Only letters are allowed")
+	if isNumber(letter) {
+		return errors.New("Only letters are allowed")
 	}
 	if !desk.isWithinBounds(row, column) {
 		return errors.New("cannot set, out of bounds")
@@ -80,8 +80,32 @@ func (desk *Desk) SetAt(letter string, row int, column int, playerID int) error 
 		PlayerID: playerID,
 	}
 	desk.Tiles[row][column].Set = true
+	desk.Tiles[row][column].Highlighted = true
 	desk.CurrentLetters.Add(desk.Tiles[row][column])
 	desk.PlacedLetter.Add(desk.Tiles[row][column])
+
+	desk.GetWordsAt(row, column)
+	return nil
+}
+
+func (desk *Desk) ResetAt(row int, column int, playerID int) error {
+
+	if !desk.isWithinBounds(row, column) {
+		return errors.New("cannot set, out of bounds")
+	}
+
+	if desk.Tiles[row][column].Letter.PlayerID != playerID {
+		return errors.New(fmt.Sprintf("Player #%d cannot remove player's #%d letters...", playerID, desk.Tiles[row][column].Letter.PlayerID))
+	}
+
+	if !desk.Tiles[row][column].Set {
+		return errors.New(fmt.Sprintf("No letter set at given tile row:column %d:%d", row, column))
+	}
+
+	desk.Tiles[row][column].Set = false
+
+	desk.CurrentLetters.Remove(desk.Tiles[row][column])
+	desk.PlacedLetter.Remove(desk.Tiles[row][column])
 	return nil
 }
 
@@ -144,6 +168,9 @@ func (desk *Desk) GetWordsAt(row int, column int) []WordMeta {
 		dy := 0 + c[1]
 
 		for desk.isWithinBounds(row+dx, column+dy) && desk.Tiles[row+dx][column+dy].Set {
+			desk.CurrentLetters.Add(desk.Tiles[row+dx][column+dy])
+			desk.Tiles[row+dx][column+dy].Highlighted = true
+
 			dx += c[0]
 			dy += c[1]
 		}

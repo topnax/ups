@@ -5,13 +5,17 @@ import (
 )
 
 const (
-	INITIAL_STATE_ID       = 1
-	AUTHORIZED_STATE_ID    = 2
-	LOBBY_JOINED_ID        = 3
-	LOBBY_JOINED_READY_ID  = 4
-	LOBBY_CREATED_ID       = 5
-	LOBBY_CREATED_READY_ID = 6
-	LOBBY_STARTED_STATE    = 7
+	INITIAL_STATE_ID         = 1
+	AUTHORIZED_STATE_ID      = 2
+	LOBBY_JOINED_ID          = 3
+	LOBBY_JOINED_READY_ID    = 4
+	LOBBY_CREATED_ID         = 5
+	LOBBY_CREATED_READY_ID   = 6
+	GAME_STARTED_STATE_ID    = 7
+	PLAYERS_TURN_STATE_ID    = 8
+	PLAYER_WAITING_ID        = 9
+	PLAYER_FINISHED_ROUND_ID = 10
+	APPROVE_WORDS_STATE_ID   = 11
 )
 
 type State interface {
@@ -27,7 +31,8 @@ func (router *KrisKrosRouter) registerStates() {
 	router.registerState(LobbyJoinedReadyState{})
 	router.registerState(LobbyCreatedState{})
 	router.registerState(LobbyCreatedReadyState{})
-	router.registerState(LobbyStartedState{})
+	router.registerState(GameStartedState{})
+	router.registerState(PlayersTurnState{})
 }
 
 type InitialState struct{}
@@ -116,20 +121,75 @@ func (a LobbyCreatedReadyState) Routes() map[int]int {
 	m := make(map[int]int)
 	m[messages.PlayerReadyMessageType] = LobbyCreatedState{}.Id()
 	m[messages.LeaveLobbyMessageType] = AuthorizedState{}.Id()
-	m[messages.StartLobbyMessageType] = LobbyStartedState{}.Id()
+	m[messages.StartLobbyMessageType] = GameStartedState{}.Id()
 	return m
 }
 
 ////////////////////////////////////////////
 
-type LobbyStartedState struct{}
+type GameStartedState struct{}
 
-func (a LobbyStartedState) Id() int {
-	return LOBBY_STARTED_STATE
+func (a GameStartedState) Id() int {
+	return GAME_STARTED_STATE_ID
 }
 
-func (a LobbyStartedState) Routes() map[int]int {
+func (a GameStartedState) Routes() map[int]int {
 	m := make(map[int]int)
 	m[messages.LeaveLobbyMessageType] = AuthorizedState{}.Id()
+	return m
+}
+
+////////////////////////////////////////////
+
+type PlayersTurnState struct{}
+
+func (a PlayersTurnState) Id() int {
+	return PLAYERS_TURN_STATE_ID
+}
+
+func (a PlayersTurnState) Routes() map[int]int {
+	m := make(map[int]int)
+	m[messages.LetterPlacedMessageType] = PlayersTurnState{}.Id()
+	m[messages.LetterRemovedMessageType] = PlayersTurnState{}.Id()
+	m[messages.FinishRoundMessageType] = FinishedRoundMessage{}.Id()
+	return m
+}
+
+////////////////////////////////////////////
+
+type PlayerWaitingState struct{}
+
+func (a PlayerWaitingState) Id() int {
+	return PLAYER_WAITING_ID
+}
+
+func (a PlayerWaitingState) Routes() map[int]int {
+	m := make(map[int]int)
+	return m
+}
+
+////////////////////////////////////////////
+
+type FinishedRoundMessage struct{}
+
+func (a FinishedRoundMessage) Id() int {
+	return PLAYER_FINISHED_ROUND_ID
+}
+
+func (a FinishedRoundMessage) Routes() map[int]int {
+	m := make(map[int]int)
+	return m
+}
+
+////////////////////////////////////////////
+
+type ApproveWordsState struct{}
+
+func (a ApproveWordsState) Id() int {
+	return APPROVE_WORDS_STATE_ID
+}
+
+func (a ApproveWordsState) Routes() map[int]int {
+	m := make(map[int]int)
 	return m
 }

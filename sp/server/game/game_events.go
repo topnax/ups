@@ -7,12 +7,7 @@ const (
 	CONFIRM_WORD = 3
 )
 
-type GameEvent struct {
-	EventType int
-}
-
 type SetLetterAtEvent struct {
-	Event    GameEvent
 	PlayerID int
 	Row      int
 	Column   int
@@ -20,18 +15,15 @@ type SetLetterAtEvent struct {
 }
 
 type ResetAtEvent struct {
-	Event    GameEvent
 	PlayerID int
 	Row      int
 	Column   int
 }
 
 type SubmitWordEvent struct {
-	Event    GameEvent
 	PlayerID int
 }
 
 type ConfirmWordEvent struct {
-	Event    GameEvent
 	PlayerID int
 }

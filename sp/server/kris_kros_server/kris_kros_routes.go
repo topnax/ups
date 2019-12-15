@@ -17,6 +17,10 @@ func (router *KrisKrosRouter) registerRoutes() {
 	router.register(messages.UserAuthenticationMessage{}, userAuthenticationRoute)
 	router.register(messages.UserLeavingMessage{}, userLeavingRoute)
 	router.register(messages.StartLobbyMessage{}, startLobbyRoute)
+	router.register(messages.LetterPlacedMessage{}, letterPlacedRoute)
+	router.register(messages.LetterRemovedMessage{}, letterRemovedRoute)
+	router.register(messages.FinishRoundMessage{}, finishRoundRoute)
+	router.register(messages.ApproveWordsMessage{}, approveWordsRoute)
 }
 
 func playerJoinedRoute(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response {
@@ -90,4 +94,32 @@ func userLeavingRoute(handler def.MessageHandler, server *KrisKrosServer, user m
 
 func startLobbyRoute(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response {
 	return server.OnStartLobby(user.ID)
+}
+
+func letterPlacedRoute(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response {
+	msg, ok := handler.(messages.LetterPlacedMessage)
+
+	if ok {
+		return server.gameServer.OnLetterPlaced(user.ID, msg)
+	}
+
+	return failedToCast(handler)
+}
+
+func letterRemovedRoute(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response {
+	msg, ok := handler.(messages.LetterRemovedMessage)
+
+	if ok {
+		return server.gameServer.OnLetterRemoved(user.ID, msg)
+	}
+
+	return failedToCast(handler)
+}
+
+func finishRoundRoute(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response {
+	return server.gameServer.OnFinishRound(user.ID)
+}
+
+func approveWordsRoute(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response {
+	return server.gameServer.OnApproveWords(user.ID)
 }

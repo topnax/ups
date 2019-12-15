@@ -14,7 +14,7 @@ import (
 
 type KrisKrosServer struct {
 	count  int
-	Router KrisKrosRouter
+	Router *KrisKrosRouter
 	sender def.ResponseSender
 
 	lobbyUIQ int
@@ -27,7 +27,7 @@ type KrisKrosServer struct {
 	lobbiesByOwnerID  map[int]*model.Lobby
 	lobbiesByPlayerID map[int]*model.Lobby
 
-	gamesByLobbyId map[int]*game.Game
+	gameServer *GameServer
 }
 
 func failedToCast(message def.MessageHandler) def.Response {
@@ -39,11 +39,10 @@ func NewKrisKrosServer(sender def.ResponseSender) KrisKrosServer {
 		lobbies:           make(map[int]*model.Lobby),
 		lobbiesByOwnerID:  make(map[int]*model.Lobby),
 		lobbiesByPlayerID: make(map[int]*model.Lobby),
-		gamesByLobbyId:    make(map[int]*game.Game),
 		usersById:         make(map[int]*model.User),
 		usersByName:       make(map[string]*model.User),
 	}
-
+	kks.gameServer = NewGameServer(&kks)
 	kks.Router = newKrisKrosRouter(&kks)
 	kks.sender = sender
 	return kks
@@ -248,13 +247,10 @@ func (k *KrisKrosServer) OnStartLobby(userID int) def.Response {
 		for _, player := range lobby.Players {
 			if player.ID != lobby.Owner.ID {
 				k.Send(out, player.ID, 0)
-				k.Router.UserStates[player.ID] = LobbyStartedState{}
+				k.Router.UserStates[player.ID] = GameStartedState{}
 			}
 		}
-		k.gamesByLobbyId[lobby.ID] = &game.Game{
-			Players: lobby.Players,
-		}
-		_ = k.gamesByLobbyId[lobby.ID].Start()
+		k.gameServer.CreateGame(lobby.Players)
 
 		return out
 	}
