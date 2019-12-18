@@ -71,8 +71,9 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
                     }
 
                     message?.let {
+                        logger.info { "received from server bytes'${serverMessage}' of length $len" }
+                        logger.info { "received from server str'$it' of length $len" }
                         messageReceiver.receive(serverMessage, len)
-                        logger.info { "received from server '$it' of length $len" }
                     }
                     serverMessage = ByteArray(100)
                 }

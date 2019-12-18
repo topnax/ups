@@ -27,6 +27,8 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
         const val START_LOBBY_MESSAGE_TYPE = 9
         const val LETTER_PLACED_MESSAGE_TYPE = 10
         const val LETTER_REMOVED_MESSAGE_TYPE = 11
+        const val FINISH_ROUND_MESSAGE_TYPE = 12
+        const val APPROVE_WORDS_MESSAGE_TYPE = 13
 
         const val GET_LOBBIES_RESPONSE_TYPE = 101
         const val LOBBY_UPDATED_RESPONSE_TYPE = 103
@@ -37,6 +39,10 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
         const val GAME_STARTED_MESSAGE_TYPE = 109
         const val TILE_UPDATED_MESSAGE_TYPE = 110
         const val TILES_UPDATED_MESSAGE_TYPE = 111
+        const val PLAYER_FINISHED_ROUND_MESSAGE_TYPE = 112
+        const val PLAYER_ACCEPTED_ROUND_MESSAGE_TYPE = 113
+        const val NEW_ROUND_MESSAGE_TYPE = 114
+        const val YOUR_NEW_ROUND_MESSAGE_TYPE = 115
 
         const val ERROR_RESPONSE_TYPE = 401
         const val SUCCESS_RESPONSE_TYPE = 701
@@ -69,6 +75,10 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
                         GAME_STARTED_MESSAGE_TYPE -> fromJson<GameStartedResponse>(json)
                         TILE_UPDATED_MESSAGE_TYPE -> fromJson<TileUpdatedResponse>(json)
                         TILES_UPDATED_MESSAGE_TYPE -> fromJson<TilesUpdatedResponse>(json)
+                        PLAYER_FINISHED_ROUND_MESSAGE_TYPE -> fromJson<RoundFinishedResponse>(json)
+                        PLAYER_ACCEPTED_ROUND_MESSAGE_TYPE -> fromJson<PlayerAcceptedRoundResponse>(json)
+                        NEW_ROUND_MESSAGE_TYPE -> fromJson<NewRoundResponse>(json)
+                        YOUR_NEW_ROUND_MESSAGE_TYPE -> fromJson<YourNewRoundResponse>(json)
                         else -> null
                     }
                 }
@@ -127,6 +137,12 @@ class UserLeavingMessage() : EmptyMessage(USER_LEAVING_MESSAGE_TYPE)
 
 class StartLobbyMessage() : EmptyMessage(START_LOBBY_MESSAGE_TYPE)
 
+class FinishRoundMessage() : EmptyMessage(FINISH_ROUND_MESSAGE_TYPE)
+
+class ApproveWordsMessage() : EmptyMessage(APPROVE_WORDS_MESSAGE_TYPE)
+
+// responses
+
 class LobbyStartedResponse() : EmptyMessage(LOBBY_STARTED_MESSAGE_TYPE)
 
 class GameStartedResponse(val players: List<Player>, val letters: List<Letter>, val activePlayerId: Int) : ApplicationMessage(GAME_STARTED_MESSAGE_TYPE)
@@ -134,3 +150,11 @@ class GameStartedResponse(val players: List<Player>, val letters: List<Letter>, 
 class TileUpdatedResponse(val tile: Tile) : ApplicationMessage(TILE_UPDATED_MESSAGE_TYPE)
 
 class TilesUpdatedResponse(val tiles: List<Tile>) : ApplicationMessage(TILES_UPDATED_MESSAGE_TYPE)
+
+class RoundFinishedResponse() : EmptyMessage(PLAYER_FINISHED_ROUND_MESSAGE_TYPE)
+
+class PlayerAcceptedRoundResponse(val playerId: Int) : ApplicationMessage(PLAYER_ACCEPTED_ROUND_MESSAGE_TYPE)
+
+class NewRoundResponse(val activePlayerId: Int) : ApplicationMessage(NEW_ROUND_MESSAGE_TYPE)
+
+class YourNewRoundResponse(val letters: List<Letter>) : ApplicationMessage(YOUR_NEW_ROUND_MESSAGE_TYPE)

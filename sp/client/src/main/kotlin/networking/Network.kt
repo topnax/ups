@@ -9,6 +9,7 @@ import networking.messages.ApplicationMessage
 import networking.messages.ErrorResponseMessage
 import networking.messages.GetLobbiesMessage
 import networking.reader.SimpleMessageReader
+import networking.receiver.FixedMessageReceiver
 import networking.receiver.SimpleMessageReceiver
 import tornadofx.alert
 
@@ -49,7 +50,7 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
 
     fun connectTo(hostname: String, port: Int) {
         tcpLayer?.close()
-        tcpLayer = TCPLayer(port, hostname, SimpleMessageReceiver(SimpleMessageReader(this)), this)
+        tcpLayer = TCPLayer(port, hostname, FixedMessageReceiver(SimpleMessageReader(this)), this)
         tcpLayer?.start()
     }
 

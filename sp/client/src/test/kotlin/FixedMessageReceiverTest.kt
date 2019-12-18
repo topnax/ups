@@ -1,19 +1,20 @@
 import networking.reader.MessageReader
+import networking.receiver.FixedMessageReceiver
 import networking.receiver.Message
 import networking.receiver.SimpleMessageReceiver
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
-class SimpleMessageReceiverTest {
+class FixedMessageReceiverTest {
 
     private val received = mutableListOf<Message>()
-    private lateinit var receiver: SimpleMessageReceiver
+    private lateinit var receiver: FixedMessageReceiver
 
     @BeforeEach
     internal fun setUp() {
         received.clear()
-        receiver = SimpleMessageReceiver(object : MessageReader {
+        receiver = FixedMessageReceiver(object : MessageReader {
             override fun read(message: Message) {
                 received.add(message)
             }
@@ -21,10 +22,29 @@ class SimpleMessageReceiverTest {
     }
 
     @Test
-    internal fun simpleReceiveTest() {
+    internal fun splitMessagesTest() {
         val message = "$10#1#11#123456789X$9#1#11#123456789"
-        assertEquals("$10#1#11#123456789X", String(receiver.receive(message.toByteArray(), message.toByteArray().size)[0]))
-        assertEquals("$9#1#11#123456789", String(receiver.receive(message.toByteArray(), message.toByteArray().size)[1]))
+        val received = receiver.receive(message.toByteArray(), message.toByteArray().size)
+        assertEquals(2, received.size)
+        assertEquals("$10#1#11#123456789X", String(received[0]))
+        assertEquals("$9#1#11#123456789", String(received[1]))
+    }
+
+    @Test
+    internal fun splitMessagesTest2() {
+        val message = """$120#111#0#{"tiles":[{"row":10,"column":6,"set":true,"highlighted":true,"type":0,"letter":{"value":""""
+        val message2 = """ě","points":5,"PlayerID":1}}]}$33#701#10#{"content":"Placed successfully"}"""
+
+        val received = receiver.receive(message.toByteArray(), message.toByteArray().size)
+        val received2 = receiver.receive(message2.toByteArray(), message2.toByteArray().size)
+
+        assertEquals(1, received.size)
+        assertEquals(2, received2.size)
+        assertEquals("""$120#111#0#{"tiles":[{"row":10,"column":6,"set":true,"highlighted":true,"type":0,"letter":{"value":"""", String(received[0]))
+        assertEquals("""ě","points":5,"PlayerID":1}}]}""", String(received2[0]))
+        assertEquals("""$33#701#10#{"content":"Placed successfully"}""", String(received2[1]))
+        assertEquals("""{"tiles":[{"row":10,"column":6,"set":true,"highlighted":true,"type":0,"letter":{"value":"ě","points":5,"PlayerID":1}}]}""", this.received[0].content)
+        assertEquals("""{"content":"Placed successfully"}""", this.received[1].content)
     }
 
     @Test

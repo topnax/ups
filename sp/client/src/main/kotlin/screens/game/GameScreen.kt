@@ -22,6 +22,10 @@ class GameView : View() {
 
     val tileViews = arrayOfNulls<Array<TileView?>>(15)
 
+    lateinit var finishButton: Button
+
+    lateinit var acceptWordsButton: Button
+
     init {
         controller.init(this)
     }
@@ -68,8 +72,21 @@ class GameView : View() {
                 logger.debug { "player state changed event" }
                 Platform.runLater {
                     clear()
-                    controller.players.forEach { label(it.name) { if (it.id == controller.activePlayerID) style { fontWeight = FontWeight.EXTRA_BOLD } } }
+                    controller.players.forEach {
+                        label(it.name) {
+                            if (it.id == controller.activePlayerID) style { fontWeight = FontWeight.EXTRA_BOLD }
+                        }
+                        if (controller.playerIdsWhoAcceptedWords.contains(it.id)) style { textFill = Color.GREEN }
+                    }
                     label(if (controller.activePlayerID == Network.User.id) "Jste na tahu" else "Nejste na tahu")
+
+                    acceptWordsButton.visibleProperty().set(false)
+                    if (controller.activePlayerID == Network.User.id) {
+                        finishButton.visibleProperty().set(true)
+                    } else {
+                        finishButton.visibleProperty().set(false)
+                    }
+
                 }
             }
         }
@@ -83,6 +100,26 @@ class GameView : View() {
                     clear()
                     event.letters.forEach { add(LetterView(it)) }
                 }
+            }
+        }
+
+        finishButton = button("Finish round") {
+            subscribe<GameStartedEvent> {
+                visibleProperty().set(it.message.activePlayerId == Network.User.id)
+                action {
+                    controller.onFinishRoundButtonClicked()
+                }
+            }
+        }
+
+        acceptWordsButton = button("Accept words") {
+            visibleProperty().set(false)
+            action {
+                controller.onAcceptWordsButtonClicked()
+            }
+            subscribe<RoundFinishedEvent> {
+                visibleProperty().set(controller.activePlayerID != Network.User.id)
+
             }
         }
     }

@@ -6,7 +6,7 @@ import tornadofx.isInt
 
 private val logger = KotlinLogging.logger {}
 
-class SimpleMessageReceiver(messageReader: MessageReader) : MessageReceiver(messageReader) {
+class FixedMessageReceiver(messageReader: MessageReader) : MessageReceiver(messageReader) {
 
     companion object {
         val START_CHAR = '$'
@@ -22,35 +22,25 @@ class SimpleMessageReceiver(messageReader: MessageReader) : MessageReceiver(mess
     private var validHeader = false
 
     override fun receive(bytes: ByteArray, length: Int): List<ByteArray> {
-        val message = String(bytes)
-
         val messagesBytes = mutableListOf<ByteArray>()
-        var prevChar: Char? = null
+        var lastMessageStart = 0
+        var prevByte: Byte? = null
 
-        var lastGroupStart = 0
-        logger.debug { "Received bytes of content '$message'" }
+        bytes.forEachIndexed { index, byte ->
+            if (lastMessageStart != index && byte == START_CHAR.toByte() && (prevByte == null || prevByte != '\\'.toByte())) {
+                logger.debug { "MessageFEI added: '${String(bytes.copyOfRange(lastMessageStart, index))}'" }
+                messagesBytes.add(bytes.copyOfRange(lastMessageStart, index))
 
-        message.forEachIndexed { i, char ->
-            if (char == START_CHAR) {
-                logger.debug { "prevChar == null ${prevChar == null}" }
-                logger.debug { "prevChar != '\\\\' ${prevChar != '\\'}" }
-                logger.debug { "lastGroupStart != i ${lastGroupStart != i}" }
+                if (index < length) {
+                    lastMessageStart = index
+                }
             }
-            if (char == START_CHAR && (prevChar == null || prevChar != '\\') && lastGroupStart != i) {
-
-                messagesBytes.add(bytes.copyOfRange(lastGroupStart, i))
-                logger.debug { "MessageForeachIndexed added: " + String(bytes.copyOfRange(lastGroupStart, i)) }
-                lastGroupStart = i
-            }
-            prevChar = char
+            prevByte = byte
         }
 
-        logger.debug { "for message of '$message' content" }
-        logger.debug { "lastGroupStart <= length - ${lastGroupStart <= length}" }
-        logger.debug { "length <= bytes.size - ${length <= bytes.size}" }
-        if (lastGroupStart <= length && length <= bytes.size) {
-            messagesBytes.add(bytes.copyOfRange(lastGroupStart , length))
-            logger.debug { "LastCheck added: " + String(bytes.copyOfRange(lastGroupStart, length)) }
+        if (lastMessageStart < length && length <= bytes.size) {
+            logger.debug { "LastChance added: '${String(bytes.copyOfRange(lastMessageStart, length))}'" }
+            messagesBytes.add(bytes.copyOfRange(lastMessageStart, length))
         }
 
         messagesBytes.forEach {
@@ -91,22 +81,22 @@ class SimpleMessageReceiver(messageReader: MessageReader) : MessageReceiver(mess
     }
 }
 
-//fun String.indexOfNth(char: Char, n: Int): Int {
-//    if (n < 1) {
-//        return -1
-//    }
-//    var lastIndex = 0
-//    var found = 0
-//    while (true) {
-//        lastIndex = this.indexOf(char, lastIndex)
-//        if (lastIndex != -1) {
-//            found++
-//            if (found == n) {
-//                return lastIndex
-//            }
-//            lastIndex++
-//        } else {
-//            return -1
-//        }
-//    }
-//}
+fun String.indexOfNth(char: Char, n: Int): Int {
+    if (n < 1) {
+        return -1
+    }
+    var lastIndex = 0
+    var found = 0
+    while (true) {
+        lastIndex = this.indexOf(char, lastIndex)
+        if (lastIndex != -1) {
+            found++
+            if (found == n) {
+                return lastIndex
+            }
+            lastIndex++
+        } else {
+            return -1
+        }
+    }
+}
