@@ -65,15 +65,15 @@ func (s *SimpleTcpMessageReceiver) Receive(UID int, bytes []byte, length int) {
 	}
 
 	var messages [][]byte
-	var prevChar rune
+	var prevByte byte
 	lastGroupStart := 0
 
-	for pos, char := range message {
-		if char == StartChar && prevChar != '\\' && lastGroupStart != pos {
+	for pos, mByte := range bytes {
+		if mByte == StartChar && prevByte != '\\' && lastGroupStart != pos {
 			messages = append(messages, bytes[lastGroupStart:pos])
 			lastGroupStart = pos
 		}
-		prevChar = char
+		prevByte = mByte
 	}
 
 	if lastGroupStart != len(bytes) {
