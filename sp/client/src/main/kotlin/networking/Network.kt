@@ -117,7 +117,7 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
     }
 
     fun send(message: ApplicationMessage, callback: ((ApplicationMessage) -> Unit)? = null, desiredMessageId: Int = 0, callAfterWrite: (() -> Unit)? = null, ignoreErrors: Boolean = false) {
-        val json = message.toJson()
+        val json = message.toJson().replace(SimpleMessageReceiver.START_CHAR.toString(), "\\" + SimpleMessageReceiver.START_CHAR).replace(SimpleMessageReceiver.SEPARATOR.toString(), "\\" + SimpleMessageReceiver.SEPARATOR)
 
         if (message is GetLobbiesMessage) {
             println()

@@ -54,7 +54,7 @@ class FixedMessageReceiver(messageReader: MessageReader) : MessageReceiver(messa
         logger.info { "Receiving message $strMessage" }
         if (!validHeader && strMessage[0] == START_CHAR && (buffer.isEmpty() || String(buffer.toByteArray())[buffer.size - 1] != '\\')) {
             val parts = strMessage.substring(1 until strMessage.length).split(SEPARATOR)
-            if (parts.size == 4 && parts[0].isInt() && parts[1].isInt() && parts[2].isInt()) {
+            if (parts.size >= 4 && parts[0].isInt() && parts[1].isInt() && parts[2].isInt()) {
                 validHeader = true
                 currentLength = parts[0].toInt()
                 currentType = parts[1].toInt()
@@ -73,7 +73,7 @@ class FixedMessageReceiver(messageReader: MessageReader) : MessageReceiver(messa
 
     private fun checkBuffer() {
         if (validHeader && currentLength <= buffer.size) {
-            messageReader.read(Message(currentLength, currentType, String(buffer.toByteArray()), currentID))
+            messageReader.read(Message(currentLength, currentType, String(buffer.toByteArray()).replace("\\", ""), currentID))
             currentLength = 0
             buffer.clear()
             validHeader = false
