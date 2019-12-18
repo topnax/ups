@@ -16,6 +16,7 @@ const (
 	PLAYER_WAITING_ID        = 9
 	PLAYER_FINISHED_ROUND_ID = 10
 	APPROVE_WORDS_STATE_ID   = 11
+	APPROVED_WORDS_STATE_ID  = 12
 )
 
 type State interface {
@@ -190,6 +191,20 @@ func (a ApproveWordsState) Id() int {
 }
 
 func (a ApproveWordsState) Routes() map[int]int {
+	m := make(map[int]int)
+	m[messages.ApproveWordsMessageType] = PlayersTurnState{}.Id()
+	return m
+}
+
+////////////////////////////////////////////
+
+type ApprovedWordsState struct{}
+
+func (a ApprovedWordsState) Id() int {
+	return APPROVED_WORDS_STATE_ID
+}
+
+func (a ApprovedWordsState) Routes() map[int]int {
 	m := make(map[int]int)
 	return m
 }

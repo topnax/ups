@@ -173,7 +173,8 @@ func (server *GameServer) OnFinishRound(userId int) def.Response {
 
 	for _, player := range g.Players {
 		if player.ID != userId {
-			server.server.Send(impl.StructMessageResponse(responses.PlayerFinishedResponse{}), player.ID, 0)
+			server.server.Router.UserStates[player.ID] = ApproveWordsState{}
+			server.server.Send(impl.StructMessageResponse(responses.RoundFinishedResponse{}), player.ID, 0)
 		}
 	}
 
@@ -205,10 +206,15 @@ func (server *GameServer) OnApproveWords(userId int) def.Response {
 			}
 		} else {
 			g.Next()
-
+			server.server.Send(impl.StructMessageResponse(responses.YourNewRoundResponse{Letters: g.PlayerIdToPlayerBag[g.CurrentPlayer.ID]}), g.CurrentPlayer.ID, 0)
+			for _, player := range g.Players {
+				if player.ID != g.CurrentPlayer.ID {
+					server.server.Send(impl.StructMessageResponse(responses.NewRoundResponse{ActivePlayerID: userId}), player.ID, 0)
+				}
+			}
 		}
 
 		return impl.SuccessResponse("Successfully accepted words...")
 	}
-	return impl.ErrorResponse(fmt.Sprint("Could not find a player of ID %d", userId), impl.PlayerNotFound)
+	return impl.ErrorResponse(fmt.Sprintf("Could not find a player of ID %d", userId), impl.PlayerNotFound)
 }

@@ -19,7 +19,7 @@ const (
 	gameStartedResponse         = 109
 	tileUpdatedResponse         = 110
 	tilesUpdatedResponse        = 111
-	playerFinishedRoundResponse = 112
+	roundFinishedResponse       = 112
 	playerAcceptedRoundResponse = 113
 	newRoundResponse            = 114
 	yourNewRoundResponse        = 115
@@ -148,10 +148,10 @@ func (g TilesUpdatedResponse) Type() int {
 
 //////////////////////////////////////
 
-type PlayerFinishedResponse struct{}
+type RoundFinishedResponse struct{}
 
-func (g PlayerFinishedResponse) Type() int {
-	return playerFinishedRoundResponse
+func (g RoundFinishedResponse) Type() int {
+	return roundFinishedResponse
 }
 
 //////////////////////////////////////

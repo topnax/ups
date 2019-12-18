@@ -95,7 +95,7 @@ func (desk *Desk) ResetAt(row int, column int, playerID int) error {
 	}
 
 	if desk.Tiles[row][column].Letter.PlayerID != playerID {
-		return errors.New(fmt.Sprintf("Player #%d cannot remove player's #%d letters...", playerID, desk.Tiles[row][column].Letter.PlayerID))
+		return errors.New(fmt.Sprintf("Player of ID %d cannot remove player's of ID %d letters...", playerID, desk.Tiles[row][column].Letter.PlayerID))
 	}
 
 	if !desk.Tiles[row][column].Set {

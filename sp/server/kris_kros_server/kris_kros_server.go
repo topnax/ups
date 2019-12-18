@@ -154,7 +154,7 @@ func (k *KrisKrosServer) OnCreateLobby(msg messages.CreateLobbyMessage, user mod
 		resp := responses.LobbyJoinedResponse{Player: player, Lobby: *lobby}
 		return impl.MessageResponse(resp, resp.Type())
 	} else {
-		return impl.ErrorResponse(fmt.Sprintf("Player #%d already created a lobby", user.ID), impl.PlayerAlreadyCreatedLobby)
+		return impl.ErrorResponse(fmt.Sprintf("Player of ID %d already created a lobby", user.ID), impl.PlayerAlreadyCreatedLobby)
 	}
 }
 

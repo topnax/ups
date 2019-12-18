@@ -3,6 +3,7 @@ package game
 import (
 	"errors"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"math/rand"
 	"time"
 )
@@ -51,6 +52,7 @@ func getLettersFromBag(bag []string, requested int, letterPointsTable map[string
 			bag = append(bag[:i], bag[i+1:]...)
 		}
 	}
+	logrus.Debugf("Taking %d letters out of the bag, %d left in the great bag!", requested, len(bag))
 	return randomLetters, bag
 }
 
@@ -143,6 +145,7 @@ func (game *Game) Next() {
 	game.PlayersThatAccepted = NewPlayerSet()
 
 	newLetters, bag := getLettersFromBag(game.letterBag, 8-len(game.PlayerIdToPlayerBag[game.CurrentPlayer.ID]), game.letterPointsTable)
+
 	game.letterBag = bag
 	game.PlayerIdToPlayerBag[game.CurrentPlayer.ID] = append(game.PlayerIdToPlayerBag[game.CurrentPlayer.ID], newLetters...)
 }
