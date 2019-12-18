@@ -124,8 +124,8 @@ func TestReceivePartial3(t *testing.T) {
 	bytes = []byte(sent)
 	smr.Receive(1, bytes, len(bytes))
 
-	if jsonReader.lastMessage.Content() != "Hello\\$guy" {
-		t.Errorf("Got message %s, want %s", jsonReader.lastMessage.Content(), "Hello\\$guy")
+	if jsonReader.lastMessage.Content() != "Hello$guy" {
+		t.Errorf("Got message %s, want %s", jsonReader.lastMessage.Content(), "Hello$guy")
 	} else if jsonReader.lastMessage.Type() != 5 {
 		t.Errorf("Got message type %d, want %d", jsonReader.lastMessage.Type(), 5)
 	} else if jsonReader.lastMessage.ClientID() != 1 {
@@ -146,8 +146,8 @@ func TestReceiveMultiple(t *testing.T) {
 	bytes := []byte(sent)
 	smr.Receive(1, bytes, len(bytes))
 
-	if jsonReader.messages[0].Content() != "Hello\\$guy" {
-		t.Errorf("Got message %s, want %s", jsonReader.messages[0].Content(), "Hello\\$guy")
+	if jsonReader.messages[0].Content() != "Hello$guy" {
+		t.Errorf("Got message %s, want %s", jsonReader.messages[0].Content(), "Hello$guy")
 	} else if jsonReader.messages[0].Type() != 5 {
 		t.Errorf("Got message type %d, want %d", jsonReader.messages[0].Type(), 5)
 	} else if jsonReader.messages[0].ClientID() != 1 {
@@ -179,8 +179,8 @@ func TestReceiveMultiple2(t *testing.T) {
 	bytes := []byte(sent)
 	smr.Receive(1, bytes, len(bytes))
 
-	if jsonReader.messages[0].Content() != "Hello\\$guy" {
-		t.Errorf("Got message %s, want %s", jsonReader.messages[0].Content(), "Hello\\$guy")
+	if jsonReader.messages[0].Content() != "Hello$guy" {
+		t.Errorf("Got message %s, want %s", jsonReader.messages[0].Content(), "Hello$guy")
 	} else if jsonReader.messages[0].Type() != 5 {
 		t.Errorf("Got message type %d, want %d", jsonReader.messages[0].Type(), 5)
 	} else if jsonReader.messages[0].ClientID() != 1 {
@@ -216,8 +216,8 @@ func TestReceiveMultipleSplit(t *testing.T) {
 	bytes = []byte(sent)
 	smr.Receive(1, bytes, len(bytes))
 
-	if jsonReader.messages[0].Content() != "Hello\\$guy" {
-		t.Errorf("Got message %s, want %s", jsonReader.messages[0].Content(), "Hello\\$guy")
+	if jsonReader.messages[0].Content() != "Hello$guy" {
+		t.Errorf("Got message %s, want %s", jsonReader.messages[0].Content(), "Hello$guy")
 	} else if jsonReader.messages[0].Type() != 5 {
 		t.Errorf("Got message type %d, want %d", jsonReader.messages[0].Type(), 5)
 	} else if jsonReader.messages[0].ClientID() != 1 {

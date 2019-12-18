@@ -114,8 +114,8 @@ func (s *SimpleTcpMessageReceiver) ReceiveMessage(UID int, bytes []byte) {
 	if message[0] == StartChar && (len(s.buffers[UID].buffer) <= 0 || (len(buffer.buffer) > 0 && buffer.buffer[len(buffer.buffer)-1] != '\\')) {
 		// if buffer length is equal or less than 0, a new message is received, empty the buffer
 		parts := strings.Split(message[1:], Separator)
-		if len(parts) != 4 {
-			log.Errorf("Invalid message header. Received message was `%s`", message)
+		if len(parts) < 4 {
+			log.Errorf("Invalid message header. Received message was `%s`, len was `%d`", message, len(parts))
 			return
 		}
 
@@ -155,7 +155,7 @@ func (s *SimpleTcpMessageReceiver) clearBuffer(buffer *SimpleTcpMessageBuffer) {
 		response = s.messageReader.Read(SimpleMessage{
 			clientID:    buffer.ClientUID,
 			messageType: buffer.MessageType,
-			content:     string(buffer.buffer),
+			content:     strings.Replace(string(buffer.buffer), "\\", "", -1),
 			id:          buffer.MessageId,
 			msgType:     buffer.MessageType,
 		})
@@ -187,10 +187,15 @@ func (s *SimpleTcpMessageReceiver) Send(response def.Response, clientUID int, ms
 		msgID = response.ID()
 	}
 
-	log.Debugf("Sending message of type %d to %d: '%s'", response.Type(), clientUID, response.Content())
+	log.Debugf("About to send response of type %d to %d: '%s'", response.Type(), clientUID, response.Content())
+	rawsponse := strings.Replace(response.Content(), Separator, "\\"+Separator, -1)
+	log.Debugf("First escapation '%s'", rawsponse)
+	rawsponse = strings.Replace(rawsponse, string(StartChar), "\\"+string(StartChar), -1)
+	log.Debugf("Second escapation '%s'", rawsponse)
+
 	if s.responseSender != nil {
-		bytes := []byte(response.Content())
-		s.responseSender.Send(fmt.Sprintf("%c%d%s%d%s%d%s%s", StartChar, len(bytes), Separator, response.Type(), Separator, msgID, Separator, response.Content()), clientUID)
+		bytes := []byte(rawsponse)
+		s.responseSender.Send(fmt.Sprintf("%c%d%s%d%s%d%s%s", StartChar, len(bytes), Separator, response.Type(), Separator, msgID, Separator, rawsponse), clientUID)
 	} else {
 		log.Errorln("Cannot send response because output is null")
 	}
