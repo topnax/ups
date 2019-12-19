@@ -142,9 +142,7 @@ func (server *GameServer) OnLetterRemoved(userId int, message messages.LetterRem
 		updatedTiles = append(updatedTiles, g.Desk.Tiles[message.Row][message.Column])
 
 		for _, player := range g.Players {
-			if player.ID != g.CurrentPlayer.ID {
-				server.server.Send(impl.StructMessageResponse(responses.TilesUpdatedResponse{Tiles: updatedTiles}), player.ID, 1)
-			}
+			server.server.Send(impl.StructMessageResponse(responses.TilesUpdatedResponse{Tiles: updatedTiles}), player.ID, 1)
 		}
 		return impl.SuccessResponse("Letter removed successfully")
 	} else {
@@ -209,12 +207,49 @@ func (server *GameServer) OnApproveWords(userId int) def.Response {
 			server.server.Send(impl.StructMessageResponse(responses.YourNewRoundResponse{Letters: g.PlayerIdToPlayerBag[g.CurrentPlayer.ID]}), g.CurrentPlayer.ID, 0)
 			for _, player := range g.Players {
 				if player.ID != g.CurrentPlayer.ID {
-					server.server.Send(impl.StructMessageResponse(responses.NewRoundResponse{ActivePlayerID: userId}), player.ID, 0)
+					server.server.Send(impl.StructMessageResponse(responses.NewRoundResponse{ActivePlayerID: g.CurrentPlayer.ID}), player.ID, 0)
 				}
 			}
 		}
 
 		return impl.SuccessResponse("Successfully accepted words...")
+	}
+	return impl.ErrorResponse(fmt.Sprintf("Could not find a player of ID %d", userId), impl.PlayerNotFound)
+}
+
+func (server *GameServer) OnDeclineWords(userId int) def.Response {
+
+	g, exists := server.gamesByPlayerID[userId]
+
+	if !exists {
+		log.Errorf("Could not find a game by player ID of %d", userId)
+		return impl.ErrorResponse(fmt.Sprintf("Could not find a game by player ID of %d", userId), impl.GameNotFoundByPlayerId)
+	}
+
+	playerThatDeclined, exists := g.PlayersMap[userId]
+
+	if playerThatDeclined.ID == g.CurrentPlayer.ID {
+		return impl.ErrorResponse("The player who's the current round cannot decline his own words.", impl.PlayerCannotAcceptHisOwnWords)
+	}
+
+	if exists {
+		g.WordsDeclined()
+
+		for _, player := range g.Players {
+			if player.ID != userId {
+				server.server.Send(impl.StructMessageResponse(responses.PlayerDeclinedWordsResponse{
+					PlayerID:   userId,
+					PlayerName: playerThatDeclined.Name,
+				}), player.ID, 0)
+			}
+			if player.ID != g.CurrentPlayer.ID {
+				server.server.Router.UserStates[player.ID] = PlayerWaitingState{}
+			} else {
+				server.server.Router.UserStates[player.ID] = PlayersTurnState{}
+			}
+		}
+
+		return impl.SuccessResponse("Successfully declined words...")
 	}
 	return impl.ErrorResponse(fmt.Sprintf("Could not find a player of ID %d", userId), impl.PlayerNotFound)
 }

@@ -193,6 +193,7 @@ func (a ApproveWordsState) Id() int {
 func (a ApproveWordsState) Routes() map[int]int {
 	m := make(map[int]int)
 	m[messages.ApproveWordsMessageType] = PlayersTurnState{}.Id()
+	m[messages.DeclineWordsMessageType] = PlayerWaitingState{}.Id()
 	return m
 }
 

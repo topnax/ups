@@ -21,6 +21,7 @@ func (router *KrisKrosRouter) registerRoutes() {
 	router.register(messages.LetterRemovedMessage{}, letterRemovedRoute)
 	router.register(messages.FinishRoundMessage{}, finishRoundRoute)
 	router.register(messages.ApproveWordsMessage{}, approveWordsRoute)
+	router.register(messages.DeclineWordsMessage{}, declineWordsRoute)
 }
 
 func playerJoinedRoute(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response {
@@ -122,4 +123,8 @@ func finishRoundRoute(handler def.MessageHandler, server *KrisKrosServer, user m
 
 func approveWordsRoute(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response {
 	return server.gameServer.OnApproveWords(user.ID)
+}
+
+func declineWordsRoute(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response {
+	return server.gameServer.OnDeclineWords(user.ID)
 }

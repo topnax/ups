@@ -23,6 +23,7 @@ const (
 	playerAcceptedRoundResponse = 113
 	newRoundResponse            = 114
 	yourNewRoundResponse        = 115
+	playerDeclinedWordsResponse = 116
 )
 
 type TypedResponse interface {
@@ -182,4 +183,15 @@ type YourNewRoundResponse struct {
 
 func (g YourNewRoundResponse) Type() int {
 	return yourNewRoundResponse
+}
+
+//////////////////////////////////////
+
+type PlayerDeclinedWordsResponse struct {
+	PlayerID   int    `json:"player_id"`
+	PlayerName string `json:"player_name"`
+}
+
+func (g PlayerDeclinedWordsResponse) Type() int {
+	return playerDeclinedWordsResponse
 }

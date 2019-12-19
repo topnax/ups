@@ -19,6 +19,7 @@ const (
 	LetterRemovedMessageType      = 11
 	FinishRoundMessageType        = 12
 	ApproveWordsMessageType       = 13
+	DeclineWordsMessageType       = 14
 )
 
 type PlayerJoinedMessage struct{}
@@ -215,4 +216,16 @@ func (p ApproveWordsMessage) Handle(message def.Message, amr def.ApplicationMess
 
 func (p ApproveWordsMessage) GetType() int {
 	return ApproveWordsMessageType
+}
+
+////////////////////////////////////////////
+
+type DeclineWordsMessage struct{}
+
+func (p DeclineWordsMessage) Handle(message def.Message, amr def.ApplicationMessageReader) def.Response {
+	return amr.Read(p, message.ClientID())
+}
+
+func (p DeclineWordsMessage) GetType() int {
+	return DeclineWordsMessageType
 }

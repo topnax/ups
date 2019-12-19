@@ -180,3 +180,7 @@ func (game Game) PrintPoints() {
 		fmt.Println(player.Name, "has", game.PointsTable[player.ID], "points")
 	}
 }
+
+func (game *Game) WordsDeclined() {
+	game.PlayersThatAccepted = NewPlayerSet()
+}

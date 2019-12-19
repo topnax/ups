@@ -102,10 +102,18 @@ func (desk *Desk) ResetAt(row int, column int, playerID int) error {
 		return errors.New(fmt.Sprintf("No letter set at given tile row:column %d:%d", row, column))
 	}
 
-	desk.Tiles[row][column].Set = false
-
 	desk.CurrentLetters.Remove(desk.Tiles[row][column])
 	desk.PlacedLetter.Remove(desk.Tiles[row][column])
+	desk.Tiles[row][column].Set = false
+
+	for tile, _ := range desk.CurrentLetters.List {
+		tile.Highlighted = false
+	}
+
+	for tile, _ := range desk.PlacedLetter.List {
+		desk.GetWordsAt(tile.Row, tile.Column)
+	}
+
 	return nil
 }
 
@@ -148,6 +156,11 @@ func (desk *Desk) GetWordAt(wordMeta WordMeta) Word {
 }
 
 func (desk *Desk) GetWordsAt(row int, column int) []WordMeta {
+
+	if desk.isWithinBounds(row, column) && desk.Tiles[row][column].Set {
+		desk.CurrentLetters.Add(desk.Tiles[row][column])
+		desk.Tiles[row][column].Highlighted = true
+	}
 
 	// directions
 	a := [][]int{
