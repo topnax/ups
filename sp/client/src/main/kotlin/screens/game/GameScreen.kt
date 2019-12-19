@@ -24,6 +24,8 @@ class GameView : View() {
 
     lateinit var finishButton: Button
 
+    lateinit var declineWordsButton: Button
+
     lateinit var acceptWordsButton: Button
 
     init {
@@ -76,16 +78,13 @@ class GameView : View() {
                         label(it.name) {
                             if (it.id == controller.activePlayerID) style { fontWeight = FontWeight.EXTRA_BOLD }
                         }
-                        if (controller.playerIdsWhoAcceptedWords.contains(it.id)) style { textFill = Color.GREEN }
+                        if (controller.playerIdsWhoAcceptedWords.contains(it.id)) label("Accepted words!!!")
                     }
                     label(if (controller.activePlayerID == Network.User.id) "Jste na tahu" else "Nejste na tahu")
 
-                    acceptWordsButton.visibleProperty().set(false)
-                    if (controller.activePlayerID == Network.User.id) {
-                        finishButton.visibleProperty().set(true)
-                    } else {
-                        finishButton.visibleProperty().set(false)
-                    }
+                    acceptWordsButton.visibleProperty().set(controller.activePlayerID != Network.User.id && controller.roundFinished && !controller.wordsAccepted)
+                    declineWordsButton.visibleProperty().set(controller.activePlayerID != Network.User.id && controller.roundFinished && !controller.wordsAccepted)
+                    finishButton.visibleProperty().set(!controller.roundFinished && controller.activePlayerID == Network.User.id)
 
                 }
             }
@@ -112,14 +111,25 @@ class GameView : View() {
             }
         }
 
-        acceptWordsButton = button("Accept words") {
-            visibleProperty().set(false)
-            action {
-                controller.onAcceptWordsButtonClicked()
+        hbox (spacing=10) {
+            acceptWordsButton = button("Accept words") {
+                visibleProperty().set(false)
+                action {
+                    controller.onAcceptWordsButtonClicked()
+                }
+                subscribe<RoundFinishedEvent> {
+                    visibleProperty().set(controller.activePlayerID != Network.User.id)
+                }
             }
-            subscribe<RoundFinishedEvent> {
-                visibleProperty().set(controller.activePlayerID != Network.User.id)
 
+            declineWordsButton = button("Decline words") {
+                visibleProperty().set(false)
+                action {
+                    controller.onDeclineWordsClicked()
+                }
+                subscribe<RoundFinishedEvent> {
+                    visibleProperty().set(controller.activePlayerID != Network.User.id)
+                }
             }
         }
     }

@@ -15,6 +15,8 @@ private val logger = KotlinLogging.logger { }
 
 class GameScreenController : Controller() {
 
+    val previouslyUpdatedTiles = mutableListOf<Tile>()
+
     var selectedTile: Tile? = null
 
     val desk = Desk(Desk.getTilesFromTileTypes())
@@ -31,6 +33,8 @@ class GameScreenController : Controller() {
 
     var roundFinished = false
 
+    var wordsAccepted = false
+
     val playerIdsWhoAcceptedWords = mutableListOf<Int>()
 
     fun init(gameView: GameView) {
@@ -45,6 +49,7 @@ class GameScreenController : Controller() {
         Network.getInstance().addMessageListener(::onPlayerAcceptedRound)
         Network.getInstance().addMessageListener(::onNewRoundResponse)
         Network.getInstance().addMessageListener(::onYourNewRoundResponse)
+        Network.getInstance().addMessageListener(::onPlayerDeclinedWordsResponse)
     }
 
     fun onUndock() {
@@ -54,17 +59,37 @@ class GameScreenController : Controller() {
         Network.getInstance().removeMessageListener(::onRoundFinished)
         Network.getInstance().removeMessageListener(::onPlayerAcceptedRound)
         Network.getInstance().removeMessageListener(::onYourNewRoundResponse)
+        Network.getInstance().removeMessageListener(::onPlayerDeclinedWordsResponse)
     }
 
     fun onYourNewRoundResponse(response: YourNewRoundResponse) {
+        wordsAccepted = false
+        roundFinished = false
         activePlayerID = Network.User.id
         fire(PlayerStateChangedEvent())
         fire(NewLetterSackEvent(response.letters))
+        for (tile in previouslyUpdatedTiles) {
+            tile.highlighted = false
+            fire(DeskChange(tile))
+        }
+        previouslyUpdatedTiles.clear()
     }
 
     fun onNewRoundResponse(response: NewRoundResponse) {
+        wordsAccepted = false
+        roundFinished = false
         activePlayerID = response.activePlayerId
         fire(PlayerStateChangedEvent())
+    }
+
+    fun onPlayerDeclinedWordsResponse(response: PlayerDeclinedWordsResponse) {
+        wordsAccepted = false
+        roundFinished = false
+        playerIdsWhoAcceptedWords.clear()
+        fire(PlayerStateChangedEvent())
+        Platform.runLater {
+            alert(Alert.AlertType.ERROR, "${response.playerName} #${response.playerId} has declined the words")
+        }
     }
 
     fun onPlayerAcceptedRound(response: PlayerAcceptedRoundResponse) {
@@ -79,9 +104,17 @@ class GameScreenController : Controller() {
 
     fun onNewRound(response: NewRoundResponse) {
         roundFinished = false
+        wordsAccepted = false
+        playerIdsWhoAcceptedWords.clear()
         activePlayerID = response.activePlayerId
         fire(PlayerStateChangedEvent())
         gameView.finishButton.visibleProperty().set(activePlayerID == Network.User.id)
+
+        for (tile in previouslyUpdatedTiles) {
+            tile.highlighted = false
+            fire(DeskChange(tile))
+        }
+        previouslyUpdatedTiles.clear()
     }
 
     fun onTileUpdated(response: TileUpdatedResponse) {
@@ -93,11 +126,8 @@ class GameScreenController : Controller() {
     }
 
     fun onTilesUpdated(response: TilesUpdatedResponse) {
-        for (tileRow in desk.tiles) {
-            for (tile in tileRow) {
-                tile.highlighted = false
-                fire(DeskChange(tile))
-            }
+        for (tile in previouslyUpdatedTiles) {
+            tile.highlighted = false
         }
 
         for (tile in response.tiles) {
@@ -107,14 +137,22 @@ class GameScreenController : Controller() {
             }
             fire(DeskChange(desk.tiles[tile.row][tile.column]))
         }
+
+        for (tile in previouslyUpdatedTiles) {
+            // TODO might remember which tiles were updated through the response
+            fire(DeskChange(desk.tiles[tile.row][tile.column]))
+        }
+        previouslyUpdatedTiles.clear()
+
+        previouslyUpdatedTiles.addAll(response.tiles)
     }
 
     fun onFinishRoundButtonClicked() {
         if (activePlayerID == Network.User.id) {
             Network.getInstance().send(FinishRoundMessage(), {
+                roundFinished = true
                 Platform.runLater {
                     gameView.finishButton.visibleProperty().set(false)
-                    alert(Alert.AlertType.INFORMATION, "Waiting for confirmation from other players :)")
                 }
             })
         }
@@ -127,11 +165,21 @@ class GameScreenController : Controller() {
             if (roundFinished) {
                 logger.debug { "Round finished, sending approval..." }
                 Network.getInstance().send(ApproveWordsMessage(), {
-                    Platform.runLater {
-                        alert(Alert.AlertType.INFORMATION, "Successfully approved :)")
-                    }
+                    wordsAccepted = true
+                    playerIdsWhoAcceptedWords.add(Network.User.id)
+                    fire(PlayerStateChangedEvent())
                 })
             }
+        }
+    }
+
+    fun onDeclineWordsClicked() {
+        logger.debug { "Decline words button clicked" }
+        if (activePlayerID != Network.User.id && roundFinished) {
+            Network.getInstance().send(DeclineWordsMessage(), {
+                wordsAccepted = true
+                fire(PlayerStateChangedEvent())
+            })
         }
     }
 
@@ -202,7 +250,6 @@ class GameScreenController : Controller() {
                             placedLetters.remove(event.tile.letter)
                             letters.add(event.tile.letter!!)
                             desk.tiles[event.tile.row][event.tile.column].letter = null
-                            fire(DeskChange(event.tile))
                             fire(NewLetterSackEvent(letters))
                         }
                     })

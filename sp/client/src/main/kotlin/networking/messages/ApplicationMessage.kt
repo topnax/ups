@@ -29,6 +29,7 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
         const val LETTER_REMOVED_MESSAGE_TYPE = 11
         const val FINISH_ROUND_MESSAGE_TYPE = 12
         const val APPROVE_WORDS_MESSAGE_TYPE = 13
+        const val DECLINE_WORDS_MESSAGE_TYPE = 14
 
         const val GET_LOBBIES_RESPONSE_TYPE = 101
         const val LOBBY_UPDATED_RESPONSE_TYPE = 103
@@ -43,6 +44,7 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
         const val PLAYER_ACCEPTED_ROUND_MESSAGE_TYPE = 113
         const val NEW_ROUND_MESSAGE_TYPE = 114
         const val YOUR_NEW_ROUND_MESSAGE_TYPE = 115
+        const val PLAYER_DECLINED_WORDS_MESSAGE_TYPE = 116
 
         const val ERROR_RESPONSE_TYPE = 401
         const val SUCCESS_RESPONSE_TYPE = 701
@@ -79,6 +81,7 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
                         PLAYER_ACCEPTED_ROUND_MESSAGE_TYPE -> fromJson<PlayerAcceptedRoundResponse>(json)
                         NEW_ROUND_MESSAGE_TYPE -> fromJson<NewRoundResponse>(json)
                         YOUR_NEW_ROUND_MESSAGE_TYPE -> fromJson<YourNewRoundResponse>(json)
+                        PLAYER_DECLINED_WORDS_MESSAGE_TYPE -> fromJson<PlayerDeclinedWordsResponse>(json)
                         else -> null
                     }
                 }
@@ -141,6 +144,8 @@ class FinishRoundMessage() : EmptyMessage(FINISH_ROUND_MESSAGE_TYPE)
 
 class ApproveWordsMessage() : EmptyMessage(APPROVE_WORDS_MESSAGE_TYPE)
 
+class DeclineWordsMessage() : EmptyMessage(DECLINE_WORDS_MESSAGE_TYPE)
+
 // responses
 
 class LobbyStartedResponse() : EmptyMessage(LOBBY_STARTED_MESSAGE_TYPE)
@@ -158,3 +163,5 @@ class PlayerAcceptedRoundResponse(val playerId: Int) : ApplicationMessage(PLAYER
 class NewRoundResponse(val activePlayerId: Int) : ApplicationMessage(NEW_ROUND_MESSAGE_TYPE)
 
 class YourNewRoundResponse(val letters: List<Letter>) : ApplicationMessage(YOUR_NEW_ROUND_MESSAGE_TYPE)
+
+class PlayerDeclinedWordsResponse(val playerId: Int, val playerName: String) : ApplicationMessage(PLAYER_DECLINED_WORDS_MESSAGE_TYPE)
