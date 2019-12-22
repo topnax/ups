@@ -151,18 +151,16 @@ func (game *Game) Next() {
 }
 
 func (game *Game) HandleSetAtEvent(event SetLetterAtEvent) error {
-
 	if event.PlayerID == game.CurrentPlayer.ID {
-		for _, letter := range game.PlayerIdToPlayerBag[event.PlayerID] {
+		for index, letter := range game.PlayerIdToPlayerBag[event.PlayerID] {
 			if letter.Value == event.Letter {
+				game.PlayerIdToPlayerBag[event.PlayerID] = append(game.PlayerIdToPlayerBag[event.PlayerID][:index], game.PlayerIdToPlayerBag[event.PlayerID][index+1:]...)
 				return game.Desk.SetAt(event.Letter, event.Row, event.Column, event.PlayerID)
 			}
 		}
-	} else {
-		return errors.New("It's not players turn")
+		return errors.New(fmt.Sprintf("Player does not have letter '%s' in his bag...", event.Letter))
 	}
-
-	return errors.New("Such letter is not in player's bag")
+	return errors.New(fmt.Sprintf("It's not players of ID %d turn", event.PlayerID))
 }
 
 func (game *Game) HandleResetAtEvent(event ResetAtEvent) error {

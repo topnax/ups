@@ -30,6 +30,7 @@ const (
 	NotPlayersTurn                = 29
 	PlayerNotFound                = 30
 	PlayerCannotAcceptHisOwnWords = 31
+	LetterCannotBePlaced          = 32
 
 	PlainSuccess = 701
 )

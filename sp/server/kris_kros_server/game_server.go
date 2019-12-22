@@ -94,14 +94,11 @@ func (server *GameServer) OnLetterPlaced(userId int, message messages.LetterPlac
 
 		for _, player := range g.Players {
 			server.server.Send(impl.StructMessageResponse(responses.TilesUpdatedResponse{Tiles: updatedTiles}), player.ID, 0)
-			//if player.ID != g.CurrentPlayer.ID {
-			//	server.server.Send(impl.StructMessageResponse(responses.TileUpdatedResponse{Tile: g.Desk.Tiles[message.Row][message.Column]}), player.ID, 1)
-			//}
 		}
 		return impl.SuccessResponse("Placed successfully")
 	} else {
 		log.Errorf("Error while setting a letter: '%s'", err)
-		return impl.ErrorResponse(err.Error(), 999)
+		return impl.ErrorResponse(err.Error(), impl.LetterCannotBePlaced)
 	}
 }
 
