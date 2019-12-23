@@ -71,7 +71,7 @@ class GameView : View() {
         }
         hbox(spacing = 10) {
             subscribe<PlayerStateChangedEvent> {
-                logger.debug { "player state changed event" }
+                logger.debug { "Player state changed event" }
                 Platform.runLater {
                     clear()
                     controller.players.forEach {
@@ -81,6 +81,10 @@ class GameView : View() {
                         if (controller.playerIdsWhoAcceptedWords.contains(it.id)) label("Accepted words!!!")
                     }
                     label(if (controller.activePlayerID == Network.User.id) "Jste na tahu" else "Nejste na tahu")
+
+                    logger.debug {"controller.activePlayerID != Network.User.id: ${controller.activePlayerID != Network.User.id}"}
+                    logger.debug {"controller.roundFinished: ${controller.roundFinished}"}
+                    logger.debug {"!controller.wordsAccepted: ${!controller.wordsAccepted}"}
 
                     acceptWordsButton.visibleProperty().set(controller.activePlayerID != Network.User.id && controller.roundFinished && !controller.wordsAccepted)
                     declineWordsButton.visibleProperty().set(controller.activePlayerID != Network.User.id && controller.roundFinished && !controller.wordsAccepted)
@@ -118,6 +122,7 @@ class GameView : View() {
                     controller.onAcceptWordsButtonClicked()
                 }
                 subscribe<RoundFinishedEvent> {
+                    logger.debug {"Round finished event: controller.activePlayerID != Network.User.id ${controller.activePlayerID != Network.User.id}"}
                     visibleProperty().set(controller.activePlayerID != Network.User.id)
                 }
             }

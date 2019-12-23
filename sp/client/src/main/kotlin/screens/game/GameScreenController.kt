@@ -177,7 +177,9 @@ class GameScreenController : Controller() {
         logger.debug { "Decline words button clicked" }
         if (activePlayerID != Network.User.id && roundFinished) {
             Network.getInstance().send(DeclineWordsMessage(), {
-                wordsAccepted = true
+                wordsAccepted = false
+                roundFinished = false
+                playerIdsWhoAcceptedWords.clear()
                 fire(PlayerStateChangedEvent())
             })
         }
