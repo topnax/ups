@@ -34,6 +34,10 @@ func (router *KrisKrosRouter) registerStates() {
 	router.registerState(LobbyCreatedReadyState{})
 	router.registerState(GameStartedState{})
 	router.registerState(PlayersTurnState{})
+	router.registerState(PlayerWaitingState{})
+	router.registerState(PlayerFinishedRoundState{})
+	router.registerState(ApproveWordsState{})
+	router.registerState(ApprovedWordsState{})
 }
 
 type InitialState struct{}
@@ -152,7 +156,7 @@ func (a PlayersTurnState) Routes() map[int]int {
 	m := make(map[int]int)
 	m[messages.LetterPlacedMessageType] = PlayersTurnState{}.Id()
 	m[messages.LetterRemovedMessageType] = PlayersTurnState{}.Id()
-	m[messages.FinishRoundMessageType] = FinishedRoundMessage{}.Id()
+	m[messages.FinishRoundMessageType] = PlayerFinishedRoundState{}.Id()
 	return m
 }
 
@@ -171,13 +175,13 @@ func (a PlayerWaitingState) Routes() map[int]int {
 
 ////////////////////////////////////////////
 
-type FinishedRoundMessage struct{}
+type PlayerFinishedRoundState struct{}
 
-func (a FinishedRoundMessage) Id() int {
+func (a PlayerFinishedRoundState) Id() int {
 	return PLAYER_FINISHED_ROUND_ID
 }
 
-func (a FinishedRoundMessage) Routes() map[int]int {
+func (a PlayerFinishedRoundState) Routes() map[int]int {
 	m := make(map[int]int)
 	return m
 }
