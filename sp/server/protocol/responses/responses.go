@@ -140,7 +140,9 @@ func (g TileUpdatedResponse) Type() int {
 //////////////////////////////////////
 
 type TilesUpdatedResponse struct {
-	Tiles []game.Tile `json:"tiles"`
+	Tiles                    []game.Tile `json:"tiles"`
+	CurrentPlayerPoints      int         `json:"current_player_points"`
+	CurrentPlayerTotalPoints int         `json:"current_player_total_points"`
 }
 
 func (g TilesUpdatedResponse) Type() int {

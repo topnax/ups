@@ -92,8 +92,11 @@ func (server *GameServer) OnLetterPlaced(userId int, message messages.LetterPlac
 			updatedTiles = append(updatedTiles, tile)
 		}
 
+		points := g.Desk.GetTotalPoints()
+		playerTotalPoints := g.PointsTable[g.CurrentPlayer.ID] + points
+
 		for _, player := range g.Players {
-			server.server.Send(impl.StructMessageResponse(responses.TilesUpdatedResponse{Tiles: updatedTiles}), player.ID, 0)
+			server.server.Send(impl.StructMessageResponse(responses.TilesUpdatedResponse{Tiles: updatedTiles, CurrentPlayerTotalPoints: playerTotalPoints, CurrentPlayerPoints: points}), player.ID, 0)
 		}
 		return impl.SuccessResponse("Placed successfully")
 	} else {
@@ -138,8 +141,11 @@ func (server *GameServer) OnLetterRemoved(userId int, message messages.LetterRem
 
 		updatedTiles = append(updatedTiles, g.Desk.Tiles[message.Row][message.Column])
 
+		points := g.Desk.GetTotalPoints()
+		playerTotalPoints := g.PointsTable[g.CurrentPlayer.ID] + points
+
 		for _, player := range g.Players {
-			server.server.Send(impl.StructMessageResponse(responses.TilesUpdatedResponse{Tiles: updatedTiles}), player.ID, 1)
+			server.server.Send(impl.StructMessageResponse(responses.TilesUpdatedResponse{Tiles: updatedTiles, CurrentPlayerPoints: points, CurrentPlayerTotalPoints: playerTotalPoints}), player.ID, 1)
 		}
 		return impl.SuccessResponse("Letter removed successfully")
 	} else {
