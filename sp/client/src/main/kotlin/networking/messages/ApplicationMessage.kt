@@ -154,7 +154,7 @@ class GameStartedResponse(val players: List<Player>, val letters: List<Letter>, 
 
 class TileUpdatedResponse(val tile: Tile) : ApplicationMessage(TILE_UPDATED_MESSAGE_TYPE)
 
-class TilesUpdatedResponse(val tiles: List<Tile>) : ApplicationMessage(TILES_UPDATED_MESSAGE_TYPE)
+class TilesUpdatedResponse(val tiles: List<Tile>, val currentPlayerPoints: Int, val currentPlayerTotalPoints: Int) : ApplicationMessage(TILES_UPDATED_MESSAGE_TYPE)
 
 class RoundFinishedResponse() : EmptyMessage(PLAYER_FINISHED_ROUND_MESSAGE_TYPE)
 

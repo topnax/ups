@@ -82,9 +82,9 @@ class GameView : View() {
                     }
                     label(if (controller.activePlayerID == Network.User.id) "Jste na tahu" else "Nejste na tahu")
 
-                    logger.debug {"controller.activePlayerID != Network.User.id: ${controller.activePlayerID != Network.User.id}"}
-                    logger.debug {"controller.roundFinished: ${controller.roundFinished}"}
-                    logger.debug {"!controller.wordsAccepted: ${!controller.wordsAccepted}"}
+                    logger.debug { "controller.activePlayerID != Network.User.id: ${controller.activePlayerID != Network.User.id}" }
+                    logger.debug { "controller.roundFinished: ${controller.roundFinished}" }
+                    logger.debug { "!controller.wordsAccepted: ${!controller.wordsAccepted}" }
 
                     acceptWordsButton.visibleProperty().set(controller.activePlayerID != Network.User.id && controller.roundFinished && !controller.wordsAccepted)
                     declineWordsButton.visibleProperty().set(controller.activePlayerID != Network.User.id && controller.roundFinished && !controller.wordsAccepted)
@@ -115,14 +115,14 @@ class GameView : View() {
             }
         }
 
-        hbox (spacing=10) {
+        hbox(spacing = 10) {
             acceptWordsButton = button("Accept words") {
                 visibleProperty().set(false)
                 action {
                     controller.onAcceptWordsButtonClicked()
                 }
                 subscribe<RoundFinishedEvent> {
-                    logger.debug {"Round finished event: controller.activePlayerID != Network.User.id ${controller.activePlayerID != Network.User.id}"}
+                    logger.debug { "Round finished event: controller.activePlayerID != Network.User.id ${controller.activePlayerID != Network.User.id}" }
                     visibleProperty().set(controller.activePlayerID != Network.User.id)
                 }
             }
@@ -191,29 +191,58 @@ class TileView(val tile: Tile) : View() {
 
     override val root = tile.letter?.let {
         hbox {
-            padding = Insets(6.0)
+            padding = Insets(5.0)
             alignment = Pos.CENTER
             gridpaneConstraints {
                 columnRowIndex(tile.column, tile.row)
             }
-            btn = button(it.value.toUpperCase()) {
-                action {
-                    fire(TileWithLetterClicked(tile))
+
+
+            hbox {
+                padding = Insets(8.0)
+                alignment = Pos.BOTTOM_RIGHT
+                label(it.value.toUpperCase()) {
+                    textFill = Color.WHITE
+                    setOnMouseClicked {
+                        fire(TileWithLetterClicked(tile))
+                    }
                 }
-                textFill = Color.WHITE
+                label(it.points.toString()) {
+                    textFill = Color.WHITE
+                    style {
+                        fontSize = 10.px
+                    }
+                    setOnMouseClicked {
+                        fire(TileWithLetterClicked(tile))
+                    }
+                }
                 style {
                     backgroundColor += if (tile.highlighted) Color.ORANGE else Color.GREEN
-
                     borderRadius += box(6.px)
                 }
 
+                setOnMouseClicked {
+                    fire(TileWithLetterClicked(tile))
+                }
             }
+
+//            btn = button(it.value.toUpperCase()) {
+//                action {
+//                    fire(TileWithLetterClicked(tile))
+//                }
+//                textFill = Color.WHITE
+//                style {
+//                    backgroundColor += if (tile.highlighted) Color.ORANGE else Color.GREEN
+//
+//                    borderRadius += box(6.px)
+//                }
+//
+//            }
             style {
                 backgroundColor += if (!tile.selected) tile.typeEnum.getTileColor() else Color.PINK
             }
-            btn
+//            btn
         }
-
     } ?: run {
         button {
             gridpaneConstraints {

@@ -37,6 +37,8 @@ class GameScreenController : Controller() {
 
     val playerIdsWhoAcceptedWords = mutableListOf<Int>()
 
+    val playerPointsMap = mutableMapOf<Int, Int>()
+
     fun init(gameView: GameView) {
         this.gameView = gameView
     }
