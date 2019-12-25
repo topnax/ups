@@ -75,7 +75,7 @@ class GameView : View() {
                 Platform.runLater {
                     clear()
                     controller.players.forEach {
-                        label(it.name) {
+                        label("${it.name} (${controller.playerPointsMap[it.id]})" + if (controller.activePlayerID == it.id) " <${controller.currentRoundPlayerPoints}>" else "") {
                             if (it.id == controller.activePlayerID) style { fontWeight = FontWeight.EXTRA_BOLD }
                         }
                         if (controller.playerIdsWhoAcceptedWords.contains(it.id)) label("Accepted words!!!")

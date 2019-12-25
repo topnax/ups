@@ -31,6 +31,8 @@ class GameScreenController : Controller() {
 
     var activePlayerID = -1
 
+    var currentRoundPlayerPoints = 0
+
     var roundFinished = false
 
     var wordsAccepted = false
@@ -41,6 +43,7 @@ class GameScreenController : Controller() {
 
     fun init(gameView: GameView) {
         this.gameView = gameView
+        players.forEach { playerPointsMap[it.id] = 0 }
     }
 
     fun onDock() {
@@ -101,10 +104,12 @@ class GameScreenController : Controller() {
 
     fun onRoundFinished(response: RoundFinishedResponse) {
         roundFinished = true
+        wordsAccepted = false
         fire(RoundFinishedEvent())
     }
 
     fun onNewRound(response: NewRoundResponse) {
+        currentRoundPlayerPoints = 0
         roundFinished = false
         wordsAccepted = false
         playerIdsWhoAcceptedWords.clear()
@@ -147,6 +152,10 @@ class GameScreenController : Controller() {
         previouslyUpdatedTiles.clear()
 
         previouslyUpdatedTiles.addAll(response.tiles)
+
+        currentRoundPlayerPoints = response.currentPlayerPoints
+        playerPointsMap[activePlayerID] = response.currentPlayerTotalPoints
+        fire(PlayerStateChangedEvent())
     }
 
     fun onFinishRoundButtonClicked() {
@@ -188,6 +197,7 @@ class GameScreenController : Controller() {
     }
 
     init {
+
 
         subscribe<GameStartedEvent> {
             fire(NewLetterSackEvent(it.message.letters))
