@@ -2,7 +2,6 @@ package networking.receiver
 
 import mu.KotlinLogging
 import networking.reader.MessageReader
-import tornadofx.isInt
 
 private val logger = KotlinLogging.logger {}
 
@@ -13,53 +12,14 @@ class FixedMessageReceiver(messageReader: MessageReader) : MessageReceiver(messa
         val SEPARATOR = '#'
     }
 
-    private var buffer = mutableListOf<Byte>()
-
-    private var currentType: Int = 0
-    private var currentLength: Int = 0
-    private var currentID: Int = 0
-
-    private var validHeader = false
-
-    override fun receive(bytes: ByteArray, length: Int): List<ByteArray> {
-        val messagesBytes = mutableListOf<ByteArray>()
-        var lastMessageStart = 0
-        var prevByte: Byte? = null
-
-        bytes.forEachIndexed { index, byte ->
-            if (lastMessageStart != index && byte == START_CHAR.toByte() && (prevByte == null || prevByte != '\\'.toByte())) {
-                logger.debug { "MessageFEI added: '${String(bytes.copyOfRange(lastMessageStart, index))}'" }
-                messagesBytes.add(bytes.copyOfRange(lastMessageStart, index))
-
-                if (index < length) {
-                    lastMessageStart = index
-                }
-            }
-            prevByte = byte
-        }
-
-        if (lastMessageStart < length && length <= bytes.size) {
-            logger.debug { "LastChance added: '${String(bytes.copyOfRange(lastMessageStart, length))}'" }
-            messagesBytes.add(bytes.copyOfRange(lastMessageStart, length))
-        }
-
-//        messagesBytes.forEach {
-//            receiveMessage(it)
-//        }
-
-        receiveMessage(bytes, length)
-        return messagesBytes
-    }
-
     private var state = 1
-    private var autoType = 0
-    private var autoLength = 0
-    private var autoMessageId = 0
-    private var automatonBuffer = mutableListOf<Byte>()
-    private var automatonContentBuffer = mutableListOf<Byte>()
+    private var type = 0
+    private var length = 0
+    private var messageId = 0
+    private var headerBuffer = mutableListOf<Byte>()
+    private var contentBuffer = mutableListOf<Byte>()
 
-
-    private fun receiveMessage(bytes: ByteArray, length: Int) {
+    override fun receive(bytes: ByteArray, length: Int) {
         val strMessage = String(bytes)
         logger.info { "Receiving message $strMessage" }
 
@@ -76,26 +36,26 @@ class FixedMessageReceiver(messageReader: MessageReader) : MessageReceiver(messa
                 }
 
                 2 -> {
-                    automatonBuffer.clear()
-                    state = if (byte.toChar().isDigit()) {
-                        automatonBuffer.add(byte)
-                        3
-                    } else if (byte.toChar() == START_CHAR) {
-                        2
-                    } else {
-                        1
+                    headerBuffer.clear()
+                    state = when {
+                        byte.toChar().isDigit() -> {
+                            headerBuffer.add(byte)
+                            3
+                        }
+                        byte.toChar() == START_CHAR -> 2
+                        else -> 1
                     }
                 }
 
                 3 -> {
                     state = when {
                         byte.toChar().isDigit() -> {
-                            automatonBuffer.add(byte)
+                            headerBuffer.add(byte)
                             3
                         }
 
                         byte.toChar() == SEPARATOR -> {
-                            autoLength = String(automatonBuffer.toByteArray()).toInt()
+                            this.length = String(headerBuffer.toByteArray()).toInt()
                             4
                         }
 
@@ -108,26 +68,26 @@ class FixedMessageReceiver(messageReader: MessageReader) : MessageReceiver(messa
                 }
 
                 4 -> {
-                    automatonBuffer.clear()
-                    state = if (byte.toChar().isDigit()) {
-                        automatonBuffer.add(byte)
-                        5
-                    } else if (byte.toChar() == START_CHAR) {
-                        2
-                    } else {
-                        1
+                    headerBuffer.clear()
+                    state = when {
+                        byte.toChar().isDigit() -> {
+                            headerBuffer.add(byte)
+                            5
+                        }
+                        byte.toChar() == START_CHAR -> 2
+                        else -> 1
                     }
                 }
 
                 5 -> {
                     state = when {
                         byte.toChar().isDigit() -> {
-                            automatonBuffer.add(byte)
+                            headerBuffer.add(byte)
                             5
                         }
 
                         byte.toChar() == SEPARATOR -> {
-                            autoType = String(automatonBuffer.toByteArray()).toInt()
+                            type = String(headerBuffer.toByteArray()).toInt()
                             6
                         }
 
@@ -140,27 +100,27 @@ class FixedMessageReceiver(messageReader: MessageReader) : MessageReceiver(messa
                 }
 
                 6 -> {
-                    automatonBuffer.clear()
-                    state = if (byte.toChar().isDigit()) {
-                        automatonBuffer.add(byte)
-                        7
-                    } else if (byte.toChar() == START_CHAR) {
-                        2
-                    } else {
-                        1
+                    headerBuffer.clear()
+                    state = when {
+                        byte.toChar().isDigit() -> {
+                            headerBuffer.add(byte)
+                            7
+                        }
+                        byte.toChar() == START_CHAR -> 2
+                        else -> 1
                     }
                 }
 
                 7 -> {
                     state = when {
                         byte.toChar().isDigit() -> {
-                            automatonBuffer.add(byte)
+                            headerBuffer.add(byte)
                             7
                         }
 
                         byte.toChar() == SEPARATOR -> {
-                            autoMessageId = String(automatonBuffer.toByteArray()).toInt()
-                            automatonContentBuffer.clear()
+                            messageId = String(headerBuffer.toByteArray()).toInt()
+                            contentBuffer.clear()
                             8
                         }
 
@@ -173,12 +133,12 @@ class FixedMessageReceiver(messageReader: MessageReader) : MessageReceiver(messa
                 }
 
                 8 -> {
-                    state = if (!automatonContentBuffer.isNextByteEscaped() && byte.toChar() == START_CHAR) {
+                    state = if (!contentBuffer.isNextByteEscaped() && byte.toChar() == START_CHAR) {
                         2
                     } else {
-                        automatonContentBuffer.add(byte)
-                        if (automatonContentBuffer.size == autoLength) {
-                            messageReader.read(Message(autoLength, autoType, String(automatonContentBuffer.toByteArray()), autoMessageId))
+                        contentBuffer.add(byte)
+                        if (contentBuffer.size == this.length) {
+                            messageReader.read(Message(this.length, type, String(contentBuffer.toByteArray()), messageId))
                             1
                         } else {
                             8
@@ -186,15 +146,6 @@ class FixedMessageReceiver(messageReader: MessageReader) : MessageReceiver(messa
                     }
                 }
             }
-        }
-    }
-
-    private fun checkBuffer() {
-        if (validHeader && currentLength <= buffer.size) {
-            messageReader.read(Message(currentLength, currentType, String(buffer.toByteArray()).replace("\\", ""), currentID))
-            currentLength = 0
-            buffer.clear()
-            validHeader = false
         }
     }
 }
@@ -218,7 +169,6 @@ fun String.indexOfNth(char: Char, n: Int): Int {
         }
     }
 }
-
 
 fun <Byte> MutableList<Byte>.isNextByteEscaped(): Boolean {
     var index = 0
