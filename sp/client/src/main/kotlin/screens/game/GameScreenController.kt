@@ -71,6 +71,7 @@ class GameScreenController : Controller() {
         wordsAccepted = false
         roundFinished = false
         activePlayerID = Network.User.id
+        playerIdsWhoAcceptedWords.clear()
         fire(PlayerStateChangedEvent())
         fire(NewLetterSackEvent(response.letters))
         for (tile in previouslyUpdatedTiles) {

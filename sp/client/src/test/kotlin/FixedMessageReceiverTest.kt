@@ -1,7 +1,6 @@
 import networking.reader.MessageReader
 import networking.receiver.FixedMessageReceiver
 import networking.receiver.Message
-import networking.receiver.SimpleMessageReceiver
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -82,6 +81,50 @@ class FixedMessageReceiverTest {
         assertEquals(1, received.size)
         assertEquals(10, received[0].length)
         assertEquals("123456789X", received[0].content)
+        assertEquals(1, received[0].type)
+        assertEquals(11, received[0].id)
+    }
+
+    @Test
+    internal fun receiveSimpleOverriddenMessage() {
+        val message = "$10#1#11#123$10#1#11#123456789X456789X"
+        receiver.receive(message.toByteArray(), message.length)
+        assertEquals(1, received.size)
+        assertEquals(10, received[0].length)
+        assertEquals("123456789X", received[0].content)
+        assertEquals(1, received[0].type)
+        assertEquals(11, received[0].id)
+    }
+
+    @Test
+    internal fun receiveSimpleEscapedMessage() {
+        val message = "$12#1#11#12345\\$6789X"
+        receiver.receive(message.toByteArray(), message.length)
+        assertEquals(1, received.size)
+        assertEquals(12, received[0].length)
+        assertEquals("12345\\\$6789X", received[0].content)
+        assertEquals(1, received[0].type)
+        assertEquals(11, received[0].id)
+    }
+
+    @Test
+    internal fun receiveSimpleEscapedMessage2() {
+        val message = "$12#1#11#12345\\\\$12#1#11#12345\\\\\\$678"
+        receiver.receive(message.toByteArray(), message.length)
+        assertEquals(1, received.size)
+        assertEquals(12, received[0].length)
+        assertEquals("12345\\\\\\$678", received[0].content)
+        assertEquals(1, received[0].type)
+        assertEquals(11, received[0].id)
+    }
+
+    @Test
+    internal fun receiveSimpleEscapedMessage3() {
+        val message = "$12#1#11#12345\\\\\\$678"
+        receiver.receive(message.toByteArray(), message.length)
+        assertEquals(1, received.size)
+        assertEquals(12, received[0].length)
+        assertEquals("12345\\\\\\$678", received[0].content)
         assertEquals(1, received[0].type)
         assertEquals(11, received[0].id)
     }

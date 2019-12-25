@@ -10,7 +10,6 @@ import networking.messages.ErrorResponseMessage
 import networking.messages.GetLobbiesMessage
 import networking.reader.SimpleMessageReader
 import networking.receiver.FixedMessageReceiver
-import networking.receiver.SimpleMessageReceiver
 import tornadofx.alert
 
 private val logger = KotlinLogging.logger { }
@@ -97,7 +96,7 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
     }
 
     override fun read(message: ApplicationMessage, mid: Int) {
-        logger.info { "Received a message of type ${message.type}" }
+        logger.info { "Received a message of tyaape ${message.type}" }
         synchronized(messageListeners) {
             val typeMessageListeners = messageListeners.getOrDefault(message.javaClass, listOf<(ApplicationMessage) -> Unit>())
             logger.info { "About to invoke ${typeMessageListeners.size} message listeners of type ${message.type}" }
@@ -117,7 +116,7 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
     }
 
     fun send(message: ApplicationMessage, callback: ((ApplicationMessage) -> Unit)? = null, desiredMessageId: Int = 0, callAfterWrite: (() -> Unit)? = null, ignoreErrors: Boolean = false) {
-        val json = message.toJson().replace(SimpleMessageReceiver.START_CHAR.toString(), "\\" + SimpleMessageReceiver.START_CHAR).replace(SimpleMessageReceiver.SEPARATOR.toString(), "\\" + SimpleMessageReceiver.SEPARATOR)
+        val json = message.toJson().replace(FixedMessageReceiver.START_CHAR.toString(), "\\" + FixedMessageReceiver.START_CHAR).replace(FixedMessageReceiver.SEPARATOR.toString(), "\\" + FixedMessageReceiver.SEPARATOR)
 
         if (message is GetLobbiesMessage) {
             println()
@@ -139,7 +138,7 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
 
         logger.info { "Printing message of type ${message.type} and content '$json' to server" }
 
-        tcpLayer?.write("${SimpleMessageReceiver.START_CHAR}${json.toByteArray().size}${SimpleMessageReceiver.SEPARATOR}${message.type}${SimpleMessageReceiver.SEPARATOR}${messageId}${SimpleMessageReceiver.SEPARATOR}$json")
+        tcpLayer?.write("${FixedMessageReceiver.START_CHAR}${json.toByteArray().size}${FixedMessageReceiver.SEPARATOR}${message.type}${FixedMessageReceiver.SEPARATOR}${messageId}${FixedMessageReceiver.SEPARATOR}$json")
 
         messageId++
 

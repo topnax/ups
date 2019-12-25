@@ -43,31 +43,149 @@ class FixedMessageReceiver(messageReader: MessageReader) : MessageReceiver(messa
             messagesBytes.add(bytes.copyOfRange(lastMessageStart, length))
         }
 
-        messagesBytes.forEach {
-            receiveMessage(it)
-        }
+//        messagesBytes.forEach {
+//            receiveMessage(it)
+//        }
+
+        receiveMessage(bytes, length)
         return messagesBytes
     }
 
-    private fun receiveMessage(bytes: ByteArray) {
+    private var state = 1
+    private var autoType = 0
+    private var autoLength = 0
+    private var autoMessageId = 0
+    private var automatonBuffer = mutableListOf<Byte>()
+    private var automatonContentBuffer = mutableListOf<Byte>()
+
+
+    private fun receiveMessage(bytes: ByteArray, length: Int) {
         val strMessage = String(bytes)
         logger.info { "Receiving message $strMessage" }
-        if (!validHeader && strMessage[0] == START_CHAR && (buffer.isEmpty() || String(buffer.toByteArray())[buffer.size - 1] != '\\')) {
-            val parts = strMessage.substring(1 until strMessage.length).split(SEPARATOR)
-            if (parts.size >= 4 && parts[0].isInt() && parts[1].isInt() && parts[2].isInt()) {
-                validHeader = true
-                currentLength = parts[0].toInt()
-                currentType = parts[1].toInt()
-                currentID = parts[2].toInt()
-                bytes.copyOfRange(strMessage.indexOfNth(SEPARATOR, 3) + 1, bytes.size).forEach { buffer.add(it) }
-                checkBuffer()
-            } else {
-                logger.error { "Receiver message '$strMessage' could not be parsed, invalid header." }
-                validHeader = false
+
+        bytes.forEachIndexed { index, byte ->
+            if (index >= length) {
+                return
             }
-        } else if (validHeader) {
-            bytes.forEach { buffer.add(it) }
-            checkBuffer()
+            val currentChar = byte.toChar()
+            when (state) {
+                1 -> {
+                    if (byte.toChar() == START_CHAR) {
+                        state = 2
+                    }
+                }
+
+                2 -> {
+                    automatonBuffer.clear()
+                    state = if (byte.toChar().isDigit()) {
+                        automatonBuffer.add(byte)
+                        3
+                    } else if (byte.toChar() == START_CHAR) {
+                        2
+                    } else {
+                        1
+                    }
+                }
+
+                3 -> {
+                    state = when {
+                        byte.toChar().isDigit() -> {
+                            automatonBuffer.add(byte)
+                            3
+                        }
+
+                        byte.toChar() == SEPARATOR -> {
+                            autoLength = String(automatonBuffer.toByteArray()).toInt()
+                            4
+                        }
+
+                        byte.toChar() == START_CHAR -> 2
+
+                        else -> {
+                            1
+                        }
+                    }
+                }
+
+                4 -> {
+                    automatonBuffer.clear()
+                    state = if (byte.toChar().isDigit()) {
+                        automatonBuffer.add(byte)
+                        5
+                    } else if (byte.toChar() == START_CHAR) {
+                        2
+                    } else {
+                        1
+                    }
+                }
+
+                5 -> {
+                    state = when {
+                        byte.toChar().isDigit() -> {
+                            automatonBuffer.add(byte)
+                            5
+                        }
+
+                        byte.toChar() == SEPARATOR -> {
+                            autoType = String(automatonBuffer.toByteArray()).toInt()
+                            6
+                        }
+
+                        byte.toChar() == START_CHAR -> 2
+
+                        else -> {
+                            1
+                        }
+                    }
+                }
+
+                6 -> {
+                    automatonBuffer.clear()
+                    state = if (byte.toChar().isDigit()) {
+                        automatonBuffer.add(byte)
+                        7
+                    } else if (byte.toChar() == START_CHAR) {
+                        2
+                    } else {
+                        1
+                    }
+                }
+
+                7 -> {
+                    state = when {
+                        byte.toChar().isDigit() -> {
+                            automatonBuffer.add(byte)
+                            7
+                        }
+
+                        byte.toChar() == SEPARATOR -> {
+                            autoMessageId = String(automatonBuffer.toByteArray()).toInt()
+                            automatonContentBuffer.clear()
+                            8
+                        }
+
+                        byte.toChar() == START_CHAR -> 2
+
+                        else -> {
+                            1
+                        }
+                    }
+                }
+
+                8 -> {
+                    state = if (!automatonContentBuffer.isNextByteEscaped() && byte.toChar() == START_CHAR) {
+                        2
+                    } else {
+                        automatonContentBuffer.add(byte)
+                        if (automatonContentBuffer.size == autoLength) {
+                            messageReader.read(Message(autoLength, autoType, String(automatonContentBuffer.toByteArray()), autoMessageId))
+                            1
+                        } else {
+                            8
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -99,4 +217,19 @@ fun String.indexOfNth(char: Char, n: Int): Int {
             return -1
         }
     }
+}
+
+
+fun <Byte> MutableList<Byte>.isNextByteEscaped(): Boolean {
+    var index = 0
+    var escCount = 0
+    while (this.size > 0 && this.size > index) {
+        if ((this[this.size - index - 1] as kotlin.Byte).toChar() == '\\') {
+            escCount++
+        } else {
+            break
+        }
+        index++
+    }
+    return escCount % 2 == 1
 }
