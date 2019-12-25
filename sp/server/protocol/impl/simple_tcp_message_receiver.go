@@ -5,6 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
+	"unicode"
 	"ups/sp/server/protocol/def"
 )
 
@@ -21,19 +22,20 @@ type SimpleTcpMessageReceiver struct {
 }
 
 type SimpleTcpMessageBuffer struct {
-	ClientUID   int
-	Length      int
-	MessageType int
-	buffer      []byte
-	MessageId   int
+	State         int
+	ClientUID     int
+	Length        int
+	MessageType   int
+	headerBuffer  []byte
+	contentBuffer []byte
+	MessageId     int
 }
 
 type SimpleMessage struct {
 	clientID    int
-	messageType int
 	content     string
 	id          int
-	msgType     int
+	messageType int
 }
 
 func (s SimpleMessage) ID() int {
@@ -41,7 +43,7 @@ func (s SimpleMessage) ID() int {
 }
 
 func (s SimpleMessage) Type() int {
-	return s.msgType
+	return s.messageType
 }
 
 func (s SimpleMessage) ClientID() int {
@@ -56,44 +58,7 @@ func (s SimpleMessage) Content() string {
 
 func (s *SimpleTcpMessageReceiver) Receive(UID int, bytes []byte, length int) {
 
-	// remove trailing empty bytes
-	message := string(bytes[:length])
-
-	// if, after the removal of the line break, the message is empty, return
-	if len(message) < 1 {
-		return
-	}
-
-	var messages [][]byte
-	var prevByte byte
-	lastGroupStart := 0
-
-	for pos, mByte := range bytes {
-		if mByte == StartChar && prevByte != '\\' && lastGroupStart != pos {
-			messages = append(messages, bytes[lastGroupStart:pos])
-			lastGroupStart = pos
-		}
-		prevByte = mByte
-	}
-
-	if lastGroupStart != len(bytes) {
-		messages = append(messages, bytes[lastGroupStart:length])
-	}
-
-	for _, mess := range messages {
-		log.Infof("Into receiving messages '%s'", mess)
-		s.ReceiveMessage(UID, mess)
-	}
-}
-
-func (s *SimpleTcpMessageReceiver) ReceiveMessage(UID int, bytes []byte) {
-
-	// if, after the removal of the line break, the message is empty, return
-	if len(bytes) < 1 {
-		return
-	}
-
-	// check whether buffer map was created
+	// check whether headerBuffer map was created
 	if s.buffers == nil {
 		log.Debugln("Buffer map not created yet, creating new...")
 		s.buffers = make(map[int]*SimpleTcpMessageBuffer)
@@ -102,62 +67,126 @@ func (s *SimpleTcpMessageReceiver) ReceiveMessage(UID int, bytes []byte) {
 	_, exists := s.buffers[UID]
 
 	if !exists {
-		// no buffer was yet created for the given UID, so create a new one
+		// no headerBuffer was yet created for the given UID, so create a new one
 		s.buffers[UID] = &SimpleTcpMessageBuffer{
 			ClientUID: UID,
+			State:     1,
 		}
 	}
 	message := string(bytes)
 	buffer := s.buffers[UID]
 	log.Debugf("Received message content is '%s'\n", message)
 
-	if message[0] == StartChar && (len(s.buffers[UID].buffer) <= 0 || (len(buffer.buffer) > 0 && buffer.buffer[len(buffer.buffer)-1] != '\\')) {
-		// if buffer length is equal or less than 0, a new message is received, empty the buffer
-		parts := strings.Split(message[1:], Separator)
-		if len(parts) < 4 {
-			log.Errorf("Invalid message header. Received message was `%s`, len was `%d`", message, len(parts))
+	for index, b := range bytes {
+
+		char := rune(b)
+
+		if index >= length {
 			return
 		}
+		currentChar := string(b)
 
-		// parse message type and content length
-		length, err := strconv.Atoi(parts[0])
-		messageType, err2 := strconv.Atoi(parts[1])
-		messageId, err3 := strconv.Atoi(parts[2])
+		_ = currentChar
 
-		if err == nil && err2 == nil && err3 == nil {
-			// set buffer properties and append the message
-			buffer.Length = length
-			buffer.MessageType = messageType
-			buffer.MessageId = messageId
-			index := IndexOfNth(message, Separator, 3) + 1
-			buffer.buffer = bytes[index:]
-			s.checkBufferReady(buffer)
+		switch buffer.State {
+		case 1:
+			if char == StartChar {
+				buffer.State = 2
+			}
+		case 2:
+			buffer.headerBuffer = []byte{}
+			if unicode.IsDigit(char) {
+				buffer.headerBuffer = append(buffer.headerBuffer, b)
+				buffer.State = 3
+			} else if char == StartChar {
+				buffer.State = 2
+			} else {
+				buffer.State = 1
+			}
+		case 3:
+			if unicode.IsDigit(char) {
+				buffer.headerBuffer = append(buffer.headerBuffer, b)
+				buffer.State = 3
+			} else if string(b) == Separator {
+				length, _ := strconv.Atoi(string(buffer.headerBuffer))
+				buffer.Length = length
+				buffer.State = 4
+			} else if char == StartChar {
+				buffer.State = 2
+			} else {
+				buffer.State = 1
+			}
+		case 4:
+			buffer.headerBuffer = []byte{}
+			if unicode.IsDigit(char) {
+				buffer.headerBuffer = append(buffer.headerBuffer, b)
+				buffer.State = 5
+			} else if char == StartChar {
+				buffer.State = 2
+			} else {
+				buffer.State = 1
+			}
+		case 5:
+			if unicode.IsDigit(char) {
+				buffer.headerBuffer = append(buffer.headerBuffer, b)
+				buffer.State = 5
+			} else if string(b) == Separator {
+				messageType, _ := strconv.Atoi(string(buffer.headerBuffer))
+				buffer.MessageType = messageType
+				buffer.State = 6
+			} else if char == StartChar {
+				buffer.State = 2
+			} else {
+				buffer.State = 1
+			}
+		case 6:
+			buffer.headerBuffer = []byte{}
+			if unicode.IsDigit(char) {
+				buffer.headerBuffer = append(buffer.headerBuffer, b)
+				buffer.State = 7
+			} else if char == StartChar {
+				buffer.State = 2
+			} else {
+				buffer.State = 1
+			}
+		case 7:
+			if unicode.IsDigit(char) {
+				buffer.headerBuffer = append(buffer.headerBuffer, b)
+				buffer.State = 7
+			} else if string(b) == Separator {
+				messageId, _ := strconv.Atoi(string(buffer.headerBuffer))
+				buffer.MessageId = messageId
+				buffer.contentBuffer = []byte{}
+				buffer.State = 8
+			} else if char == StartChar {
+				buffer.State = 2
+			} else {
+				buffer.State = 1
+			}
+		case 8:
+			if !IsNextByteEscaped(buffer.contentBuffer) && char == StartChar {
+				buffer.State = 2
+			} else {
+				buffer.contentBuffer = append(buffer.contentBuffer, b)
+				if len(buffer.contentBuffer) == buffer.Length {
+					s.clearBuffer(buffer)
+				} else {
+					buffer.State = 8
+				}
+			}
 		}
-	} else {
-		//buffer.buffer += message
-		buffer.buffer = append(buffer.buffer, bytes[0:]...)
-		s.checkBufferReady(buffer)
-	}
-}
-
-func (s *SimpleTcpMessageReceiver) checkBufferReady(buffer *SimpleTcpMessageBuffer) {
-	//strlen := utf8.RuneCountInString(buffer.buffer)
-	//if len(buffer.buffer) == buffer.Length {
-	if len(buffer.buffer) == buffer.Length {
-		s.clearBuffer(buffer)
 	}
 }
 
 func (s *SimpleTcpMessageReceiver) clearBuffer(buffer *SimpleTcpMessageBuffer) {
 	var response def.Response
-	log.Infof("[#%d] %d - '%s'", buffer.ClientUID, buffer.MessageType, buffer.buffer)
+	log.Infof("[#%d] %d - '%s'", buffer.ClientUID, buffer.MessageType, buffer.contentBuffer)
 	if s.messageReader != nil {
 		response = s.messageReader.Read(SimpleMessage{
 			clientID:    buffer.ClientUID,
 			messageType: buffer.MessageType,
-			content:     strings.Replace(string(buffer.buffer), "\\", "", -1),
+			content:     strings.Replace(string(buffer.contentBuffer), "\\", "", -1),
 			id:          buffer.MessageId,
-			msgType:     buffer.MessageType,
 		})
 	} else {
 		response = ErrorResponseID("Cannot send message to JSON parser because it's null", NoMessageReader, buffer.MessageId)
@@ -170,7 +199,21 @@ func (s *SimpleTcpMessageReceiver) clearBuffer(buffer *SimpleTcpMessageBuffer) {
 		log.Debugf("Not responding to message of ID %d and Type %d", buffer.MessageId, buffer.MessageType)
 	}
 
-	buffer.reset()
+	buffer.State = 1
+}
+
+func IsNextByteEscaped(bytes []byte) bool {
+	index := 0
+	escCount := 0
+	for len(bytes) > 0 && len(bytes) > index {
+		if bytes[len(bytes)-index-1] == '\\' {
+			escCount++
+		} else {
+			break
+		}
+		index++
+	}
+	return escCount%2 == 1
 }
 
 func (receiver *SimpleTcpMessageReceiver) SetMessageReader(reader def.MessageReader) {
@@ -199,13 +242,6 @@ func (s *SimpleTcpMessageReceiver) Send(response def.Response, clientUID int, ms
 	} else {
 		log.Errorln("Cannot send response because output is null")
 	}
-}
-
-func (buffer *SimpleTcpMessageBuffer) reset() {
-	buffer.buffer = []byte{}
-	buffer.Length = 0
-	buffer.MessageType = 0
-	buffer.MessageId = 0
 }
 
 func IndexOfNth(str string, tbf string, n int) int {
