@@ -43,7 +43,6 @@ class GameScreenController : Controller() {
 
     fun init(gameView: GameView) {
         this.gameView = gameView
-        players.forEach { playerPointsMap[it.id] = 0 }
     }
 
     fun onDock() {
@@ -70,6 +69,8 @@ class GameScreenController : Controller() {
     fun onYourNewRoundResponse(response: YourNewRoundResponse) {
         wordsAccepted = false
         roundFinished = false
+        currentRoundPlayerPoints = 0
+
         activePlayerID = Network.User.id
         playerIdsWhoAcceptedWords.clear()
         fire(PlayerStateChangedEvent())
@@ -82,6 +83,7 @@ class GameScreenController : Controller() {
     }
 
     fun onNewRoundResponse(response: NewRoundResponse) {
+        currentRoundPlayerPoints = 0
         wordsAccepted = false
         roundFinished = false
         activePlayerID = response.activePlayerId
@@ -198,12 +200,14 @@ class GameScreenController : Controller() {
     }
 
     init {
+        players.forEach { playerPointsMap[it.id] = 0 }
 
 
         subscribe<GameStartedEvent> {
             fire(NewLetterSackEvent(it.message.letters))
             activePlayerID = it.message.activePlayerId
             players = it.message.players
+            players.forEach { playerPointsMap[it.id] = 0 }
             fire(PlayerStateChangedEvent())
         }
 
