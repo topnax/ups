@@ -134,9 +134,7 @@ func (desk *Desk) GetWordAt(wordMeta WordMeta) Word {
 			totalPoints += tile.getTilePoints()
 			wordMultiplicand = utils.Max(wordMultiplicand, tile.getWordMultiplicand())
 		}
-	}
-
-	if wordMeta.ColumnStart == wordMeta.ColumnEnd {
+	} else if wordMeta.ColumnStart == wordMeta.ColumnEnd {
 		for row := wordMeta.RowStart; row < wordMeta.RowEnd+1; row++ {
 			tile := desk.Tiles[row][wordMeta.ColumnStart]
 			content = append(content, tile.Letter.Value)
@@ -156,11 +154,6 @@ func (desk *Desk) GetWordAt(wordMeta WordMeta) Word {
 }
 
 func (desk *Desk) GetWordsAt(row int, column int) []WordMeta {
-
-	if desk.isWithinBounds(row, column) && desk.Tiles[row][column].Set {
-		desk.CurrentLetters.Add(desk.Tiles[row][column])
-		desk.Tiles[row][column].Highlighted = true
-	}
 
 	// directions
 	a := [][]int{
@@ -221,6 +214,19 @@ func (desk *Desk) GetWordsAt(row int, column int) []WordMeta {
 			RowEnd:      maxrow,
 			ColumnEnd:   column,
 		})
+	}
+
+	if desk.isWithinBounds(row, column) && desk.Tiles[row][column].Set {
+		desk.CurrentLetters.Add(desk.Tiles[row][column])
+		desk.Tiles[row][column].Highlighted = true
+		if mincol == maxcol && minrow == maxrow {
+			words = append(words, WordMeta{
+				RowStart:    row,
+				ColumnStart: column,
+				RowEnd:      row,
+				ColumnEnd:   column,
+			})
+		}
 	}
 
 	return words

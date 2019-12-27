@@ -232,9 +232,9 @@ func (s *SimpleTcpMessageReceiver) Send(response def.Response, clientUID int, ms
 
 	log.Debugf("About to send response of type %d to %d: '%s'", response.Type(), clientUID, response.Content())
 	rawsponse := strings.Replace(response.Content(), Separator, "\\"+Separator, -1)
-	log.Debugf("First escapation '%s'", rawsponse)
+	//log.Debugf("First escapation '%s'", rawsponse)
 	rawsponse = strings.Replace(rawsponse, string(StartChar), "\\"+string(StartChar), -1)
-	log.Debugf("Second escapation '%s'", rawsponse)
+	//log.Debugf("Second escapation '%s'", rawsponse)
 
 	if s.responseSender != nil {
 		bytes := []byte(rawsponse)
