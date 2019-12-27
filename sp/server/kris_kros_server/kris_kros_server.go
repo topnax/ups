@@ -245,11 +245,24 @@ func (k *KrisKrosServer) OnStartLobby(userID int) def.Response {
 		resp := responses.LobbyStartedResponse{}
 		out := impl.MessageResponse(resp, resp.Type())
 		for _, player := range lobby.Players {
+			delete(k.lobbiesByPlayerID, player.ID)
 			if player.ID != lobby.Owner.ID {
 				k.Send(out, player.ID, 0)
 				k.Router.UserStates[player.ID] = GameStartedState{}
 			}
 		}
+
+		delete(k.lobbiesByOwnerID, lobby.Owner.ID)
+		delete(k.lobbies, lobby.ID)
+
+		lobbies := []model.Lobby{}
+
+		for _, lobby := range k.lobbies {
+			lobbies = append(lobbies, *lobby)
+		}
+
+		k.SendToPlayersOfState(impl.StructMessageResponse(responses.GetLobbiesResponse{Lobbies: lobbies}), AUTHORIZED_STATE_ID, 0, -1)
+
 		k.gameServer.CreateGame(lobby.Players)
 
 		return out

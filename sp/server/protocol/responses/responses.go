@@ -8,22 +8,24 @@ import (
 const (
 	ValidResponseCeiling = 400
 
-	getLobbiesResponse          = 101
-	playerJoinedResponse        = 102
-	lobbyUpdatedResponse        = 103
-	playerLeftLobbyResponse     = 104
-	lobbyDestroyedResponse      = 105
-	lobbyJoinedResponse         = 106
-	userAuthenticatedResponse   = 107
-	lobbyStartedResponse        = 108
-	gameStartedResponse         = 109
-	tileUpdatedResponse         = 110
-	tilesUpdatedResponse        = 111
-	roundFinishedResponse       = 112
-	playerAcceptedRoundResponse = 113
-	newRoundResponse            = 114
-	yourNewRoundResponse        = 115
-	playerDeclinedWordsResponse = 116
+	getLobbiesResponse               = 101
+	playerJoinedResponse             = 102
+	lobbyUpdatedResponse             = 103
+	playerLeftLobbyResponse          = 104
+	lobbyDestroyedResponse           = 105
+	lobbyJoinedResponse              = 106
+	userAuthenticatedResponse        = 107
+	lobbyStartedResponse             = 108
+	gameStartedResponse              = 109
+	tileUpdatedResponse              = 110
+	tilesUpdatedResponse             = 111
+	roundFinishedResponse            = 112
+	playerAcceptedRoundResponse      = 113
+	newRoundResponse                 = 114
+	yourNewRoundResponse             = 115
+	playerDeclinedWordsResponse      = 116
+	gameEndedResponse                = 117
+	acceptResultedInNewRoundResponse = 118
 )
 
 type TypedResponse interface {
@@ -196,4 +198,22 @@ type PlayerDeclinedWordsResponse struct {
 
 func (g PlayerDeclinedWordsResponse) Type() int {
 	return playerDeclinedWordsResponse
+}
+
+//////////////////////////////////////
+
+type GameEndedResponse struct {
+	PlayerPoints map[int]game.Player `json:"player_points"`
+}
+
+func (g GameEndedResponse) Type() int {
+	return gameEndedResponse
+}
+
+//////////////////////////////////////
+
+type AcceptResultedInNewRound struct{}
+
+func (g AcceptResultedInNewRound) Type() int {
+	return acceptResultedInNewRoundResponse
 }

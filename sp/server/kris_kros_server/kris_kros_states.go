@@ -5,18 +5,18 @@ import (
 )
 
 const (
-	INITIAL_STATE_ID         = 1
-	AUTHORIZED_STATE_ID      = 2
-	LOBBY_JOINED_ID          = 3
-	LOBBY_JOINED_READY_ID    = 4
-	LOBBY_CREATED_ID         = 5
-	LOBBY_CREATED_READY_ID   = 6
-	GAME_STARTED_STATE_ID    = 7
-	PLAYERS_TURN_STATE_ID    = 8
-	PLAYER_WAITING_ID        = 9
-	PLAYER_FINISHED_ROUND_ID = 10
-	APPROVE_WORDS_STATE_ID   = 11
-	APPROVED_WORDS_STATE_ID  = 12
+	INITIAL_STATE_ID                = 1
+	AUTHORIZED_STATE_ID             = 2
+	LOBBY_JOINED_ID                 = 3
+	LOBBY_JOINED_READY_ID           = 4
+	LOBBY_CREATED_ID                = 5
+	LOBBY_CREATED_READY_ID          = 6
+	GAME_STARTED_STATE_ID           = 7
+	PLAYERS_TURN_STATE_ID           = 8
+	PLAYER_WAITING_ID               = 9
+	PLAYER_FINISHED_ROUND_ID        = 10
+	APPROVE_WORDS_STATE_ID          = 11
+	WORDS_VALIDITY_DECIDED_STATE_ID = 12
 )
 
 type State interface {
@@ -37,7 +37,7 @@ func (router *KrisKrosRouter) registerStates() {
 	router.registerState(PlayerWaitingState{})
 	router.registerState(PlayerFinishedRoundState{})
 	router.registerState(ApproveWordsState{})
-	router.registerState(ApprovedWordsState{})
+	router.registerState(WordsValidityDecidedState{})
 }
 
 type InitialState struct{}
@@ -196,20 +196,20 @@ func (a ApproveWordsState) Id() int {
 
 func (a ApproveWordsState) Routes() map[int]int {
 	m := make(map[int]int)
-	m[messages.ApproveWordsMessageType] = PlayersTurnState{}.Id()
-	m[messages.DeclineWordsMessageType] = PlayerWaitingState{}.Id()
+	m[messages.ApproveWordsMessageType] = WordsValidityDecidedState{}.Id()
+	m[messages.DeclineWordsMessageType] = WordsValidityDecidedState{}.Id()
 	return m
 }
 
 ////////////////////////////////////////////
 
-type ApprovedWordsState struct{}
+type WordsValidityDecidedState struct{}
 
-func (a ApprovedWordsState) Id() int {
-	return APPROVED_WORDS_STATE_ID
+func (a WordsValidityDecidedState) Id() int {
+	return WORDS_VALIDITY_DECIDED_STATE_ID
 }
 
-func (a ApprovedWordsState) Routes() map[int]int {
+func (a WordsValidityDecidedState) Routes() map[int]int {
 	m := make(map[int]int)
 	return m
 }

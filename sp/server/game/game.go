@@ -126,7 +126,7 @@ func (game *Game) Print() {
 
 func (game *Game) Next() {
 
-	game.PointsTable[game.CurrentPlayerIndex] += game.Desk.GetTotalPoints()
+	game.PointsTable[game.CurrentPlayer.ID] += game.Desk.GetTotalPoints()
 
 	if game.CurrentPlayerIndex < 0 || game.CurrentPlayerIndex == len(game.Players)-1 {
 		game.CurrentPlayerIndex = 0

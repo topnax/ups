@@ -170,12 +170,36 @@ func (server *GameServer) OnFinishRound(userId int) def.Response {
 
 	if len(g.Desk.PlacedLetter.List) <= 0 {
 		g.EmptyRounds++
-	}
+		if g.EmptyRounds == len(g.Players) {
+			pointsToPlayerMap := make(map[int]game.Player)
 
-	for _, player := range g.Players {
-		if player.ID != userId {
-			server.server.Router.UserStates[player.ID] = ApproveWordsState{}
-			server.server.Send(impl.StructMessageResponse(responses.RoundFinishedResponse{}), player.ID, 0)
+			for _, player := range g.Players {
+				pointsToPlayerMap[g.PointsTable[player.ID]] = player
+			}
+
+			resp := impl.StructMessageResponse(responses.GameEndedResponse{PlayerPoints: pointsToPlayerMap})
+			server.server.Router.IgnoreTransitionStateChange = true
+
+			for _, player := range g.Players {
+				delete(server.gamesByPlayerID, player.ID)
+				server.server.Router.UserStates[player.ID] = AuthorizedState{}
+				if player.ID != userId {
+					server.server.Send(resp, player.ID, 0)
+				}
+			}
+
+			return resp
+		} else {
+			server.NextRound(g)
+			return impl.StructMessageResponse(responses.NewRoundResponse{ActivePlayerID: g.CurrentPlayer.ID})
+		}
+	} else {
+		g.EmptyRounds = 0
+		for _, player := range g.Players {
+			if player.ID != userId {
+				server.server.Router.UserStates[player.ID] = ApproveWordsState{}
+				server.server.Send(impl.StructMessageResponse(responses.RoundFinishedResponse{}), player.ID, 0)
+			}
 		}
 	}
 
@@ -206,18 +230,27 @@ func (server *GameServer) OnApproveWords(userId int) def.Response {
 				}
 			}
 		} else {
-			g.Next()
-			server.server.Send(impl.StructMessageResponse(responses.YourNewRoundResponse{Letters: g.PlayerIdToPlayerBag[g.CurrentPlayer.ID]}), g.CurrentPlayer.ID, 0)
-			for _, player := range g.Players {
-				if player.ID != g.CurrentPlayer.ID {
-					server.server.Send(impl.StructMessageResponse(responses.NewRoundResponse{ActivePlayerID: g.CurrentPlayer.ID}), player.ID, 0)
-				}
-			}
+			server.NextRound(g)
+			return impl.StructMessageResponse(responses.AcceptResultedInNewRound{})
 		}
 
 		return impl.SuccessResponse("Successfully accepted words...")
 	}
 	return impl.ErrorResponse(fmt.Sprintf("Could not find a player of ID %d", userId), impl.PlayerNotFound)
+}
+
+func (server *GameServer) NextRound(g *game.Game) {
+	g.Next()
+	server.server.Send(impl.StructMessageResponse(responses.YourNewRoundResponse{Letters: g.PlayerIdToPlayerBag[g.CurrentPlayer.ID]}), g.CurrentPlayer.ID, 0)
+	server.server.Router.IgnoreTransitionStateChange = true
+	for _, player := range g.Players {
+		if player.ID != g.CurrentPlayer.ID {
+			server.server.Send(impl.StructMessageResponse(responses.NewRoundResponse{ActivePlayerID: g.CurrentPlayer.ID}), player.ID, 0)
+			server.server.Router.UserStates[player.ID] = PlayerWaitingState{}
+		} else {
+			server.server.Router.UserStates[player.ID] = PlayersTurnState{}
+		}
+	}
 }
 
 func (server *GameServer) OnDeclineWords(userId int) def.Response {
