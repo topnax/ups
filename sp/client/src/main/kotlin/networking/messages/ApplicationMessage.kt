@@ -45,6 +45,8 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
         const val NEW_ROUND_MESSAGE_TYPE = 114
         const val YOUR_NEW_ROUND_MESSAGE_TYPE = 115
         const val PLAYER_DECLINED_WORDS_MESSAGE_TYPE = 116
+        const val GAME_ENDED_MESSAGE_TYPE = 117
+        const val ACCEPT_RESULTED_IN_NEW_ROUND_TYPE = 118
 
         const val ERROR_RESPONSE_TYPE = 401
         const val SUCCESS_RESPONSE_TYPE = 701
@@ -82,12 +84,13 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
                         NEW_ROUND_MESSAGE_TYPE -> fromJson<NewRoundResponse>(json)
                         YOUR_NEW_ROUND_MESSAGE_TYPE -> fromJson<YourNewRoundResponse>(json)
                         PLAYER_DECLINED_WORDS_MESSAGE_TYPE -> fromJson<PlayerDeclinedWordsResponse>(json)
+                        GAME_ENDED_MESSAGE_TYPE -> fromJson<GameEndedResponse>(json)
+                        ACCEPT_RESULTED_IN_NEW_ROUND_TYPE -> fromJson<AcceptResultedInNewRound>(json)
                         else -> null
                     }
                 }
             } catch (ex: KlaxonException) {
-                logger.error { "Failed to parse message of type $type from '$json', because ${ex.message}" }
-                logger.error { "Fbecause ${ex.message}" }
+                logger.error { "Failed to parse message of type $type from '$json', because '${ex.message}'" }
                 null
             }
         }
@@ -165,3 +168,7 @@ class NewRoundResponse(val activePlayerId: Int) : ApplicationMessage(NEW_ROUND_M
 class YourNewRoundResponse(val letters: List<Letter>) : ApplicationMessage(YOUR_NEW_ROUND_MESSAGE_TYPE)
 
 class PlayerDeclinedWordsResponse(val playerId: Int, val playerName: String) : ApplicationMessage(PLAYER_DECLINED_WORDS_MESSAGE_TYPE)
+
+class GameEndedResponse(val playerPoints: Map<String, Player>) : ApplicationMessage(GAME_ENDED_MESSAGE_TYPE)
+
+class AcceptResultedInNewRound() : EmptyMessage(ACCEPT_RESULTED_IN_NEW_ROUND_TYPE)

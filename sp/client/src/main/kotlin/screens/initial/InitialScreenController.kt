@@ -1,4 +1,4 @@
-package screens.initialscreen
+package screens.initial
 
 import javafx.application.Platform
 import javafx.scene.control.*
@@ -6,8 +6,7 @@ import mu.KotlinLogging
 import networking.ConnectionStatusListener
 import networking.Network
 import networking.messages.*
-import MainMenuView
-
+import screens.mainmenu.MainMenuView
 import tornadofx.*
 
 val logger = KotlinLogging.logger { }
