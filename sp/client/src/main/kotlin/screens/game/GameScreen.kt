@@ -28,6 +28,8 @@ class GameView : View() {
 
     lateinit var acceptWordsButton: Button
 
+    val affectedTileCoordinates = mutableSetOf<Pair<Int, Int>>()
+
     init {
         controller.init(this)
     }
@@ -146,16 +148,30 @@ class GameView : View() {
             this.add(tv)
         }
         tileViews[tile.column]!![tile.row] = tv
+        logger.info { "Refreshing at c${tile.column}#r${tile.row} " }
+        affectedTileCoordinates.add(Pair(tile.column, tile.row))
     }
 
     override fun onDock() {
         super.onDock()
+        resetDesk()
         controller.onDock()
     }
 
     override fun onUndock() {
         super.onUndock()
         controller.onUndock()
+    }
+
+    private fun resetDesk() {
+        logger.info { "About to reset ${affectedTileCoordinates.size} tiles" }
+        affectedTileCoordinates.forEach {
+            logger.info { "Reseting at c${it.first}#r${it.second}" }
+            controller.desk.tiles[it.second][it.first].letter = null
+            controller.desk.tiles[it.second][it.first].set = false
+            fire(DeskChange(controller.desk.tiles[it.second][it.first]))
+        }
+        affectedTileCoordinates.clear()
     }
 }
 
@@ -203,18 +219,18 @@ class TileView(val tile: Tile) : View() {
                 alignment = Pos.BOTTOM_RIGHT
                 label(it.value.toUpperCase()) {
                     textFill = Color.WHITE
-                    setOnMouseClicked {
-                        fire(TileWithLetterClicked(tile))
-                    }
+//                    setOnMouseClicked {
+//                        fire(TileWithLetterClicked(tile))
+//                    }
                 }
                 label(it.points.toString()) {
                     textFill = Color.WHITE
                     style {
                         fontSize = 10.px
                     }
-                    setOnMouseClicked {
-                        fire(TileWithLetterClicked(tile))
-                    }
+//                    setOnMouseClicked {
+//                        fire(TileWithLetterClicked(tile))
+//                    }
                 }
                 style {
                     backgroundColor += if (tile.highlighted) Color.ORANGE else Color.GREEN

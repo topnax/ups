@@ -1,6 +1,5 @@
-package screens
+package screens.lobby
 
-import MainMenuView
 import javafx.application.Platform
 import javafx.geometry.Pos
 import javafx.scene.control.Alert
@@ -12,8 +11,7 @@ import networking.Network
 import networking.messages.*
 import screens.game.GameStartedEvent
 import screens.game.GameView
-import screens.game.NewLetterSackEvent
-import screens.game.PlayerStateChangedEvent
+import screens.mainmenu.MainMenuView
 import tornadofx.*
 import java.util.*
 import kotlin.concurrent.schedule

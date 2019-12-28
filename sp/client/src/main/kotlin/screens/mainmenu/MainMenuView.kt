@@ -1,4 +1,5 @@
-import controller.MainMenuController
+package screens.mainmenu
+
 import javafx.application.Platform
 import javafx.scene.control.Button
 import javafx.scene.control.Label

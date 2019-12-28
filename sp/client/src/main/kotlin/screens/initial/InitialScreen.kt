@@ -1,4 +1,4 @@
-package screens.initialscreen
+package screens.initial
 
 import javafx.beans.property.SimpleIntegerProperty
 import javafx.beans.property.SimpleStringProperty

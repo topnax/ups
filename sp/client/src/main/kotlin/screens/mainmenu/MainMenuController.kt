@@ -1,6 +1,6 @@
-package controller
+package screens.mainmenu
 
-import MainMenuView
+
 import javafx.application.Platform
 import javafx.collections.ObservableList
 import model.lobby.Lobby
@@ -9,9 +9,9 @@ import mu.KotlinLogging
 import networking.ConnectionStatusListener
 import networking.Network
 import networking.messages.*
+import screens.lobby.LobbyView
 import tornadofx.Controller
 import tornadofx.observableList
-import screens.LobbyView
 
 private val logger = KotlinLogging.logger { }
 

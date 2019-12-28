@@ -9,6 +9,7 @@ import model.lobby.Player
 import mu.KotlinLogging
 import networking.Network
 import networking.messages.*
+import screens.mainmenu.MainMenuView
 import tornadofx.*
 
 private val logger = KotlinLogging.logger { }
@@ -54,6 +55,19 @@ class GameScreenController : Controller() {
         Network.getInstance().addMessageListener(::onNewRoundResponse)
         Network.getInstance().addMessageListener(::onYourNewRoundResponse)
         Network.getInstance().addMessageListener(::onPlayerDeclinedWordsResponse)
+        Network.getInstance().addMessageListener(::onGameEndedResponse)
+        reset()
+    }
+
+    private fun reset() {
+        previouslyUpdatedTiles.clear()
+        selectedTile = null
+        placedLetters.clear()
+        currentRoundPlayerPoints = 0
+        roundFinished = false
+        wordsAccepted = false
+        playerIdsWhoAcceptedWords.clear()
+        playerPointsMap.clear()
     }
 
     fun onUndock() {
@@ -62,8 +76,21 @@ class GameScreenController : Controller() {
         Network.getInstance().removeMessageListener(::onNewRound)
         Network.getInstance().removeMessageListener(::onRoundFinished)
         Network.getInstance().removeMessageListener(::onPlayerAcceptedRound)
+        Network.getInstance().removeMessageListener(::onNewRoundResponse)
         Network.getInstance().removeMessageListener(::onYourNewRoundResponse)
         Network.getInstance().removeMessageListener(::onPlayerDeclinedWordsResponse)
+        Network.getInstance().removeMessageListener(::onGameEndedResponse)
+    }
+
+    fun onGameEndedResponse(response: GameEndedResponse) {
+        val maxPoints = response.playerPoints.map { it.key.toInt() }.max()
+        val text = response.playerPoints.map {
+            "${it.value.name} - ${it.key} pts " + if (it.key.toInt() == maxPoints) "(WINNER)" else ""
+        }.joinToString(separator = "\n")
+        Platform.runLater {
+            alert(Alert.AlertType.INFORMATION, "Game has ended", text)
+            gameView.replaceWith<MainMenuView>()
+        }
     }
 
     fun onYourNewRoundResponse(response: YourNewRoundResponse) {
@@ -86,6 +113,7 @@ class GameScreenController : Controller() {
         currentRoundPlayerPoints = 0
         wordsAccepted = false
         roundFinished = false
+        playerIdsWhoAcceptedWords.clear()
         activePlayerID = response.activePlayerId
         fire(PlayerStateChangedEvent())
     }
@@ -164,9 +192,11 @@ class GameScreenController : Controller() {
     fun onFinishRoundButtonClicked() {
         if (activePlayerID == Network.User.id) {
             Network.getInstance().send(FinishRoundMessage(), {
-                roundFinished = true
-                Platform.runLater {
-                    gameView.finishButton.visibleProperty().set(false)
+                if (it !is NewRoundResponse) {
+                    roundFinished = true
+                    Platform.runLater {
+                        gameView.finishButton.visibleProperty().set(false)
+                    }
                 }
             })
         }
@@ -179,9 +209,11 @@ class GameScreenController : Controller() {
             if (roundFinished) {
                 logger.debug { "Round finished, sending approval..." }
                 Network.getInstance().send(ApproveWordsMessage(), {
-                    wordsAccepted = true
-                    playerIdsWhoAcceptedWords.add(Network.User.id)
-                    fire(PlayerStateChangedEvent())
+                    if (it !is AcceptResultedInNewRound) {
+                        wordsAccepted = true
+                        playerIdsWhoAcceptedWords.add(Network.User.id)
+                        fire(PlayerStateChangedEvent())
+                    }
                 })
             }
         }
@@ -201,7 +233,6 @@ class GameScreenController : Controller() {
 
     init {
         players.forEach { playerPointsMap[it.id] = 0 }
-
 
         subscribe<GameStartedEvent> {
             fire(NewLetterSackEvent(it.message.letters))
@@ -266,10 +297,12 @@ class GameScreenController : Controller() {
                 if (placedLetters.contains(event.tile.letter)) {
                     Network.getInstance().send(LetterRemovedMessage(event.tile.column, event.tile.row), {
                         run {
-                            placedLetters.remove(event.tile.letter)
-                            letters.add(event.tile.letter!!)
-                            desk.tiles[event.tile.row][event.tile.column].letter = null
-                            fire(NewLetterSackEvent(letters))
+                            if (it is SuccessResponseMessage) {
+                                placedLetters.remove(event.tile.letter)
+                                letters.add(event.tile.letter!!)
+                                desk.tiles[event.tile.row][event.tile.column].letter = null
+                                fire(NewLetterSackEvent(letters))
+                            }
                         }
                     })
                 }
