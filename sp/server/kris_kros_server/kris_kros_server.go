@@ -171,10 +171,6 @@ func (k *KrisKrosServer) OnGetLobbies(message messages.GetLobbiesMessage, user m
 }
 
 func (k *KrisKrosServer) ClientDisconnected(socket int) {
-	userID, exists := k.Router.SocketToUserID[socket]
-	if exists {
-		k.removeClientFromLobby(userID)
-	}
 	k.OnClientDisconnected(socket)
 }
 
@@ -336,12 +332,23 @@ func (k *KrisKrosServer) OnClientDisconnected(clientUID int) {
 	userID, exists := k.Router.SocketToUserID[clientUID]
 	log.Debugf("User of Socket ID %d has disconnected\n", clientUID)
 	if exists {
-		//user, exists := k.usersById[userID]
-		//if exists {
-		//	delete(k.usersById, userID)
-		//	delete(k.usersByName, user.Name)
-		//	log.Infof("Deleting a player of name %s", user.Name)
-		//}
+		user, exists := k.usersById[userID]
+		if exists {
+			state, exists := k.Router.UserStates[user.ID]
+			if exists {
+				if state.Id() >= LOBBY_JOINED_ID || state.Id() <= LOBBY_CREATED_READY_ID {
+					k.removeClientFromLobby(user.ID)
+					delete(k.usersById, userID)
+					delete(k.usersByName, user.Name)
+					delete(k.Router.UserStates, user.ID)
+					log.Infof("Deleting a player of name %s", user.Name)
+				} else if state.Id() >= GAME_STARTED_STATE_ID && state.Id() <= WORDS_VALIDITY_DECIDED_STATE_ID {
+					k.gameServer.PlayerDisconnected(userID, state.Id())
+				} else {
+					// TODO
+				}
+			}
+		}
 		log.Infof("Deleting a socket %d and %d from UserIDToSocket map", clientUID, userID)
 		delete(k.Router.SocketToUserID, clientUID)
 		delete(k.Router.UserIDToSocket, userID)

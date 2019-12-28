@@ -289,3 +289,17 @@ func (server *GameServer) OnDeclineWords(userId int) def.Response {
 	}
 	return impl.ErrorResponse(fmt.Sprintf("Could not find a player of ID %d", userId), impl.PlayerNotFound)
 }
+
+func (server *GameServer) PlayerDisconnected(playerID int, stateID int) {
+	g, exists := server.gamesByPlayerID[playerID]
+	if exists {
+		player, exists := g.PlayersMap[playerID]
+		if exists {
+			player.Disconnected = true
+			switch stateID {
+			case GAME_STARTED_STATE_ID:
+
+			}
+		}
+	}
+}

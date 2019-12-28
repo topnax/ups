@@ -29,12 +29,22 @@ type Game struct {
 	letterBag []string
 }
 
+func (game Game) ActivePlayerCount() int {
+	count := 0
+	for _, player := range game.Players {
+		if !player.Disconnected {
+			count++
+		}
+	}
+	return count
+}
+
 func (game *Game) AcceptTurn(player Player) bool {
 	if player.ID == game.CurrentPlayer.ID {
 		return false
 	}
 	game.PlayersThatAccepted.Add(player)
-	return len(game.PlayersThatAccepted.List) == len(game.Players)-1
+	return len(game.PlayersThatAccepted.List) >= game.ActivePlayerCount()-1
 }
 
 func getLettersFromBag(bag []string, requested int, letterPointsTable map[string][2]int) ([]Letter, []string) {
