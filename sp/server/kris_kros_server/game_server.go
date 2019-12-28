@@ -170,7 +170,8 @@ func (server *GameServer) OnFinishRound(userId int) def.Response {
 
 	if len(g.Desk.PlacedLetter.List) <= 0 {
 		g.EmptyRounds++
-		if g.EmptyRounds == len(g.Players) {
+		//if g.EmptyRounds == len(g.Players) {
+		if g.EmptyRounds == g.ActivePlayerCount() {
 			pointsToPlayerMap := make(map[int]game.Player)
 
 			for _, player := range g.Players {
@@ -195,11 +196,16 @@ func (server *GameServer) OnFinishRound(userId int) def.Response {
 		}
 	} else {
 		g.EmptyRounds = 0
-		for _, player := range g.Players {
-			if player.ID != userId {
-				server.server.Router.UserStates[player.ID] = ApproveWordsState{}
-				server.server.Send(impl.StructMessageResponse(responses.RoundFinishedResponse{}), player.ID, 0)
+		if (g.CurrentPlayer.Disconnected && g.ActivePlayerCount() > 0) || g.ActivePlayerCount() > 1 {
+			for _, player := range g.Players {
+				if player.ID != userId {
+					server.server.Router.UserStates[player.ID] = ApproveWordsState{}
+					server.server.Send(impl.StructMessageResponse(responses.RoundFinishedResponse{}), player.ID, 0)
+				}
 			}
+		} else {
+			server.NextRound(g)
+			return impl.DoNotRespond()
 		}
 	}
 
@@ -240,15 +246,17 @@ func (server *GameServer) OnApproveWords(userId int) def.Response {
 }
 
 func (server *GameServer) NextRound(g *game.Game) {
-	g.Next()
-	server.server.Send(impl.StructMessageResponse(responses.YourNewRoundResponse{Letters: g.PlayerIdToPlayerBag[g.CurrentPlayer.ID]}), g.CurrentPlayer.ID, 0)
-	server.server.Router.IgnoreTransitionStateChange = true
-	for _, player := range g.Players {
-		if player.ID != g.CurrentPlayer.ID {
-			server.server.Send(impl.StructMessageResponse(responses.NewRoundResponse{ActivePlayerID: g.CurrentPlayer.ID}), player.ID, 0)
-			server.server.Router.UserStates[player.ID] = PlayerWaitingState{}
-		} else {
-			server.server.Router.UserStates[player.ID] = PlayersTurnState{}
+	if g.ActivePlayerCount() > 0 {
+		g.Next()
+		server.server.Send(impl.StructMessageResponse(responses.YourNewRoundResponse{Letters: g.PlayerIdToPlayerBag[g.CurrentPlayer.ID]}), g.CurrentPlayer.ID, 0)
+		server.server.Router.IgnoreTransitionStateChange = true
+		for _, player := range g.Players {
+			if player.ID != g.CurrentPlayer.ID {
+				server.server.Send(impl.StructMessageResponse(responses.NewRoundResponse{ActivePlayerID: g.CurrentPlayer.ID}), player.ID, 0)
+				server.server.Router.UserStates[player.ID] = PlayerWaitingState{}
+			} else {
+				server.server.Router.UserStates[player.ID] = PlayersTurnState{}
+			}
 		}
 	}
 }
@@ -271,20 +279,43 @@ func (server *GameServer) OnDeclineWords(userId int) def.Response {
 	if exists {
 		g.WordsDeclined()
 
-		for _, player := range g.Players {
-			if player.ID != userId {
-				server.server.Send(impl.StructMessageResponse(responses.PlayerDeclinedWordsResponse{
-					PlayerID:   userId,
-					PlayerName: playerThatDeclined.Name,
-				}), player.ID, 0)
+		if g.CurrentPlayer.Disconnected {
+			updatedTiles := []game.Tile{}
+			for tile, _ := range g.Desk.PlacedLetter.List {
+				g.Desk.Tiles[tile.Row][tile.Column].Set = false
 			}
-			if player.ID != g.CurrentPlayer.ID {
-				server.server.Router.UserStates[player.ID] = PlayerWaitingState{}
-			} else {
-				server.server.Router.UserStates[player.ID] = PlayersTurnState{}
+			for tile, _ := range g.Desk.CurrentLetters.List {
+				g.Desk.Tiles[tile.Row][tile.Column].Highlighted = false
+				updatedTiles = append(updatedTiles, g.Desk.Tiles[tile.Row][tile.Column])
+			}
+
+			for _, player := range g.Players {
+				if player.ID != g.CurrentPlayer.ID {
+					server.server.Send(impl.StructMessageResponse(responses.TilesUpdatedResponse{
+						Tiles:                    updatedTiles,
+						CurrentPlayerPoints:      g.PointsTable[g.CurrentPlayer.ID],
+						CurrentPlayerTotalPoints: 0,
+					}), player.ID, 0)
+				}
+			}
+			g.Desk.CurrentLetters.Clear()
+			g.Desk.PlacedLetter.Clear()
+			server.NextRound(g)
+		} else {
+			for _, player := range g.Players {
+				if player.ID != userId {
+					server.server.Send(impl.StructMessageResponse(responses.PlayerDeclinedWordsResponse{
+						PlayerID:   userId,
+						PlayerName: playerThatDeclined.Name,
+					}), player.ID, 0)
+				}
+				if player.ID != g.CurrentPlayer.ID {
+					server.server.Router.UserStates[player.ID] = PlayerWaitingState{}
+				} else {
+					server.server.Router.UserStates[player.ID] = PlayersTurnState{}
+				}
 			}
 		}
-
 		return impl.SuccessResponse("Successfully declined words...")
 	}
 	return impl.ErrorResponse(fmt.Sprintf("Could not find a player of ID %d", userId), impl.PlayerNotFound)
@@ -293,13 +324,33 @@ func (server *GameServer) OnDeclineWords(userId int) def.Response {
 func (server *GameServer) PlayerDisconnected(playerID int, stateID int) {
 	g, exists := server.gamesByPlayerID[playerID]
 	if exists {
-		player, exists := g.PlayersMap[playerID]
+		_, exists := g.PlayersMap[playerID]
 		if exists {
-			player.Disconnected = true
+			for index, player := range g.Players {
+				if player.ID == playerID {
+					g.Players[index].Disconnected = true
+					g.PlayersMap[playerID] = g.Players[index]
+					if g.CurrentPlayer.ID == playerID {
+						g.CurrentPlayer = g.Players[index]
+					}
+					break
+				}
+			}
+
 			switch stateID {
-			case GAME_STARTED_STATE_ID:
+
+			case PLAYERS_TURN_STATE_ID:
+				server.OnFinishRound(playerID)
+
+			case APPROVE_WORDS_STATE_ID:
+				server.OnApproveWords(playerID)
 
 			}
+		}
+	}
+	for _, player := range g.Players {
+		if !player.Disconnected {
+			server.server.Send(impl.StructMessageResponse(responses.PlayerConnectionChanged{PlayerID: playerID}), player.ID, 0)
 		}
 	}
 }

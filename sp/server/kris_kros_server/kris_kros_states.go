@@ -7,16 +7,16 @@ import (
 const (
 	INITIAL_STATE_ID                = 1
 	AUTHORIZED_STATE_ID             = 2
-	LOBBY_JOINED_ID                 = 3
-	LOBBY_JOINED_READY_ID           = 4
-	LOBBY_CREATED_ID                = 5
-	LOBBY_CREATED_READY_ID          = 6
-	GAME_STARTED_STATE_ID           = 7
-	PLAYERS_TURN_STATE_ID           = 8
-	PLAYER_WAITING_ID               = 9
-	PLAYER_FINISHED_ROUND_ID        = 10
-	APPROVE_WORDS_STATE_ID          = 11
-	WORDS_VALIDITY_DECIDED_STATE_ID = 12
+	LOBBY_JOINED_ID                 = 3  // done
+	LOBBY_JOINED_READY_ID           = 4  // done
+	LOBBY_CREATED_ID                = 5  // done
+	LOBBY_CREATED_READY_ID          = 6  // done
+	GAME_STARTED_STATE_ID           = 7  // pouze odebrat ze seznamu hráčů
+	PLAYERS_TURN_STATE_ID           = 8  // ukončí jeho kolo
+	PLAYER_WAITING_ID               = 9  // pouze odebrat ze seznamu hráčů
+	PLAYER_FINISHED_ROUND_ID        = 10 // pouze odebrat ze seznamu hráčů, decline způsobí odebrání písmenek, accept nic nepokazí
+	APPROVE_WORDS_STATE_ID          = 11 // -""-, pošle se accept
+	WORDS_VALIDITY_DECIDED_STATE_ID = 12 // pouze odebrat ze seznamu hráčů
 )
 
 type State interface {

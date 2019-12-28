@@ -26,6 +26,7 @@ const (
 	playerDeclinedWordsResponse      = 116
 	gameEndedResponse                = 117
 	acceptResultedInNewRoundResponse = 118
+	playerConnectionChangedResponse  = 119
 )
 
 type TypedResponse interface {
@@ -216,4 +217,15 @@ type AcceptResultedInNewRound struct{}
 
 func (g AcceptResultedInNewRound) Type() int {
 	return acceptResultedInNewRoundResponse
+}
+
+//////////////////////////////////////
+
+type PlayerConnectionChanged struct {
+	PlayerID     int  `json:"player_id"`
+	Disconnected bool `json:"disconnected"`
+}
+
+func (g PlayerConnectionChanged) Type() int {
+	return playerConnectionChangedResponse
 }

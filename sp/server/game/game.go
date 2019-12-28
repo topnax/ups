@@ -31,7 +31,7 @@ type Game struct {
 
 func (game Game) ActivePlayerCount() int {
 	count := 0
-	for _, player := range game.Players {
+	for _, player := range game.PlayersMap {
 		if !player.Disconnected {
 			count++
 		}
@@ -44,7 +44,16 @@ func (game *Game) AcceptTurn(player Player) bool {
 		return false
 	}
 	game.PlayersThatAccepted.Add(player)
-	return len(game.PlayersThatAccepted.List) >= game.ActivePlayerCount()-1
+
+	numberOfPlayersThatMustHaveAccepted := 0
+
+	for _, player := range game.Players {
+		if !player.Disconnected && player.ID != game.CurrentPlayer.ID {
+			numberOfPlayersThatMustHaveAccepted++
+		}
+	}
+
+	return len(game.PlayersThatAccepted.List) >= numberOfPlayersThatMustHaveAccepted
 }
 
 func getLettersFromBag(bag []string, requested int, letterPointsTable map[string][2]int) ([]Letter, []string) {
@@ -63,6 +72,11 @@ func getLettersFromBag(bag []string, requested int, letterPointsTable map[string
 		}
 	}
 	logrus.Debugf("Taking %d letters out of the bag, %d left in the great bag!", requested, len(bag))
+	letters := ""
+	for _, letter := range randomLetters {
+		letters += " " + letter.Value
+	}
+	logrus.Debugln("Took out of bag: š", letters)
 	return randomLetters, bag
 }
 
@@ -114,20 +128,20 @@ func (game *Game) Print() {
 	fmt.Println("Game status:")
 	fmt.Println("Round:", game.Round)
 	fmt.Println("Players:")
-	for _, player := range game.Players {
-		if player == game.CurrentPlayer {
-			fmt.Printf("> #%v  %s\n", player.ID, player.Name)
-		} else {
-			fmt.Printf("#%v  %s\n", player.ID, player.Name)
-		}
+	//for _, player := range game.Players {
+	//if player == game.CurrentPlayer {
+	//	fmt.Printf("> #%v  %s\n", player.ID, player.Name)
+	//} else {
+	//	fmt.Printf("#%v  %s\n", player.ID, player.Name)
+	//}
 
-	}
+	//}
 
 	game.Desk.Print()
 	game.Desk.GetTotalPoints()
-	game.Next()
-
-	game.PrintPoints()
+	//game.Next()
+	//
+	//game.PrintPoints()
 
 	fmt.Println()
 	fmt.Println()
@@ -138,13 +152,21 @@ func (game *Game) Next() {
 
 	game.PointsTable[game.CurrentPlayer.ID] += game.Desk.GetTotalPoints()
 
-	if game.CurrentPlayerIndex < 0 || game.CurrentPlayerIndex == len(game.Players)-1 {
-		game.CurrentPlayerIndex = 0
-		game.Round++
-	} else {
-		game.CurrentPlayerIndex++
+	// TODO what to do when all players leave.
+
+	for {
+		if game.CurrentPlayerIndex < 0 || game.CurrentPlayerIndex == len(game.Players)-1 {
+			game.CurrentPlayerIndex = 0
+			game.Round++
+		} else {
+			game.CurrentPlayerIndex++
+		}
+		game.CurrentPlayer = game.Players[game.CurrentPlayerIndex]
+		if !game.CurrentPlayer.Disconnected {
+			break
+		}
+
 	}
-	game.CurrentPlayer = game.Players[game.CurrentPlayerIndex]
 
 	for tile, _ := range game.Desk.CurrentLetters.List {
 		tile.Highlighted = false

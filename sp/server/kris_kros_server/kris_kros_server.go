@@ -63,7 +63,7 @@ func (k KrisKrosServer) Send(response def.Response, userId int, responseId int) 
 	if exists {
 		k.sender.Send(response, socket, responseId)
 	} else {
-		log.Errorf("Could not send response of type %d and content '%s'", response.Type(), response.Content())
+		log.Errorf("Could not send to USERID=%d response of type %d and content '%s'", userId, response.Type(), response.Content())
 	}
 }
 
@@ -332,11 +332,14 @@ func (k *KrisKrosServer) OnClientDisconnected(clientUID int) {
 	userID, exists := k.Router.SocketToUserID[clientUID]
 	log.Debugf("User of Socket ID %d has disconnected\n", clientUID)
 	if exists {
+		log.Infof("Deleting a socket %d and %d from UserIDToSocket map", clientUID, userID)
+		delete(k.Router.SocketToUserID, clientUID)
+		delete(k.Router.UserIDToSocket, userID)
 		user, exists := k.usersById[userID]
 		if exists {
 			state, exists := k.Router.UserStates[user.ID]
 			if exists {
-				if state.Id() >= LOBBY_JOINED_ID || state.Id() <= LOBBY_CREATED_READY_ID {
+				if state.Id() >= LOBBY_JOINED_ID && state.Id() <= LOBBY_CREATED_READY_ID {
 					k.removeClientFromLobby(user.ID)
 					delete(k.usersById, userID)
 					delete(k.usersByName, user.Name)
@@ -349,9 +352,6 @@ func (k *KrisKrosServer) OnClientDisconnected(clientUID int) {
 				}
 			}
 		}
-		log.Infof("Deleting a socket %d and %d from UserIDToSocket map", clientUID, userID)
-		delete(k.Router.SocketToUserID, clientUID)
-		delete(k.Router.UserIDToSocket, userID)
 	}
 }
 
