@@ -27,6 +27,7 @@ const (
 	gameEndedResponse                = 117
 	acceptResultedInNewRoundResponse = 118
 	playerConnectionChangedResponse  = 119
+	gameStateRegenerationResponse    = 120
 )
 
 type TypedResponse interface {
@@ -228,4 +229,21 @@ type PlayerConnectionChanged struct {
 
 func (g PlayerConnectionChanged) Type() int {
 	return playerConnectionChangedResponse
+}
+
+//////////////////////////////////////
+
+type GameStateRegenerationResponse struct {
+	User                  model.User          `json:"user"`
+	Players               []game.Player       `json:"players"`
+	Tiles                 []game.Tile         `json:"tiles"`
+	ActivePlayerID        int                 `json:"active_player_id"`
+	PlayerPoints          map[int]game.Player `json:"player_points"`
+	CurrentPlayerPoints   int                 `json:"current_player_points"`
+	RoundFinished         bool                `json:"round_finished"`
+	PlayerIDsThatAccepted []int               `json:"player_ids_that_accepted"`
+}
+
+func (g GameStateRegenerationResponse) Type() int {
+	return gameStateRegenerationResponse
 }

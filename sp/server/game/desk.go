@@ -8,7 +8,7 @@ import (
 	"ups/sp/server/utils"
 )
 
-const deskSize = 15
+const DeskSize = 15
 
 type Letter struct {
 	Value    string `json:"value"`
@@ -17,7 +17,7 @@ type Letter struct {
 }
 
 type Desk struct {
-	Tiles          [deskSize][deskSize]Tile
+	Tiles          [DeskSize][DeskSize]Tile
 	Words          []Word
 	CurrentLetters *LetterSet
 	PlacedLetter   *LetterSet
@@ -26,10 +26,10 @@ type Desk struct {
 }
 
 func (desk *Desk) Create() {
-	letters := [deskSize][deskSize]Tile{}
+	letters := [DeskSize][DeskSize]Tile{}
 
-	for row := 0; row < deskSize; row++ {
-		for column := 0; column < deskSize; column++ {
+	for row := 0; row < DeskSize; row++ {
+		for column := 0; column < DeskSize; column++ {
 			letters[row][column] = Tile{
 				Set:    false,
 				Type:   0,
@@ -46,15 +46,15 @@ func (desk *Desk) Create() {
 
 	deskTypes := GetDeskTileTypes()
 
-	for row := 0; row < deskSize; row++ {
-		for column := 0; column < deskSize; column++ {
+	for row := 0; row < DeskSize; row++ {
+		for column := 0; column < DeskSize; column++ {
 			desk.Tiles[row][column].Type = deskTypes[row][column]
 		}
 	}
 }
 
 func (desk Desk) isWithinBounds(row int, column int) bool {
-	return row >= 0 && row < deskSize && column >= 0 && column < deskSize
+	return row >= 0 && row < DeskSize && column >= 0 && column < DeskSize
 }
 
 func (desk *Desk) SetAt(letter string, row int, column int, playerID int) error {
@@ -118,6 +118,9 @@ func (desk *Desk) ResetAt(row int, column int, playerID int) error {
 }
 
 func (desk *Desk) ClearCurrentWords() {
+	for tile, _ := range desk.CurrentLetters.List {
+		desk.Tiles[tile.Row][tile.Column].Highlighted = false
+	}
 	desk.CurrentLetters.Clear()
 }
 
@@ -260,13 +263,13 @@ func (desk Desk) GetTotalPoints() int {
 
 func (desk Desk) Print() {
 	fmt.Println(" 123456789012345")
-	for row := 0; row < deskSize; row++ {
+	for row := 0; row < DeskSize; row++ {
 		if row < 9 {
 			fmt.Print(row + 1)
 		} else {
 			fmt.Print(row - 9)
 		}
-		for column := 0; column < deskSize; column++ {
+		for column := 0; column < DeskSize; column++ {
 			if desk.Tiles[row][column].Set {
 				fmt.Print(strings.ToUpper(desk.Tiles[row][column].Letter.Value))
 

@@ -24,6 +24,8 @@ type Game struct {
 	PlayersThatAccepted *PlayerSet
 	idInc               int
 
+	RoundFinished bool
+
 	EmptyRounds int
 
 	letterBag []string
@@ -168,13 +170,10 @@ func (game *Game) Next() {
 
 	}
 
-	for tile, _ := range game.Desk.CurrentLetters.List {
-		tile.Highlighted = false
-	}
-
 	game.Desk.ClearCurrentWords()
 	game.Desk.PlacedLetter.Clear()
 	game.PlayersThatAccepted = NewPlayerSet()
+	game.RoundFinished = false
 
 	newLetters, bag := getLettersFromBag(game.letterBag, 8-len(game.PlayerIdToPlayerBag[game.CurrentPlayer.ID]), game.letterPointsTable)
 

@@ -321,6 +321,21 @@ func (k *KrisKrosServer) OnUserAuthenticate(clientUID int, message messages.User
 			k.Router.SocketToUserID[clientUID] = user.ID
 			k.Router.UserIDToSocket[user.ID] = clientUID
 			resp := responses.UserAuthenticatedResponse{User: *user}
+			state, exists := k.Router.UserStates[user.ID]
+			if exists {
+				if state.Id() >= GAME_STARTED_STATE_ID && state.Id() <= WORDS_VALIDITY_DECIDED_STATE_ID {
+					regresp := k.gameServer.PlayerReconnected(user.ID)
+					if regresp != nil {
+						return regresp
+					} else {
+						return impl.StructMessageResponse(resp)
+					}
+				} else {
+					k.Router.UserStates[user.ID] = AuthorizedState{}
+				}
+			} else {
+				k.Router.UserStates[user.ID] = AuthorizedState{}
+			}
 			return impl.MessageResponse(resp, resp.Type())
 		}
 	}

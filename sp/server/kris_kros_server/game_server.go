@@ -4,6 +4,7 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"ups/sp/server/game"
+	"ups/sp/server/model"
 	"ups/sp/server/protocol/def"
 	"ups/sp/server/protocol/impl"
 	"ups/sp/server/protocol/messages"
@@ -195,6 +196,7 @@ func (server *GameServer) OnFinishRound(userId int) def.Response {
 			return impl.StructMessageResponse(responses.NewRoundResponse{ActivePlayerID: g.CurrentPlayer.ID})
 		}
 	} else {
+		g.RoundFinished = true
 		g.EmptyRounds = 0
 		if (g.CurrentPlayer.Disconnected && g.ActivePlayerCount() > 0) || g.ActivePlayerCount() > 1 {
 			for _, player := range g.Players {
@@ -350,7 +352,68 @@ func (server *GameServer) PlayerDisconnected(playerID int, stateID int) {
 	}
 	for _, player := range g.Players {
 		if !player.Disconnected {
-			server.server.Send(impl.StructMessageResponse(responses.PlayerConnectionChanged{PlayerID: playerID}), player.ID, 0)
+			server.server.Send(impl.StructMessageResponse(responses.PlayerConnectionChanged{PlayerID: playerID, Disconnected: true}), player.ID, 0)
 		}
+	}
+}
+
+func (server *GameServer) PlayerReconnected(playerID int) def.Response {
+	g, exists := server.gamesByPlayerID[playerID]
+
+	if exists {
+		var resp def.Response
+		for index, player := range g.Players {
+			if player.ID == playerID {
+				g.Players[index].Disconnected = false
+				g.PlayersMap[playerID] = g.Players[index]
+
+				tiles := []game.Tile{}
+
+				for row := 0; row < game.DeskSize; row++ {
+					for column := 0; column < game.DeskSize; column++ {
+						if g.Desk.Tiles[row][column].Set {
+							tiles = append(tiles, g.Desk.Tiles[row][column])
+						}
+					}
+				}
+
+				pointsToPlayerMap := make(map[int]game.Player)
+
+				for _, player := range g.Players {
+					pointsToPlayerMap[g.PointsTable[player.ID]] = player
+				}
+
+				playerIDsThatAccepted := []int{}
+
+				for player, _ := range g.PlayersThatAccepted.List {
+					playerIDsThatAccepted = append(playerIDsThatAccepted, player.ID)
+				}
+
+				resp = impl.StructMessageResponse(responses.GameStateRegenerationResponse{
+					Tiles:                 tiles,
+					ActivePlayerID:        g.CurrentPlayer.ID,
+					PlayerPoints:          pointsToPlayerMap,
+					CurrentPlayerPoints:   g.Desk.GetTotalPoints(),
+					RoundFinished:         g.RoundFinished,
+					PlayerIDsThatAccepted: playerIDsThatAccepted,
+					Players:               g.Players,
+					User: model.User{
+						ID:   playerID,
+						Name: player.Name,
+					},
+				})
+			} else {
+				server.server.Send(impl.StructMessageResponse(responses.PlayerConnectionChanged{
+					PlayerID:     playerID,
+					Disconnected: false,
+				}), player.ID, 0)
+			}
+		}
+		return resp
+	} else {
+		state, _ := server.server.Router.UserStates[playerID]
+		log.Errorf("Player ID=%d reconnected but his game could not be found. Player state was %d", playerID, state.Id())
+		server.server.Router.UserStates[playerID] = AuthorizedState{}
+		return nil
 	}
 }
