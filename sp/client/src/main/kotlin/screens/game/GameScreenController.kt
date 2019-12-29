@@ -202,6 +202,7 @@ class GameScreenController : Controller() {
     }
 
     fun onFinishRoundButtonClicked() {
+        logger.debug { "onFinishRoundButtonClicked() => activePlayerID=$activePlayerID, Network.User.id=${Network.User.id}" }
         if (activePlayerID == Network.User.id) {
             Network.getInstance().send(FinishRoundMessage(), {
                 if (it !is NewRoundResponse) {
@@ -246,7 +247,7 @@ class GameScreenController : Controller() {
     init {
         players.forEach { playerPointsMap[it.id] = 0 }
 
-        subscribe<GameStartedEvent> {
+        subscribe<GameStartedEvent> {;
             fire(NewLetterSackEvent(it.message.letters))
             activePlayerID = it.message.activePlayerId
             players = it.message.players
@@ -273,6 +274,7 @@ class GameScreenController : Controller() {
                 }
                 fire(DeskChange(desk.tiles[tile.row][tile.column]))
             }
+            previouslyUpdatedTiles.addAll(it.response.tiles)
             fire(PlayerStateChangedEvent())
         }
 
@@ -293,32 +295,37 @@ class GameScreenController : Controller() {
             }
         }
 
-        subscribe<LetterPlacedEvent> {
+        subscribe<LetterPlacedEvent> { event ->
             if (activePlayerID != Network.User.id) {
                 Platform.runLater {
                     alert(Alert.AlertType.ERROR, "Nejste na tahu")
                 }
             } else {
-                Network.getInstance().send(LetterPlacedMessage(it.letter, selectedTile!!.column, selectedTile!!.row), { am ->
-                    run {
-                        if (am is SuccessResponseMessage) {
-                            Platform.runLater {
-                                it.letterView.removeFromParent()
-                                logger.debug { "Letter of value ${it.letter} has been pressed GO!" }
-                                val tile = desk.tiles[selectedTile!!.row][selectedTile!!.column]
-                                selectedTile = null
-                                tile.letter = it.letter
-                                tile.letter?.run {
-                                    letters.remove(it.letter)
-                                    placedLetters.add(it.letter)
-                                    tile.selected = false
-                                    fire(DeskChange(tile))
+                selectedTile?.let {
+                    Network.getInstance().send(LetterPlacedMessage(event.letter, it.column, selectedTile!!.row), { am ->
+                        run {
+                            if (am is SuccessResponseMessage) {
+                                Platform.runLater {
+                                    event.letterView.removeFromParent()
+                                    logger.debug { "Letter of value ${it.letter} has been pressed GO!" }
+                                    val tile = desk.tiles[selectedTile!!.row][selectedTile!!.column]
+                                    selectedTile = null
+                                    tile.letter = event.letter
+                                    tile.letter?.run {
+                                        letters.remove(event.letter)
+                                        placedLetters.add(event.letter)
+                                        tile.selected = false
+                                        fire(DeskChange(tile))
+                                    }
                                 }
                             }
                         }
+                    })
+                } ?: run {
+                    Platform.runLater {
+                        alert(Alert.AlertType.ERROR, "No tile selected")
                     }
                 }
-                )
             }
         }
 
@@ -327,21 +334,25 @@ class GameScreenController : Controller() {
         }
 
         subscribe<TileWithLetterClicked> { event ->
+
             if (activePlayerID == Network.User.id) {
                 if (placedLetters.contains(event.tile.letter)) {
                     Network.getInstance().send(LetterRemovedMessage(event.tile.column, event.tile.row), {
                         run {
                             if (it is SuccessResponseMessage) {
+                                selectedTile = event.tile
                                 placedLetters.remove(event.tile.letter)
                                 letters.add(event.tile.letter!!)
                                 desk.tiles[event.tile.row][event.tile.column].letter = null
+                                desk.tiles[event.tile.row][event.tile.column].selected = true
                                 fire(NewLetterSackEvent(letters))
+                                fire(DeskChange(desk.tiles[event.tile.row][event.tile.column]))
                             }
                         }
                     })
                 }
             } else {
-                alert(Alert.AlertType.ERROR, "Nejste na tahu")
+                alert(Alert.AlertType.ERROR, "It is not your turn")
             }
         }
     }

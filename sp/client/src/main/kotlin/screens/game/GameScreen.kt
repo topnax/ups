@@ -97,11 +97,9 @@ class GameView : View() {
         }
 
         finishButton = button("Finish round") {
-            subscribe<GameStartedEvent> {
-                visibleProperty().set(it.message.activePlayerId == Network.User.id)
-                action {
-                    controller.onFinishRoundButtonClicked()
-                }
+            visibleProperty().set(controller.activePlayerID == Network.User.id)
+            action {
+                controller.onFinishRoundButtonClicked()
             }
         }
 
