@@ -173,24 +173,7 @@ func (server *GameServer) OnFinishRound(userId int) def.Response {
 		g.EmptyRounds++
 		//if g.EmptyRounds == len(g.Players) {
 		if g.EmptyRounds == g.ActivePlayerCount() {
-			pointsToPlayerMap := make(map[int]game.Player)
-
-			for _, player := range g.Players {
-				pointsToPlayerMap[g.PointsTable[player.ID]] = player
-			}
-
-			resp := impl.StructMessageResponse(responses.GameEndedResponse{PlayerPoints: pointsToPlayerMap})
-			server.server.Router.IgnoreTransitionStateChange = true
-
-			for _, player := range g.Players {
-				delete(server.gamesByPlayerID, player.ID)
-				server.server.Router.UserStates[player.ID] = AuthorizedState{}
-				if player.ID != userId {
-					server.server.Send(resp, player.ID, 0)
-				}
-			}
-
-			return resp
+			return server.EndGame(g, userId)
 		} else {
 			server.NextRound(g)
 			return impl.StructMessageResponse(responses.NewRoundResponse{ActivePlayerID: g.CurrentPlayer.ID})
@@ -212,6 +195,23 @@ func (server *GameServer) OnFinishRound(userId int) def.Response {
 	}
 
 	return impl.SuccessResponse("Finished successfully")
+}
+
+func (server *GameServer) EndGame(g *game.Game, userId int) def.Response {
+	pointsToPlayerMap := make(map[int]game.Player)
+	for _, player := range g.Players {
+		pointsToPlayerMap[g.PointsTable[player.ID]] = player
+	}
+	resp := impl.StructMessageResponse(responses.GameEndedResponse{PlayerPoints: pointsToPlayerMap})
+	server.server.Router.IgnoreTransitionStateChange = true
+	for _, player := range g.Players {
+		delete(server.gamesByPlayerID, player.ID)
+		server.server.Router.UserStates[player.ID] = AuthorizedState{}
+		if player.ID != userId {
+			server.server.Send(resp, player.ID, 0)
+		}
+	}
+	return resp
 }
 
 func (server *GameServer) OnApproveWords(userId int) def.Response {
@@ -295,8 +295,8 @@ func (server *GameServer) OnDeclineWords(userId int) def.Response {
 				if player.ID != g.CurrentPlayer.ID {
 					server.server.Send(impl.StructMessageResponse(responses.TilesUpdatedResponse{
 						Tiles:                    updatedTiles,
-						CurrentPlayerPoints:      g.PointsTable[g.CurrentPlayer.ID],
-						CurrentPlayerTotalPoints: 0,
+						CurrentPlayerPoints:      0,
+						CurrentPlayerTotalPoints: g.PointsTable[g.CurrentPlayer.ID],
 					}), player.ID, 0)
 				}
 			}
@@ -339,14 +339,18 @@ func (server *GameServer) PlayerDisconnected(playerID int, stateID int) {
 				}
 			}
 
-			switch stateID {
+			if g.ActivePlayerCount() > 0 {
+				switch stateID {
 
-			case PLAYERS_TURN_STATE_ID:
-				server.OnFinishRound(playerID)
+				case PLAYERS_TURN_STATE_ID:
+					server.OnFinishRound(playerID)
 
-			case APPROVE_WORDS_STATE_ID:
-				server.OnApproveWords(playerID)
+				case APPROVE_WORDS_STATE_ID:
+					server.OnApproveWords(playerID)
 
+				}
+			} else {
+				server.EndGame(g, -1)
 			}
 		}
 	}

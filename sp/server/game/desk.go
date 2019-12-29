@@ -177,8 +177,8 @@ func (desk *Desk) GetWordsAt(row int, column int) []WordMeta {
 		dy := 0 + c[1]
 
 		for desk.isWithinBounds(row+dx, column+dy) && desk.Tiles[row+dx][column+dy].Set {
-			desk.CurrentLetters.Add(desk.Tiles[row+dx][column+dy])
 			desk.Tiles[row+dx][column+dy].Highlighted = true
+			desk.CurrentLetters.Add(desk.Tiles[row+dx][column+dy])
 
 			dx += c[0]
 			dy += c[1]
@@ -220,8 +220,8 @@ func (desk *Desk) GetWordsAt(row int, column int) []WordMeta {
 	}
 
 	if desk.isWithinBounds(row, column) && desk.Tiles[row][column].Set {
-		desk.CurrentLetters.Add(desk.Tiles[row][column])
 		desk.Tiles[row][column].Highlighted = true
+		desk.CurrentLetters.Add(desk.Tiles[row][column])
 		if mincol == maxcol && minrow == maxrow {
 			words = append(words, WordMeta{
 				RowStart:    row,
