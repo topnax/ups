@@ -37,6 +37,8 @@ class MainMenuView : View() {
                 button("Refresh lobby list").action {
                     controller.refreshLobbies()
                 }
+
+                label (Network.User.name)
             }
 
             tableview(controller.lobbyViewModels) {

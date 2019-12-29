@@ -6,6 +6,9 @@ import mu.KotlinLogging
 import networking.ConnectionStatusListener
 import networking.Network
 import networking.messages.*
+import screens.game.GameStartedEvent
+import screens.game.GameStateRegenerationEvent
+import screens.game.GameView
 import screens.mainmenu.MainMenuView
 import tornadofx.*
 
@@ -24,6 +27,11 @@ class InitialScreenController : Controller(), ConnectionStatusListener {
         }
         Network.getInstance().connectionStatusListeners.add(this)
         connectTo("localhost", 10000)
+    }
+
+    internal fun onGameStateRegeneration(message: GameStateRegenerationResponse) {
+        initialScreen.replaceWith<GameView>()
+        fire(GameStateRegenerationEvent(message))
     }
 
     override fun onConnected() {
@@ -67,10 +75,17 @@ class InitialScreenController : Controller(), ConnectionStatusListener {
                     if (am is UserAuthenticatedResponse) {
                         Network.User = am.user
                         initialScreen.replaceWith<MainMenuView>()
+                    } else if (am is GameStateRegenerationResponse) {
+                        Network.User = am.user
+                        onGameStateRegeneration(am)
                     }
                 }
             })
         }
+    }
+
+    fun onUndock() {
+        Network.getInstance().removeMessageListener(::onGameStateRegeneration)
     }
 }
 

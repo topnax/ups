@@ -56,7 +56,21 @@ class GameScreenController : Controller() {
         Network.getInstance().addMessageListener(::onYourNewRoundResponse)
         Network.getInstance().addMessageListener(::onPlayerDeclinedWordsResponse)
         Network.getInstance().addMessageListener(::onGameEndedResponse)
+        Network.getInstance().addMessageListener(::onPlayerConnectionChangedResponse)
         reset()
+    }
+
+    fun onUndock() {
+        Network.getInstance().removeMessageListener(::onTileUpdated)
+        Network.getInstance().removeMessageListener(::onTilesUpdated)
+        Network.getInstance().removeMessageListener(::onNewRound)
+        Network.getInstance().removeMessageListener(::onRoundFinished)
+        Network.getInstance().removeMessageListener(::onPlayerAcceptedRound)
+        Network.getInstance().removeMessageListener(::onNewRoundResponse)
+        Network.getInstance().removeMessageListener(::onYourNewRoundResponse)
+        Network.getInstance().removeMessageListener(::onPlayerDeclinedWordsResponse)
+        Network.getInstance().removeMessageListener(::onGameEndedResponse)
+        Network.getInstance().removeMessageListener(::onPlayerConnectionChangedResponse)
     }
 
     private fun reset() {
@@ -70,18 +84,6 @@ class GameScreenController : Controller() {
         playerPointsMap.clear()
     }
 
-    fun onUndock() {
-        Network.getInstance().removeMessageListener(::onTileUpdated)
-        Network.getInstance().removeMessageListener(::onTilesUpdated)
-        Network.getInstance().removeMessageListener(::onNewRound)
-        Network.getInstance().removeMessageListener(::onRoundFinished)
-        Network.getInstance().removeMessageListener(::onPlayerAcceptedRound)
-        Network.getInstance().removeMessageListener(::onNewRoundResponse)
-        Network.getInstance().removeMessageListener(::onYourNewRoundResponse)
-        Network.getInstance().removeMessageListener(::onPlayerDeclinedWordsResponse)
-        Network.getInstance().removeMessageListener(::onGameEndedResponse)
-    }
-
     fun onGameEndedResponse(response: GameEndedResponse) {
         val maxPoints = response.playerPoints.map { it.key.toInt() }.max()
         val text = response.playerPoints.map {
@@ -90,6 +92,16 @@ class GameScreenController : Controller() {
         Platform.runLater {
             alert(Alert.AlertType.INFORMATION, "Game has ended", text)
             gameView.replaceWith<MainMenuView>()
+        }
+    }
+
+    fun onPlayerConnectionChangedResponse(response: PlayerConnectionChangedResponse) {
+        for (player in players) {
+            if (player.id == response.playerId) {
+                player.disconnected = response.disconnected
+                fire(PlayerStateChangedEvent())
+                break
+            }
         }
     }
 
@@ -242,6 +254,28 @@ class GameScreenController : Controller() {
             fire(PlayerStateChangedEvent())
         }
 
+        subscribe<GameStateRegenerationEvent> {
+            activePlayerID = it.response.activePlayerId
+            currentRoundPlayerPoints = it.response.currentPlayerPoints
+            playerIdsWhoAcceptedWords.addAll(it.response.playerIdsThatAccepted)
+            playerPointsMap.putAll(it.response.playerPoints.map { it.value.id to it.key.toInt() })
+            players = it.response.players
+            roundFinished = it.response.roundFinished
+
+            playerPointsMap[activePlayerID]?.let {
+                playerPointsMap[activePlayerID] = it + currentRoundPlayerPoints
+            }
+
+            for (tile in it.response.tiles) {
+                desk.tiles[tile.row][tile.column] = tile
+                if (!tile.set) {
+                    desk.tiles[tile.row][tile.column].letter = null
+                }
+                fire(DeskChange(desk.tiles[tile.row][tile.column]))
+            }
+            fire(PlayerStateChangedEvent())
+        }
+
         subscribe<TileSelectedEvent> { event ->
             if (activePlayerID != Network.User.id) {
                 Platform.runLater {
@@ -328,4 +362,6 @@ class PlayerStateChangedEvent() : FXEvent(EventBus.RunOn.BackgroundThread)
 class GameStartedEvent(val message: GameStartedResponse) : FXEvent(EventBus.RunOn.BackgroundThread)
 
 class RoundFinishedEvent() : FXEvent(EventBus.RunOn.BackgroundThread)
+
+class GameStateRegenerationEvent(val response: GameStateRegenerationResponse) : FXEvent(EventBus.RunOn.BackgroundThread)
 

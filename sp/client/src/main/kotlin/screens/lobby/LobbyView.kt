@@ -37,7 +37,7 @@ class LobbyView : View() {
         Platform.runLater {
             val mainMenu = find<MainMenuView>()
             replaceWith(mainMenu)
-            alert(Alert.AlertType.INFORMATION, "Lobby disbandned", "The lobby has been disbanded")
+            alert(Alert.AlertType.INFORMATION, "Lobby disbanded", "The lobby has been disbanded")
         }
     }
 
@@ -48,7 +48,7 @@ class LobbyView : View() {
             alignment = Pos.CENTER
         }
         playerListView = listview {}
-        readyButton = button("Ready")
+        readyButton = button("Toggle ready state")
         readyButton.action {
             onReadyButtonClicked()
         }
@@ -128,19 +128,12 @@ class LobbyView : View() {
         }
     }
 
-    private fun onLobbyStarted(lobbyStartedResponse: LobbyStartedResponse) {
-
-    }
-
     override fun onDock() {
         ready = false
         update(lobby)
         Network.getInstance().addMessageListener(::onLobbyUpdated)
         Network.getInstance().addMessageListener(::onLobbyDestroyed)
         Network.getInstance().addMessageListener(::onGameStarted)
-        if (Network.User.id != lobby.owner.id) {
-            Network.getInstance().addMessageListener(::onLobbyStarted)
-        }
     }
 
     override fun onUndock() {
@@ -148,8 +141,5 @@ class LobbyView : View() {
         Network.getInstance().removeMessageListener(::onLobbyDestroyed)
         Network.getInstance().removeMessageListener(::onLobbyUpdated)
         Network.getInstance().removeMessageListener(::onGameStarted)
-        if (Network.User.id != lobby.owner.id) {
-            Network.getInstance().removeMessageListener(::onLobbyStarted)
-        }
     }
 }

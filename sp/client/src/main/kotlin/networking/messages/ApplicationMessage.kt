@@ -47,6 +47,8 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
         const val PLAYER_DECLINED_WORDS_MESSAGE_TYPE = 116
         const val GAME_ENDED_MESSAGE_TYPE = 117
         const val ACCEPT_RESULTED_IN_NEW_ROUND_TYPE = 118
+        const val PLAYER_DISCONNECTED_TYPE = 119
+        const val GAME_STATE_REGENERATION_TYPE = 120
 
         const val ERROR_RESPONSE_TYPE = 401
         const val SUCCESS_RESPONSE_TYPE = 701
@@ -86,6 +88,8 @@ abstract class ApplicationMessage(@Json(ignored = true) val type: Int) {
                         PLAYER_DECLINED_WORDS_MESSAGE_TYPE -> fromJson<PlayerDeclinedWordsResponse>(json)
                         GAME_ENDED_MESSAGE_TYPE -> fromJson<GameEndedResponse>(json)
                         ACCEPT_RESULTED_IN_NEW_ROUND_TYPE -> fromJson<AcceptResultedInNewRound>(json)
+                        PLAYER_DISCONNECTED_TYPE -> fromJson<PlayerConnectionChangedResponse>(json)
+                        GAME_STATE_REGENERATION_TYPE -> fromJson<GameStateRegenerationResponse>(json)
                         else -> null
                     }
                 }
@@ -172,3 +176,17 @@ class PlayerDeclinedWordsResponse(val playerId: Int, val playerName: String) : A
 class GameEndedResponse(val playerPoints: Map<String, Player>) : ApplicationMessage(GAME_ENDED_MESSAGE_TYPE)
 
 class AcceptResultedInNewRound() : EmptyMessage(ACCEPT_RESULTED_IN_NEW_ROUND_TYPE)
+
+class PlayerConnectionChangedResponse(val playerId: Int, val disconnected: Boolean) : ApplicationMessage(PLAYER_DISCONNECTED_TYPE)
+
+class GameStateRegenerationResponse(val user: User, val players: List<Player>, val tiles: List<Tile>, val activePlayerId: Int, val playerPoints: Map<String, Player>, val currentPlayerPoints: Int, val roundFinished: Boolean, val playerIdsThatAccepted: List<Int>) : ApplicationMessage(GAME_STATE_REGENERATION_TYPE)
+
+
+//resp := responses.GameStateRegenerationResponse{
+//    Tiles:                 tiles,
+//    ActivePlayerID:        g.CurrentPlayer.ID,
+//    PlayerPoints:          pointsToPlayerMap,
+//    CurrentPlayerPoints:   g.Desk.GetTotalPoints(),
+//    RoundFinished:         g.RoundFinished,
+//    PlayerIDsThatAccepted: playerIDsThatAccepted,
+//}

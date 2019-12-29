@@ -5,6 +5,7 @@ import javafx.beans.property.SimpleStringProperty
 import javafx.scene.control.Button
 import javafx.scene.control.MenuItem
 import javafx.scene.control.TextField
+import networking.Network
 
 import tornadofx.*
 
@@ -55,6 +56,11 @@ class InitialScreen : View() {
             }
         }
         controller.init(this@InitialScreen)
+    }
+
+    override fun onUndock() {
+        super.onUndock()
+        controller.onUndock()
     }
 
     class JoinServerView: View() {

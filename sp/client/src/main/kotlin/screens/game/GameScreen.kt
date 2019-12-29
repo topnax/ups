@@ -5,6 +5,7 @@ import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.control.Button
 import javafx.scene.layout.GridPane
+import javafx.scene.layout.Priority
 import javafx.scene.paint.Color
 import javafx.scene.text.FontWeight
 import model.game.Letter
@@ -34,15 +35,12 @@ class GameView : View() {
         controller.init(this)
     }
 
-    override val root = vbox {
-        println(controller)
+    override val root = vbox(spacing = 10) {
+        padding = Insets(10.0)
+        label(Network.User.name)
         gridpane {
-
-            style {
-                backgroundColor += Color.PINK
-            }
             useMaxWidth = true
-            var pindex = 0
+            hgrow = Priority.ALWAYS
             controller.desk.tiles.forEachIndexed { index, row ->
                 tileViews[index] = arrayOfNulls<TileView>(15)
                 row.forEachIndexed { i, tile ->
@@ -51,27 +49,16 @@ class GameView : View() {
                     tileViews[index]!![i] = tv
                 }
             }
+
             gridLinesVisibleProperty().set(true)
             subscribe<DeskChange> {
                 Platform.runLater {
                     refreshTile(it.tile)
+                    gridLinesVisibleProperty().set(true)
                 }
             }
-
-            subscribe<TileSelectedEvent> {
-                logger.debug { "Tile event" }
-                controller.selectedTile?.let {
-                    it.selected = false
-                    refreshTile(it)
-                }
-                if (it.tile.letter == null) {
-                    it.tile.selected = true
-                    refreshTile(it.tile)
-                }
-            }
-
         }
-        hbox(spacing = 10) {
+        vbox(spacing = 10) {
             subscribe<PlayerStateChangedEvent> {
                 logger.debug { "Player state changed event" }
                 Platform.runLater {
@@ -80,13 +67,14 @@ class GameView : View() {
                         label("${it.name} (${controller.playerPointsMap[it.id]})" + if (controller.activePlayerID == it.id) " <${controller.currentRoundPlayerPoints}>" else "") {
                             if (it.id == controller.activePlayerID) style { fontWeight = FontWeight.EXTRA_BOLD }
                         }
+                        if (it.disconnected) label("disconnected") { style { fontWeight = FontWeight.EXTRA_BOLD } }
                         if (controller.playerIdsWhoAcceptedWords.contains(it.id)) label("Accepted words!!!")
                     }
-                    label(if (controller.activePlayerID == Network.User.id) "Jste na tahu" else "Nejste na tahu")
-
-                    logger.debug { "controller.activePlayerID != Network.User.id: ${controller.activePlayerID != Network.User.id}" }
-                    logger.debug { "controller.roundFinished: ${controller.roundFinished}" }
-                    logger.debug { "!controller.wordsAccepted: ${!controller.wordsAccepted}" }
+                    label(if (controller.activePlayerID == Network.User.id) "It's your turn" else "It is not your turn") {
+                        style {
+                            fontWeight = FontWeight.EXTRA_BOLD
+                        }
+                    }
 
                     acceptWordsButton.visibleProperty().set(controller.activePlayerID != Network.User.id && controller.roundFinished && !controller.wordsAccepted)
                     declineWordsButton.visibleProperty().set(controller.activePlayerID != Network.User.id && controller.roundFinished && !controller.wordsAccepted)
@@ -207,12 +195,17 @@ class TileView(val tile: Tile) : View() {
 
     override val root = tile.letter?.let {
         hbox {
+            usePrefSize = true
+            prefHeight(60.0)
+            prefWidth(60.0)
+            minWidth(100.0)
+            minHeight(150.0)
             padding = Insets(5.0)
+
             alignment = Pos.CENTER
             gridpaneConstraints {
                 columnRowIndex(tile.column, tile.row)
             }
-
 
             hbox {
                 padding = Insets(8.0)
@@ -260,20 +253,91 @@ class TileView(val tile: Tile) : View() {
 //            btn
         }
     } ?: run {
-        button {
+        hbox {
+            usePrefSize = true
+            prefHeight(60.0)
+            prefWidth(60.0)
+            minWidth(100.0)
+            minHeight(150.0)
+            padding = Insets(5.0)
+
+            alignment = Pos.CENTER
             gridpaneConstraints {
-                fillHeightWidth = true
-                useMaxSize = true
                 columnRowIndex(tile.column, tile.row)
             }
-            action {
-                logger.info { "Pressed at ${tile.row}#${tile.column}" }
-                fire(TileSelectedEvent(tile))
+
+            hbox {
+                padding = Insets(8.0)
+                alignment = Pos.BOTTOM_RIGHT
+                label(" ") {
+                    textFill = Color.WHITE
+                }
+                label(" ") {
+                    textFill = Color.WHITE
+                    style {
+                        fontSize = 10.px
+                    }
+                }
+
+
+                setOnMouseClicked {
+                    logger.info { "Pressed at ${tile.row}#${tile.column}" }
+                    fire(TileSelectedEvent(tile))
+                }
             }
+
+//            btn = button(it.value.toUpperCase()) {
+//                action {
+//                    fire(TileWithLetterClicked(tile))
+//                }
+//                textFill = Color.WHITE
+//                style {
+//                    backgroundColor += if (tile.highlighted) Color.ORANGE else Color.GREEN
+//
+//                    borderRadius += box(6.px)
+//                }
+//
+//            }
             style {
                 backgroundColor += if (!tile.selected) tile.typeEnum.getTileColor() else Color.PINK
             }
+//            btn
         }
+//        hbox {
+//            usePrefSize = true
+//            prefHeight(100.0)
+//            prefWidth(100.0)
+//            prefHeight(150.0)
+//            prefWidth(150.0)
+//            minWidth(100.0)
+//            minHeight(150.0)
+//            gridpaneColumnConstraints {
+//                prefHeight(150.0)
+//                prefWidth(150.0)
+//                prefHeight(200.0)
+//                prefWidth(200.0)
+//                minWidth(100.0)
+//                minHeight(150.0)
+//            }
+//            gridpaneConstraints {
+//                fillHeightWidth = true
+//                useMaxSize = true
+//                columnRowIndex(tile.column, tile.row)
+//            }
+//            setOnMouseClicked {
+//                logger.info { "Pressed at ${tile.row}#${tile.column}" }
+//                fire(TileSelectedEvent(tile))
+//            }
+//            style {
+//                backgroundColor += if (!tile.selected) tile.typeEnum.getTileColor() else Color.PINK
+//            }
+//            label("C") {
+//                textFill = Color.WHITE
+//                style {
+//                    fontSize = 10.px
+//                }
+//            }
+//        }
     }
 }
 
