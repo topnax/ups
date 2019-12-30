@@ -4,6 +4,7 @@ import javafx.application.Platform
 import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.control.Button
+import javafx.scene.control.Label
 import javafx.scene.layout.GridPane
 import javafx.scene.layout.Priority
 import javafx.scene.paint.Color
@@ -13,6 +14,7 @@ import model.game.Tile
 import model.game.TileType
 import mu.KotlinLogging
 import networking.Network
+import screens.UserAuthenticatedEvent
 import tornadofx.*
 
 private val logger = KotlinLogging.logger { }
@@ -37,7 +39,27 @@ class GameView : View() {
 
     override val root = vbox(spacing = 10) {
         padding = Insets(10.0)
-        label(Network.User.name)
+        hbox(spacing = 10.0) {
+            val nameLabel = label(Network.User.name)
+
+            subscribe<UserAuthenticatedEvent> {
+                nameLabel.text = it.name
+            }
+
+            label("Disconnected from the server") {
+                visibleProperty().set(false)
+                subscribe<ConnectionStateChanged> {
+                    visibleProperty().set(!it.connected)
+                }
+            }
+
+            button("Leave the game") {
+                action {
+                    controller.leaveGame()
+                }
+            }
+
+        }
         gridpane {
             useMaxWidth = true
             hgrow = Priority.ALWAYS
@@ -50,7 +72,6 @@ class GameView : View() {
                 }
             }
 
-            gridLinesVisibleProperty().set(true)
             subscribe<DeskChange> {
                 Platform.runLater {
                     refreshTile(it.tile)
@@ -64,11 +85,13 @@ class GameView : View() {
                 Platform.runLater {
                     clear()
                     controller.players.forEach {
-                        label("${it.name} (${controller.playerPointsMap[it.id]})" + if (controller.activePlayerID == it.id) " <${controller.currentRoundPlayerPoints}>" else "") {
-                            if (it.id == controller.activePlayerID) style { fontWeight = FontWeight.EXTRA_BOLD }
+                        hbox {
+                            label("${it.name} (${controller.playerPointsMap[it.id]})" + if (controller.activePlayerID == it.id) " <${controller.currentRoundPlayerPoints}>" else "") {
+                                if (it.id == controller.activePlayerID) style { fontWeight = FontWeight.EXTRA_BOLD }
+                            }
+                            if (it.disconnected) label("disconnected") { style { fontWeight = FontWeight.EXTRA_BOLD } }
+                            if (controller.playerIdsWhoAcceptedWords.contains(it.id)) label("Accepted words")
                         }
-                        if (it.disconnected) label("disconnected") { style { fontWeight = FontWeight.EXTRA_BOLD } }
-                        if (controller.playerIdsWhoAcceptedWords.contains(it.id)) label("Accepted words!!!")
                     }
                     label(if (controller.activePlayerID == Network.User.id) "It's your turn" else "It is not your turn") {
                         style {
@@ -98,6 +121,9 @@ class GameView : View() {
 
         finishButton = button("Finish round") {
             visibleProperty().set(controller.activePlayerID == Network.User.id)
+            subscribe<PlayerStateChangedEvent> {
+                visibleProperty().set(controller.activePlayerID == Network.User.id)
+            }
             action {
                 controller.onFinishRoundButtonClicked()
             }
@@ -134,7 +160,6 @@ class GameView : View() {
             this.add(tv)
         }
         tileViews[tile.column]!![tile.row] = tv
-        logger.info { "Refreshing at c${tile.column}#r${tile.row} " }
         affectedTileCoordinates.add(Pair(tile.column, tile.row))
     }
 

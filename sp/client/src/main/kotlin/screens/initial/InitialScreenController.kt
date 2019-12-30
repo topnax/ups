@@ -6,7 +6,8 @@ import mu.KotlinLogging
 import networking.ConnectionStatusListener
 import networking.Network
 import networking.messages.*
-import screens.game.GameStartedEvent
+import screens.ServerRestartedEvent
+import screens.ServerRestartedUnauthorizedEvent
 import screens.game.GameStateRegenerationEvent
 import screens.game.GameView
 import screens.mainmenu.MainMenuView
@@ -16,10 +17,13 @@ val logger = KotlinLogging.logger { }
 
 class InitialScreenController : Controller(), ConnectionStatusListener {
 
-    lateinit var initialScreen: InitialScreen
+    lateinit var initialScreenView: InitialScreenView
 
-    fun init(mainMenuView: InitialScreen) {
-        this.initialScreen = mainMenuView
+    init {
+    }
+
+    fun init(mainMenuView: InitialScreenView) {
+        this.initialScreenView = mainMenuView
         mainMenuView.primaryStage.setOnCloseRequest {
             alert(Alert.AlertType.INFORMATION, "Primary stage closing")
             logger.debug { "Primary stage closing" }
@@ -30,38 +34,45 @@ class InitialScreenController : Controller(), ConnectionStatusListener {
     }
 
     internal fun onGameStateRegeneration(message: GameStateRegenerationResponse) {
-        initialScreen.replaceWith<GameView>()
+        initialScreenView.replaceWith<GameView>()
         fire(GameStateRegenerationEvent(message))
     }
 
     override fun onConnected() {
         Platform.runLater {
-            initialScreen.setNetworkElementsEnabled(true)
-            initialScreen.serverMenu.text = "Connected to ${Network.getInstance().tcpLayer?.hostname}"
+            initialScreenView.setNetworkElementsEnabled(true)
+            initialScreenView.serverMenu.disableProperty().set(false)
+            initialScreenView.serverMenu.text = "Connected to ${Network.getInstance().tcpLayer?.hostname}"
         }
     }
 
     override fun onUnreachable() {
         Platform.runLater {
-            initialScreen.setNetworkElementsEnabled(true)
-            initialScreen.serverMenu.text = "${Network.getInstance().tcpLayer?.hostname} is unreachable"
+            initialScreenView.setNetworkElementsEnabled(false)
+            initialScreenView.serverMenu.disableProperty().set(false)
+            initialScreenView.serverMenu.text = "${Network.getInstance().tcpLayer?.hostname} is unreachable"
         }
     }
 
     override fun onFailedAttempt(attempt: Int) {
         Platform.runLater {
-            initialScreen.serverMenu.text = "${Network.getInstance().tcpLayer?.hostname} did not respond. Attempt $attempt"
+            initialScreenView.setNetworkElementsEnabled(false)
+            initialScreenView.serverMenu.disableProperty().set(true)
+            initialScreenView.serverMenu.text = "${Network.getInstance().tcpLayer?.hostname} did not respond. Attempt $attempt"
         }
     }
 
+    override fun onReconnected() {
+
+    }
 
     fun connectTo(hostname: String, port: Int) {
-        initialScreen.setNetworkElementsEnabled(false)
+        initialScreenView.setNetworkElementsEnabled(false)
         Network.getInstance().connectTo(hostname, port)
     }
 
     private fun validateName(): Boolean {
-        if (initialScreen.nameTextField.text.trim().isNotEmpty()) {
+        if (initialScreenView.nameTextField.text.trim().isNotEmpty()) {
             return true
         }
         alert(Alert.AlertType.ERROR, "Error", "Name must be of non-zero length")
@@ -70,13 +81,16 @@ class InitialScreenController : Controller(), ConnectionStatusListener {
 
     fun onJoinButtonPressed() {
         if (validateName()) {
-            Network.getInstance().send(UserAuthenticationMessage(initialScreen.nameTextField.text), { am: ApplicationMessage ->
+            Network.getInstance().send(UserAuthenticationMessage(initialScreenView.nameTextField.text), { am: ApplicationMessage ->
                 Platform.runLater {
                     if (am is UserAuthenticatedResponse) {
                         Network.User = am.user
-                        initialScreen.replaceWith<MainMenuView>()
+                        Network.authorized = true
+                        initialScreenView.replaceWith<MainMenuView>()
+
                     } else if (am is GameStateRegenerationResponse) {
                         Network.User = am.user
+                        Network.authorized = true
                         onGameStateRegeneration(am)
                     }
                 }

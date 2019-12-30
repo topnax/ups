@@ -7,14 +7,20 @@ import model.game.Letter
 import model.game.Tile
 import model.lobby.Player
 import mu.KotlinLogging
+import networking.ConnectionStatusListener
 import networking.Network
 import networking.messages.*
+import screens.DisconnectedEvent
+import screens.ServerRestartedEvent
+import screens.ServerRestartedUnauthorizedEvent
+import screens.disconnected.DisconnectedScreenView
+import screens.initial.InitialScreenView
 import screens.mainmenu.MainMenuView
 import tornadofx.*
 
 private val logger = KotlinLogging.logger { }
 
-class GameScreenController : Controller() {
+class GameScreenController : Controller(), ConnectionStatusListener {
 
     val previouslyUpdatedTiles = mutableListOf<Tile>()
 
@@ -42,7 +48,7 @@ class GameScreenController : Controller() {
 
     val playerPointsMap = mutableMapOf<Int, Int>()
 
-    fun init(gameView: GameView) {
+    fun  init(gameView: GameView) {
         this.gameView = gameView
     }
 
@@ -57,6 +63,7 @@ class GameScreenController : Controller() {
         Network.getInstance().addMessageListener(::onPlayerDeclinedWordsResponse)
         Network.getInstance().addMessageListener(::onGameEndedResponse)
         Network.getInstance().addMessageListener(::onPlayerConnectionChangedResponse)
+        Network.getInstance().addMessageListener(::onGameStateRegenerationResponse)
         reset()
     }
 
@@ -71,6 +78,7 @@ class GameScreenController : Controller() {
         Network.getInstance().removeMessageListener(::onPlayerDeclinedWordsResponse)
         Network.getInstance().removeMessageListener(::onGameEndedResponse)
         Network.getInstance().removeMessageListener(::onPlayerConnectionChangedResponse)
+        Network.getInstance().removeMessageListener(::onGameStateRegenerationResponse)
     }
 
     private fun reset() {
@@ -82,6 +90,10 @@ class GameScreenController : Controller() {
         wordsAccepted = false
         playerIdsWhoAcceptedWords.clear()
         playerPointsMap.clear()
+    }
+
+    fun onGameStateRegenerationResponse(response: GameStateRegenerationResponse) {
+        fire(GameStateRegenerationEvent(response))
     }
 
     fun onGameEndedResponse(response: GameEndedResponse) {
@@ -247,20 +259,37 @@ class GameScreenController : Controller() {
     init {
         players.forEach { playerPointsMap[it.id] = 0 }
 
-        subscribe<GameStartedEvent> {;
+        subscribe<DisconnectedEvent> {
+            Platform.runLater {
+                gameView.replaceWith<DisconnectedScreenView>()
+            }
+        }
+
+        subscribe<GameStartedEvent> {
             fire(NewLetterSackEvent(it.message.letters))
             activePlayerID = it.message.activePlayerId
             players = it.message.players
+            wordsAccepted = false
+            roundFinished = false
+            selectedTile = null
+            playerIdsWhoAcceptedWords.clear()
+
+            logger.info { "activePlayerID=$activePlayerID, networkUserId=${Network.User.id}" }
             players.forEach { playerPointsMap[it.id] = 0 }
             fire(PlayerStateChangedEvent())
         }
 
         subscribe<GameStateRegenerationEvent> {
+            logger.warn { "Inside GameScreenController state regen" }
             activePlayerID = it.response.activePlayerId
             currentRoundPlayerPoints = it.response.currentPlayerPoints
             playerIdsWhoAcceptedWords.addAll(it.response.playerIdsThatAccepted)
-            playerPointsMap.putAll(it.response.playerPoints.map { it.value.id to it.key.toInt() })
+            if (playerIdsWhoAcceptedWords.contains(Network.User.id)) {
+                wordsAccepted = true
+            }
             players = it.response.players
+            players.forEach { playerPointsMap[it.id] = 0 }
+            playerPointsMap.putAll(it.response.playerPoints.map { it.value.id to it.key.toInt() })
             roundFinished = it.response.roundFinished
 
             playerPointsMap[activePlayerID]?.let {
@@ -271,6 +300,8 @@ class GameScreenController : Controller() {
                 desk.tiles[tile.row][tile.column] = tile
                 if (!tile.set) {
                     desk.tiles[tile.row][tile.column].letter = null
+                } else {
+                    logger.warn { "Setting a letter at ${tile.row} and c ${tile.column}" }
                 }
                 fire(DeskChange(desk.tiles[tile.row][tile.column]))
             }
@@ -355,6 +386,45 @@ class GameScreenController : Controller() {
                 alert(Alert.AlertType.ERROR, "It is not your turn")
             }
         }
+
+        Network.getInstance().connectionStatusListeners.add(this)
+    }
+
+    override fun onConnected() {
+        fire(ConnectionStateChanged(true))
+    }
+
+    override fun onUnreachable() {
+        fire(ConnectionStateChanged(false))
+    }
+
+    override fun onFailedAttempt(attempt: Int) {
+        fire(ConnectionStateChanged(false))
+    }
+
+    override fun onReconnected() {
+        fire(ConnectionStateChanged(true))
+    }
+
+    private fun resetDesk() {
+        for (row in desk.tiles) {
+            for (tile in row) {
+                tile.highlighted = false
+                tile.letter = null
+                tile.set = false
+                fire(DeskChange(tile))
+            }
+        }
+    }
+
+    fun leaveGame() {
+        Network.getInstance().send(LeaveGame(), {
+            if (it is SuccessResponseMessage) {
+                Platform.runLater {
+                    gameView.replaceWith<MainMenuView>()
+                }
+            }
+        })
     }
 }
 
@@ -375,4 +445,6 @@ class GameStartedEvent(val message: GameStartedResponse) : FXEvent(EventBus.RunO
 class RoundFinishedEvent() : FXEvent(EventBus.RunOn.BackgroundThread)
 
 class GameStateRegenerationEvent(val response: GameStateRegenerationResponse) : FXEvent(EventBus.RunOn.BackgroundThread)
+
+class ConnectionStateChanged(val connected: Boolean) : FXEvent(EventBus.RunOn.BackgroundThread)
 

@@ -16,7 +16,7 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
 
     companion object {
         val NUMBER_OF_ATTEMPTS = 4
-        val DELAY_BETWEEN_ATTEMPTS = 2000L
+        val DELAY_BETWEEN_ATTEMPTS = 3000L
     }
 
     var socket: Socket? = null
@@ -28,6 +28,10 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
     private var run = true
 
     override fun run() {
+        connect()
+    }
+
+    public fun connect() {
         logger.info { "Opening a socket at $hostname using port $port" }
         for (i in 0..NUMBER_OF_ATTEMPTS) {
             try {
@@ -71,7 +75,6 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
                     }
 
                     message?.let {
-                        logger.info { "received from server bytes'${serverMessage}' of length $len" }
                         logger.info { "received from server str'$it' of length $len" }
                         messageReceiver.receive(serverMessage, len)
                     }
@@ -80,7 +83,6 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
                 logger.info { "read loop stopped" }
             } catch (e: IOException) {
                 logger.error(e) { "a socket has raised exception" }
-                connectionStatusListener.onUnreachable()
             } finally {
                 close()
             }

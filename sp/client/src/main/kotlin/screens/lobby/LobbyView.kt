@@ -9,6 +9,8 @@ import model.lobby.Lobby
 import model.lobby.Player
 import networking.Network
 import networking.messages.*
+import screens.DisconnectedEvent
+import screens.disconnected.DisconnectedScreenView
 import screens.game.GameStartedEvent
 import screens.game.GameView
 import screens.mainmenu.MainMenuView
@@ -26,6 +28,14 @@ class LobbyView : View() {
 
     val lobby: Lobby by param(Lobby(listOf(), -1, Player("", -1, false)))
     val player: Player by param(Player("", -1, false))
+
+    init {
+        subscribe<DisconnectedEvent> {
+            Platform.runLater {
+                replaceWith<DisconnectedScreenView>()
+            }
+        }
+    }
 
     private fun onLobbyUpdated(message: LobbyUpdatedResponse) {
         Platform.runLater {

@@ -9,6 +9,11 @@ import mu.KotlinLogging
 import networking.ConnectionStatusListener
 import networking.Network
 import networking.messages.*
+import screens.DisconnectedEvent
+import screens.ServerRestartedEvent
+import screens.ServerRestartedUnauthorizedEvent
+import screens.disconnected.DisconnectedScreenView
+import screens.initial.InitialScreenView
 import screens.lobby.LobbyView
 import tornadofx.Controller
 import tornadofx.observableList
@@ -21,6 +26,14 @@ class MainMenuController : Controller(), ConnectionStatusListener {
 
     var lobbyViewModels: ObservableList<LobbyViewModel> = observableList()
 
+    init {
+        subscribe<DisconnectedEvent> {
+            Platform.runLater {
+                mainMenuView.replaceWith<DisconnectedScreenView>()
+            }
+        }
+    }
+
     fun init(mainMenuView: MainMenuView) {
         this.mainMenuView = mainMenuView
 
@@ -28,10 +41,13 @@ class MainMenuController : Controller(), ConnectionStatusListener {
 
     }
 
+    override fun onReconnected() {
+
+    }
+
     override fun onConnected() {
         Platform.runLater {
             mainMenuView.setNetworkElementsEnabled(true)
-            mainMenuView.serverMenu.text = "Connected to ${Network.getInstance().tcpLayer?.hostname}"
         }
         refreshLobbies()
     }
@@ -39,13 +55,11 @@ class MainMenuController : Controller(), ConnectionStatusListener {
     override fun onUnreachable() {
         Platform.runLater {
             mainMenuView.setNetworkElementsEnabled(true)
-            mainMenuView.serverMenu.text = "${Network.getInstance().tcpLayer?.hostname} is unreachable"
         }
     }
 
     override fun onFailedAttempt(attempt: Int) {
         Platform.runLater {
-            mainMenuView.serverMenu.text = "${Network.getInstance().tcpLayer?.hostname} did not respond. Attempt $attempt"
         }
     }
 
@@ -76,7 +90,7 @@ class MainMenuController : Controller(), ConnectionStatusListener {
                 }
             }
 
-        })
+        }, ignoreErrors = true)
     }
 
     fun updateLobbiesTable(lobbies: List<Lobby>) {

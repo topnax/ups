@@ -5,15 +5,14 @@ import javafx.beans.property.SimpleStringProperty
 import javafx.scene.control.Button
 import javafx.scene.control.MenuItem
 import javafx.scene.control.TextField
-import networking.Network
 
 import tornadofx.*
 
-class InitialScreen : View() {
+class InitialScreenView : View() {
 
 
     fun setNetworkElementsEnabled(b: Boolean) {
-        serverMenu.disableProperty().set(!b)
+        joinButton.disableProperty().set(!b)
     }
 
     lateinit var serverMenu: MenuItem
@@ -33,10 +32,6 @@ class InitialScreen : View() {
                     }
                 }
             }
-            menu("Options") {
-                item("Change foo")
-                item("Change bar")
-            }
         }
 
         center = vbox(spacing = 10.0) {
@@ -55,7 +50,7 @@ class InitialScreen : View() {
 
             }
         }
-        controller.init(this@InitialScreen)
+        controller.init(this@InitialScreenView)
     }
 
     override fun onUndock() {

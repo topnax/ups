@@ -8,6 +8,7 @@ import javafx.scene.layout.Priority
 import model.lobby.LobbyViewModel
 import networking.Network
 import networking.messages.GetLobbiesResponse
+import screens.UserAuthenticatedEvent
 import tornadofx.*
 import java.util.*
 import kotlin.concurrent.schedule
@@ -19,7 +20,6 @@ class MainMenuView : View() {
     }
 
     private lateinit var createLobbyButton: Button
-    lateinit var serverMenu: MenuItem
 
     val controller: MainMenuController by inject()
 
@@ -38,7 +38,11 @@ class MainMenuView : View() {
                     controller.refreshLobbies()
                 }
 
-                label (Network.User.name)
+                val nameLabel = label(Network.User.name)
+
+                subscribe<UserAuthenticatedEvent> {
+                    nameLabel.text = it.name
+                }
             }
 
             tableview(controller.lobbyViewModels) {
