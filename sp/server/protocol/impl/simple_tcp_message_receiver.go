@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	StartChar = '$'
-	Separator = "#"
+	StartChar               = '$'
+	Separator               = "#"
+	InvalidByteCountCeiling = 5
 )
 
 type SimpleTcpMessageReceiver struct {
@@ -19,16 +20,37 @@ type SimpleTcpMessageReceiver struct {
 	buffers        map[int]*SimpleTcpMessageBuffer
 	messageReader  def.MessageReader
 	responseSender def.MessageSender
+	fdRemover      def.FileDescriptorRemover
 }
 
 type SimpleTcpMessageBuffer struct {
-	State         int
-	ClientUID     int
-	Length        int
-	MessageType   int
-	headerBuffer  []byte
-	contentBuffer []byte
-	MessageId     int
+	State            int
+	ClientUID        int
+	Length           int
+	MessageType      int
+	headerBuffer     []byte
+	contentBuffer    []byte
+	MessageId        int
+	InvalidByteCount int
+	Closed           bool
+}
+
+func (buffer *SimpleTcpMessageBuffer) invalidByte(receiver *SimpleTcpMessageReceiver) {
+	if !buffer.Closed {
+		buffer.InvalidByteCount++
+		log.Warnf("Buffer of FD=%d received an invalid byte", buffer.ClientUID)
+		if buffer.InvalidByteCount >= InvalidByteCountCeiling {
+			buffer.Closed = true
+			delete(receiver.buffers, buffer.ClientUID)
+			log.Errorf("Connection to FD=%d is being closed because it's buffer received %d invalid bytes.", buffer.ClientUID, buffer.InvalidByteCount)
+			if receiver.fdRemover != nil {
+				receiver.fdRemover.RemoveFd(buffer.ClientUID)
+			}
+		}
+	}
+}
+func (buffer *SimpleTcpMessageBuffer) validByte() {
+	buffer.InvalidByteCount = 0
 }
 
 type SimpleMessage struct {
@@ -91,86 +113,115 @@ func (s *SimpleTcpMessageReceiver) Receive(UID int, bytes []byte, length int) {
 		case 1:
 			if char == StartChar {
 				buffer.State = 2
+				buffer.validByte()
+			} else {
+				buffer.invalidByte(s)
 			}
 		case 2:
 			buffer.headerBuffer = []byte{}
 			if unicode.IsDigit(char) {
 				buffer.headerBuffer = append(buffer.headerBuffer, b)
 				buffer.State = 3
+				buffer.validByte()
 			} else if char == StartChar {
 				buffer.State = 2
+				buffer.invalidByte(s)
 			} else {
 				buffer.State = 1
+				buffer.invalidByte(s)
 			}
 		case 3:
 			if unicode.IsDigit(char) {
 				buffer.headerBuffer = append(buffer.headerBuffer, b)
 				buffer.State = 3
+				buffer.validByte()
 			} else if string(b) == Separator {
 				length, _ := strconv.Atoi(string(buffer.headerBuffer))
 				buffer.Length = length
 				buffer.State = 4
+				buffer.validByte()
 			} else if char == StartChar {
 				buffer.State = 2
+				buffer.invalidByte(s)
 			} else {
 				buffer.State = 1
+				buffer.invalidByte(s)
 			}
 		case 4:
 			buffer.headerBuffer = []byte{}
 			if unicode.IsDigit(char) {
 				buffer.headerBuffer = append(buffer.headerBuffer, b)
 				buffer.State = 5
+				buffer.validByte()
 			} else if char == StartChar {
 				buffer.State = 2
+				buffer.invalidByte(s)
 			} else {
 				buffer.State = 1
+				buffer.invalidByte(s)
 			}
 		case 5:
 			if unicode.IsDigit(char) {
 				buffer.headerBuffer = append(buffer.headerBuffer, b)
 				buffer.State = 5
+				buffer.validByte()
 			} else if string(b) == Separator {
 				messageType, _ := strconv.Atoi(string(buffer.headerBuffer))
 				buffer.MessageType = messageType
 				buffer.State = 6
+				buffer.validByte()
 			} else if char == StartChar {
 				buffer.State = 2
+				buffer.invalidByte(s)
 			} else {
 				buffer.State = 1
+				buffer.invalidByte(s)
 			}
 		case 6:
 			buffer.headerBuffer = []byte{}
 			if unicode.IsDigit(char) {
 				buffer.headerBuffer = append(buffer.headerBuffer, b)
 				buffer.State = 7
+				buffer.validByte()
 			} else if char == StartChar {
 				buffer.State = 2
+				buffer.invalidByte(s)
 			} else {
 				buffer.State = 1
+				buffer.invalidByte(s)
 			}
 		case 7:
 			if unicode.IsDigit(char) {
 				buffer.headerBuffer = append(buffer.headerBuffer, b)
 				buffer.State = 7
+				buffer.validByte()
 			} else if string(b) == Separator {
 				messageId, _ := strconv.Atoi(string(buffer.headerBuffer))
 				buffer.MessageId = messageId
 				buffer.contentBuffer = []byte{}
 				buffer.State = 8
+				buffer.validByte()
 			} else if char == StartChar {
 				buffer.State = 2
+				buffer.invalidByte(s)
 			} else {
 				buffer.State = 1
+				buffer.invalidByte(s)
 			}
 		case 8:
 			if !IsNextByteEscaped(buffer.contentBuffer) && char == StartChar {
 				buffer.State = 2
+				buffer.invalidByte(s)
 			} else {
 				buffer.contentBuffer = append(buffer.contentBuffer, b)
 				if len(buffer.contentBuffer) == buffer.Length {
+					buffer.validByte()
 					s.clearBuffer(buffer)
+				} else if len(buffer.contentBuffer) > buffer.Length {
+					buffer.invalidByte(s)
 				} else {
 					buffer.State = 8
+					buffer.validByte()
 				}
 			}
 		}
@@ -178,6 +229,12 @@ func (s *SimpleTcpMessageReceiver) Receive(UID int, bytes []byte, length int) {
 }
 
 func (s *SimpleTcpMessageReceiver) clearBuffer(buffer *SimpleTcpMessageBuffer) {
+
+	if buffer.Closed {
+		log.Warnf("Buffer of FD=%d not cleared, because it got closed")
+		return
+	}
+
 	logLevel := log.GetLevel()
 	if buffer.MessageType == 15 {
 		log.SetLevel(log.ErrorLevel)
@@ -225,6 +282,10 @@ func IsNextByteEscaped(bytes []byte) bool {
 
 func (receiver *SimpleTcpMessageReceiver) SetMessageReader(reader def.MessageReader) {
 	receiver.messageReader = reader
+}
+
+func (receiver *SimpleTcpMessageReceiver) SetFileDescriptorRemover(remover def.FileDescriptorRemover) {
+	receiver.fdRemover = remover
 }
 
 func (receiver *SimpleTcpMessageReceiver) SetOutput(output def.MessageSender) {

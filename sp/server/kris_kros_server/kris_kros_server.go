@@ -69,7 +69,7 @@ func NewKrisKrosServer(sender def.ResponseSender) KrisKrosServer {
 					if lastKeepAlive.Add(2000 * time.Millisecond).Before(time.Now()) {
 						if exists {
 							log.Warnf("User of ID=%d and SOCKET=%d disconnected via KEEP_ALIVE", userID, socket)
-							kks.OnClientDisconnected(socket)
+							kks.OnClientDisconnected(socket, false)
 							socketsThatDisconnected = append(socketsThatDisconnected, socket)
 						}
 					} else {
@@ -221,7 +221,7 @@ func (k *KrisKrosServer) ClientDisconnected(socket int) {
 	k.userLastKeepAliveMutex.Lock()
 	delete(k.userLastKeepAlive, socket)
 	k.userLastKeepAliveMutex.Unlock()
-	k.OnClientDisconnected(socket)
+	k.OnClientDisconnected(socket, false)
 }
 
 func (k *KrisKrosServer) ClientConnected(socket int) {
@@ -421,7 +421,7 @@ func (k *KrisKrosServer) OnUserAuthenticate(clientUID int, message messages.User
 	}
 }
 
-func (k *KrisKrosServer) OnClientDisconnected(clientUID int) {
+func (k *KrisKrosServer) OnClientDisconnected(clientUID int, leaving bool) {
 	userID, exists := k.Router.SocketToUserID[clientUID]
 	log.Warnf("User of Socket ID %d has disconnected\n", clientUID)
 	if exists {
@@ -439,7 +439,7 @@ func (k *KrisKrosServer) OnClientDisconnected(clientUID int) {
 					delete(k.Router.UserStates, user.ID)
 					log.Infof("Deleting a player of name %s", user.Name)
 				} else if state.Id() >= GAME_STARTED_STATE_ID && state.Id() <= WORDS_VALIDITY_DECIDED_STATE_ID {
-					k.gameServer.PlayerLeft(userID, state.Id(), false)
+					k.gameServer.PlayerLeft(userID, state.Id(), leaving)
 				} else {
 					// TODO
 				}
@@ -448,14 +448,12 @@ func (k *KrisKrosServer) OnClientDisconnected(clientUID int) {
 	}
 }
 
-func (k *KrisKrosServer) OnUserDisconnecting(clientUID int) {
-	userID, exists := k.Router.SocketToUserID[clientUID]
-	log.Warnf("User of Socket ID %d has disconnected\n", clientUID)
+func (k *KrisKrosServer) OnUserDisconnecting(userID int) {
+	user, exists := k.usersById[userID]
 	if exists {
-		log.Warnf("Deleting a socket %d and %d from UserIDToSocket map", clientUID, userID)
-		user, exists := k.usersById[userID]
+		socket, exists := k.Router.UserIDToSocket[userID]
 		if exists {
-			k.OnClientDisconnected(clientUID)
+			k.OnClientDisconnected(socket, true)
 			delete(k.usersById, userID)
 			delete(k.usersByName, user.Name)
 			delete(k.Router.UserStates, user.ID)

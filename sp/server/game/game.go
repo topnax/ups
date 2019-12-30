@@ -130,30 +130,6 @@ func (game *Game) AddPlayer(name string) {
 	}
 }
 
-func (game *Game) Print() {
-	fmt.Println("Game status:")
-	fmt.Println("Round:", game.Round)
-	fmt.Println("Players:")
-	//for _, player := range game.Players {
-	//if player == game.CurrentPlayer {
-	//	fmt.Printf("> #%v  %s\n", player.ID, player.Name)
-	//} else {
-	//	fmt.Printf("#%v  %s\n", player.ID, player.Name)
-	//}
-
-	//}
-
-	game.Desk.Print()
-	game.Desk.GetTotalPoints()
-	//game.Next()
-	//
-	//game.PrintPoints()
-
-	fmt.Println()
-	fmt.Println()
-	fmt.Println()
-}
-
 func (game *Game) Next() {
 
 	game.PointsTable[game.CurrentPlayer.ID] += game.Desk.GetTotalPoints()
@@ -210,12 +186,6 @@ func (game *Game) HandleResetAtEvent(event ResetAtEvent) error {
 	}
 
 	return err
-}
-
-func (game Game) PrintPoints() {
-	for _, player := range game.Players {
-		fmt.Println(player.Name, "has", game.PointsTable[player.ID], "points")
-	}
 }
 
 func (game *Game) WordsDeclined() {

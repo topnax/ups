@@ -107,6 +107,12 @@ func (server *Server) addClient(fd int) Client {
 	return client
 }
 
+func (server *Server) RemoveFd(fd int) {
+	log.Warnf("Removing FD=%d", fd)
+	delete(server.Clients, fd)
+	_ = syscall.Close(fd)
+}
+
 func (server *Server) Start(receiver def.TcpMessageReceiver) {
 
 	readfds := syscall.FdSet{}
