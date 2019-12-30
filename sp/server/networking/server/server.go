@@ -40,10 +40,15 @@ type Server struct {
 	Port                         int
 	Clients                      map[int]Client
 	onClientDisconnectedListener OnClientDisconnectedListener
+	onClientConnectedListener    OnClientConnectedListener
 }
 
 type OnClientDisconnectedListener interface {
-	ClientDisconnected(clientUID int)
+	ClientDisconnected(socket int)
+}
+
+type OnClientConnectedListener interface {
+	ClientConnected(socket int)
 }
 
 func NewServer(addr syscall.SockaddrInet4) (Server, error) {
@@ -85,6 +90,7 @@ func NewServer(addr syscall.SockaddrInet4) (Server, error) {
 }
 
 func (server *Server) Send(content string, clientUID int) {
+	log.Debugf("Server writing to socket=%d '%s'", clientUID, content)
 	_, ok := server.Clients[clientUID]
 	if ok {
 		server.Clients[clientUID].Send(content)
@@ -151,7 +157,7 @@ func (server *Server) Start(receiver def.TcpMessageReceiver) {
 					}
 
 					if n == 0 {
-						log.Infof("Client %d of ID %d disconnected ",
+						log.Debugf("Client %d of ID %d disconnected on select level",
 							client.Fd,
 							client.UID,
 						)
@@ -171,13 +177,9 @@ func (server *Server) Start(receiver def.TcpMessageReceiver) {
 
 func (server *Server) removeClient(fd int) {
 	delete(server.Clients, fd)
-	log.Info("Inside server remove client")
-	if server.onClientDisconnectedListener != nil {
-		log.Info("Into listener!")
-		server.onClientDisconnectedListener.ClientDisconnected(fd)
-	} else {
-		log.Info("Could not find listener")
-	}
+	//if server.onClientDisconnectedListener != nil {
+	//	server.onClientDisconnectedListener.ClientDisconnected(fd)
+	//}
 }
 
 func (server *Server) acceptClient() (Client, error) {
@@ -193,6 +195,10 @@ func (server *Server) acceptClient() (Client, error) {
 
 func (server *Server) SetOnClientDisconnectedListener(listener OnClientDisconnectedListener) {
 	server.onClientDisconnectedListener = listener
+}
+
+func (server *Server) SetOnClientConnectedListener(listener OnClientConnectedListener) {
+	server.onClientConnectedListener = listener
 }
 
 func FD_SET(p *syscall.FdSet, fd int) {

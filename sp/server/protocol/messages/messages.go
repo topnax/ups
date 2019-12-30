@@ -20,6 +20,8 @@ const (
 	FinishRoundMessageType        = 12
 	ApproveWordsMessageType       = 13
 	DeclineWordsMessageType       = 14
+	KeepAliveMessageType          = 15
+	LeaveGameMessageType          = 16
 )
 
 type PlayerJoinedMessage struct{}
@@ -116,7 +118,8 @@ func (p PlayerReadyToggle) GetType() int {
 ////////////////////////////////////////////
 
 type UserAuthenticationMessage struct {
-	Name string `json:"name"`
+	Name         string `json:"name"`
+	Reconnecting bool   `json:"reconnecting"`
 }
 
 func (p UserAuthenticationMessage) Handle(message def.Message, amr def.ApplicationMessageReader) def.Response {
@@ -228,4 +231,28 @@ func (p DeclineWordsMessage) Handle(message def.Message, amr def.ApplicationMess
 
 func (p DeclineWordsMessage) GetType() int {
 	return DeclineWordsMessageType
+}
+
+////////////////////////////////////////////
+
+type KeepAliveMessage struct{}
+
+func (p KeepAliveMessage) Handle(message def.Message, amr def.ApplicationMessageReader) def.Response {
+	return amr.Read(p, message.ClientID())
+}
+
+func (p KeepAliveMessage) GetType() int {
+	return KeepAliveMessageType
+}
+
+////////////////////////////////////////////
+
+type LeaveGameMessage struct{}
+
+func (p LeaveGameMessage) Handle(message def.Message, amr def.ApplicationMessageReader) def.Response {
+	return amr.Read(p, message.ClientID())
+}
+
+func (p LeaveGameMessage) GetType() int {
+	return LeaveGameMessageType
 }

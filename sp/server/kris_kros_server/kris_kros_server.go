@@ -4,6 +4,8 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"strings"
+	"sync"
+	"time"
 	"ups/sp/server/game"
 	"ups/sp/server/model"
 	"ups/sp/server/protocol/def"
@@ -27,6 +29,9 @@ type KrisKrosServer struct {
 	lobbiesByOwnerID  map[int]*model.Lobby
 	lobbiesByPlayerID map[int]*model.Lobby
 
+	userLastKeepAlive      map[int]time.Time
+	userLastKeepAliveMutex *sync.Mutex
+
 	gameServer *GameServer
 }
 
@@ -36,20 +41,59 @@ func failedToCast(message def.MessageHandler) def.Response {
 
 func NewKrisKrosServer(sender def.ResponseSender) KrisKrosServer {
 	kks := KrisKrosServer{
-		lobbies:           make(map[int]*model.Lobby),
-		lobbiesByOwnerID:  make(map[int]*model.Lobby),
-		lobbiesByPlayerID: make(map[int]*model.Lobby),
-		usersById:         make(map[int]*model.User),
-		usersByName:       make(map[string]*model.User),
+		lobbies:                make(map[int]*model.Lobby),
+		lobbiesByOwnerID:       make(map[int]*model.Lobby),
+		lobbiesByPlayerID:      make(map[int]*model.Lobby),
+		usersById:              make(map[int]*model.User),
+		usersByName:            make(map[string]*model.User),
+		userLastKeepAlive:      make(map[int]time.Time),
+		userLastKeepAliveMutex: &sync.Mutex{},
 	}
 	kks.gameServer = NewGameServer(&kks)
 	kks.Router = newKrisKrosRouter(&kks)
 	kks.sender = sender
+
+	ticker := time.NewTicker(3000 * time.Millisecond)
+	done := make(chan bool)
+
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case _ = <-ticker.C:
+				kks.userLastKeepAliveMutex.Lock()
+				socketsThatDisconnected := []int{}
+				for socket, lastKeepAlive := range kks.userLastKeepAlive {
+					userID, exists := kks.Router.SocketToUserID[socket]
+					if lastKeepAlive.Add(2000 * time.Millisecond).Before(time.Now()) {
+						if exists {
+							log.Warnf("User of ID=%d and SOCKET=%d disconnected via KEEP_ALIVE", userID, socket)
+							kks.OnClientDisconnected(socket)
+							socketsThatDisconnected = append(socketsThatDisconnected, socket)
+						}
+					} else {
+						log.Debugf("User of ID=%d and SOCKET=%d is OK", userID, socket)
+					}
+
+				}
+
+				for _, socket := range socketsThatDisconnected {
+					delete(kks.userLastKeepAlive, socket)
+				}
+
+				kks.userLastKeepAliveMutex.Unlock()
+			}
+		}
+	}()
+
 	return kks
 }
 
 func (k KrisKrosServer) Read(message def.MessageHandler, clientUID int) def.Response {
+	k.Router.RouteMutex.Lock()
 	res := k.Router.route(message, clientUID)
+	k.Router.RouteMutex.Unlock()
 	if res != nil {
 		log.Infoln("Server returning: ", res.Content())
 	} else {
@@ -72,9 +116,12 @@ func (k KrisKrosServer) SendToPlayersOfState(response def.Response, targetStateI
 
 	if exists {
 		for userID, state := range k.Router.UserStates {
-			if state.Id() == targetStateID && userID != userToBeIgnoredID {
-				log.Debugf("SendToPlayersOfState targetStateID=%d sending to player of ID=%d", targetStateID, userID)
-				k.Send(response, userID, responseId)
+			_, exists = k.Router.UserIDToSocket[userID]
+			if exists {
+				if state.Id() == targetStateID && userID != userToBeIgnoredID {
+					log.Debugf("SendToPlayersOfState targetStateID=%d sending to player of ID=%d", targetStateID, userID)
+					k.Send(response, userID, responseId)
+				}
 			}
 		}
 	} else {
@@ -171,7 +218,15 @@ func (k *KrisKrosServer) OnGetLobbies(message messages.GetLobbiesMessage, user m
 }
 
 func (k *KrisKrosServer) ClientDisconnected(socket int) {
+	k.userLastKeepAliveMutex.Lock()
+	delete(k.userLastKeepAlive, socket)
+	k.userLastKeepAliveMutex.Unlock()
 	k.OnClientDisconnected(socket)
+}
+
+func (k *KrisKrosServer) ClientConnected(socket int) {
+	//k.userLastKeepAliveMutex.Lock()
+	//k.userLastKeepAliveMutex.Unlock()
 }
 
 func (k *KrisKrosServer) removeClientFromLobby(userID int) bool {
@@ -312,12 +367,21 @@ func (k *KrisKrosServer) OnUserAuthenticate(clientUID int, message messages.User
 		k.Router.SocketToUserID[clientUID] = user.ID
 		k.Router.UserIDToSocket[user.ID] = clientUID
 		k.Router.UserStates[user.ID] = AuthorizedState{}
-		resp := responses.UserAuthenticatedResponse{User: *user}
-		return impl.MessageResponse(resp, resp.Type())
+		var resp responses.TypedResponse
+		if message.Reconnecting {
+			resp = responses.UserStateRegeneration{
+				State: responses.SERVER_RESTARTED,
+				User:  *user,
+			}
+		} else {
+			resp = responses.UserAuthenticatedResponse{User: *user}
+		}
+		return impl.StructMessageResponse(resp)
 	} else {
+		log.Warnf("User of socket=%d is trying go reconnect to userID=%d and username=%s", clientUID, user.ID, user.Name)
 		_, exists = k.Router.UserIDToSocket[user.ID]
 		if !exists {
-			log.Infof("An user of ID %d and name %s has reconnected via socket %d", user.ID, user.Name, clientUID)
+			log.Warnf("An user of ID %d and name %s has reconnected via socket %d", user.ID, user.Name, clientUID)
 			k.Router.SocketToUserID[clientUID] = user.ID
 			k.Router.UserIDToSocket[user.ID] = clientUID
 			resp := responses.UserAuthenticatedResponse{User: *user}
@@ -336,18 +400,32 @@ func (k *KrisKrosServer) OnUserAuthenticate(clientUID int, message messages.User
 			} else {
 				k.Router.UserStates[user.ID] = AuthorizedState{}
 			}
-			return impl.MessageResponse(resp, resp.Type())
+			if message.Reconnecting {
+				return impl.StructMessageResponse(responses.UserStateRegeneration{
+					State: responses.SERVER_RESTARTED,
+					User:  *user,
+				})
+			} else {
+				return impl.StructMessageResponse(resp)
+			}
 		}
 	}
 
-	return impl.ErrorResponse(fmt.Sprintf("User of name %s is already logged on the server under ID of %d", user.Name, user.ID), impl.PlayerNameAlreadyTaken)
+	if message.Reconnecting {
+		return impl.StructMessageResponse(responses.UserStateRegeneration{
+			State: responses.SERVER_RESTARTED_NAME_TAKEN,
+			User:  model.User{},
+		})
+	} else {
+		return impl.ErrorResponse(fmt.Sprintf("User of name %s is already logged on the server under ID of %d", user.Name, user.ID), impl.PlayerNameAlreadyTaken)
+	}
 }
 
 func (k *KrisKrosServer) OnClientDisconnected(clientUID int) {
 	userID, exists := k.Router.SocketToUserID[clientUID]
-	log.Debugf("User of Socket ID %d has disconnected\n", clientUID)
+	log.Warnf("User of Socket ID %d has disconnected\n", clientUID)
 	if exists {
-		log.Infof("Deleting a socket %d and %d from UserIDToSocket map", clientUID, userID)
+		log.Warnf("Deleting a socket %d and %d from UserIDToSocket map", clientUID, userID)
 		delete(k.Router.SocketToUserID, clientUID)
 		delete(k.Router.UserIDToSocket, userID)
 		user, exists := k.usersById[userID]
@@ -361,7 +439,7 @@ func (k *KrisKrosServer) OnClientDisconnected(clientUID int) {
 					delete(k.Router.UserStates, user.ID)
 					log.Infof("Deleting a player of name %s", user.Name)
 				} else if state.Id() >= GAME_STARTED_STATE_ID && state.Id() <= WORDS_VALIDITY_DECIDED_STATE_ID {
-					k.gameServer.PlayerDisconnected(userID, state.Id())
+					k.gameServer.PlayerLeft(userID, state.Id(), false)
 				} else {
 					// TODO
 				}
@@ -372,15 +450,21 @@ func (k *KrisKrosServer) OnClientDisconnected(clientUID int) {
 
 func (k *KrisKrosServer) OnUserDisconnecting(clientUID int) {
 	userID, exists := k.Router.SocketToUserID[clientUID]
-	log.Debugf("User of Socket ID %d wants to leave\n", clientUID)
+	log.Warnf("User of Socket ID %d has disconnected\n", clientUID)
 	if exists {
+		log.Warnf("Deleting a socket %d and %d from UserIDToSocket map", clientUID, userID)
 		user, exists := k.usersById[userID]
 		if exists {
+			k.OnClientDisconnected(clientUID)
 			delete(k.usersById, userID)
 			delete(k.usersByName, user.Name)
-			log.Infof("Deleting a player of name %s", user.Name)
+			delete(k.Router.UserStates, user.ID)
 		}
 	}
+}
+
+func (k *KrisKrosServer) onKeepAlive(userID int) def.Response {
+	return impl.StructMessageResponse(responses.KeepAliveResponse{})
 }
 
 //func (k *KrisKrosServer) OnGetLobbies(mes encoding.Message, clientUID int) encoding.ResponseMessage {

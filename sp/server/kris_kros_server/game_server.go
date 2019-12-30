@@ -38,6 +38,8 @@ func (server *GameServer) CreateGame(players []game.Player) {
 		return
 	}
 
+	log.Warnf("Current player name: %d %s", game.CurrentPlayer.ID, game.CurrentPlayer.Name)
+
 	for _, player := range players {
 		server.gamesByPlayerID[player.ID] = &game
 		if player.ID != game.CurrentPlayer.ID {
@@ -172,10 +174,12 @@ func (server *GameServer) OnFinishRound(userId int) def.Response {
 	if len(g.Desk.PlacedLetter.List) <= 0 {
 		g.EmptyRounds++
 		//if g.EmptyRounds == len(g.Players) {
-		if g.EmptyRounds == g.ActivePlayerCount() {
+		log.Warnf("%d and APC=%d", g.CurrentPlayer.Disconnected, g.ActivePlayerCount())
+		if g.EmptyRounds >= g.ActivePlayerCount() && !(g.CurrentPlayer.Disconnected && g.ActivePlayerCount() > 0) {
 			return server.EndGame(g, userId)
 		} else {
 			server.NextRound(g)
+			log.Warnf("Active player: %s", g.CurrentPlayer)
 			return impl.StructMessageResponse(responses.NewRoundResponse{ActivePlayerID: g.CurrentPlayer.ID})
 		}
 	} else {
@@ -190,7 +194,7 @@ func (server *GameServer) OnFinishRound(userId int) def.Response {
 			}
 		} else {
 			server.NextRound(g)
-			return impl.DoNotRespond()
+			return impl.StructMessageResponse(responses.NewRoundResponse{ActivePlayerID: g.CurrentPlayer.ID})
 		}
 	}
 
@@ -323,22 +327,24 @@ func (server *GameServer) OnDeclineWords(userId int) def.Response {
 	return impl.ErrorResponse(fmt.Sprintf("Could not find a player of ID %d", userId), impl.PlayerNotFound)
 }
 
-func (server *GameServer) PlayerDisconnected(playerID int, stateID int) {
+func (server *GameServer) PlayerLeft(playerID int, stateID int, playerLeaving bool) {
 	g, exists := server.gamesByPlayerID[playerID]
 	if exists {
 		_, exists := g.PlayersMap[playerID]
 		if exists {
 			for index, player := range g.Players {
 				if player.ID == playerID {
+					log.Warnf("Marking playerID=%d playerName=%s as disconnected", player.ID, player.Name)
 					g.Players[index].Disconnected = true
 					g.PlayersMap[playerID] = g.Players[index]
 					if g.CurrentPlayer.ID == playerID {
 						g.CurrentPlayer = g.Players[index]
+						log.Warnf("Marking CurrentPlayer playerID=%d playerName=%s as disconnected", g.CurrentPlayer.ID, g.CurrentPlayer.Name)
 					}
 					break
 				}
 			}
-
+			log.Warnf("active player count => %d", g.ActivePlayerCount())
 			if g.ActivePlayerCount() > 0 {
 				switch stateID {
 
@@ -354,6 +360,18 @@ func (server *GameServer) PlayerDisconnected(playerID int, stateID int) {
 			}
 		}
 	}
+
+	if playerLeaving {
+		leavingPlayerIndex := -1
+		for index, player := range g.Players {
+			if playerID == player.ID {
+				leavingPlayerIndex = index
+				break
+			}
+		}
+		g.Players = append(g.Players[:leavingPlayerIndex], g.Players[leavingPlayerIndex+1:]...)
+	}
+
 	for _, player := range g.Players {
 		if !player.Disconnected {
 			server.server.Send(impl.StructMessageResponse(responses.PlayerConnectionChanged{PlayerID: playerID, Disconnected: true}), player.ID, 0)
@@ -420,4 +438,15 @@ func (server *GameServer) PlayerReconnected(playerID int) def.Response {
 		server.server.Router.UserStates[playerID] = AuthorizedState{}
 		return nil
 	}
+}
+
+func (server *GameServer) OnPlayerLeavingGame(playerID int) def.Response {
+	state, exists := server.server.Router.UserStates[playerID]
+	if exists {
+		server.PlayerLeft(playerID, state.Id(), true)
+	}
+
+	delete(server.gamesByPlayerID, playerID)
+	server.server.Router.IgnoreTransitionStateChange = false
+	return impl.SuccessResponse("Successfully left the game")
 }

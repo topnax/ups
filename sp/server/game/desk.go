@@ -146,7 +146,6 @@ func (desk *Desk) GetWordAt(wordMeta WordMeta) Word {
 		}
 	}
 
-	fmt.Println(strings.Join(content[:], ""), wordMultiplicand, totalPoints)
 	totalPoints *= wordMultiplicand
 
 	return Word{
@@ -253,10 +252,8 @@ func (desk Desk) GetTotalPoints() int {
 
 	for _, word := range words {
 		points += word.Points
-		fmt.Println("Word:", word.Points, word.Content, "at", word.WordMeta.RowStart, word.WordMeta.ColumnStart, "-", word.WordMeta.RowEnd, word.WordMeta.ColumnEnd)
 	}
 
-	fmt.Println("Total points:", points)
 	return points
 
 }

@@ -1,6 +1,7 @@
 package kris_kros_server
 
 import (
+	"time"
 	"ups/sp/server/model"
 	"ups/sp/server/protocol/def"
 	"ups/sp/server/protocol/impl"
@@ -22,6 +23,8 @@ func (router *KrisKrosRouter) registerRoutes() {
 	router.register(messages.FinishRoundMessage{}, finishRoundRoute)
 	router.register(messages.ApproveWordsMessage{}, approveWordsRoute)
 	router.register(messages.DeclineWordsMessage{}, declineWordsRoute)
+	router.register(messages.KeepAliveMessage{}, keepAliveRoute)
+	router.register(messages.LeaveGameMessage{}, leaveGameRoute)
 }
 
 func playerJoinedRoute(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response {
@@ -127,4 +130,13 @@ func approveWordsRoute(handler def.MessageHandler, server *KrisKrosServer, user 
 
 func declineWordsRoute(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response {
 	return server.gameServer.OnDeclineWords(user.ID)
+}
+
+func keepAliveRoute(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response {
+	server.userLastKeepAlive[user.ID] = time.Now()
+	return server.onKeepAlive(user.ID)
+}
+
+func leaveGameRoute(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response {
+	return server.gameServer.OnPlayerLeavingGame(user.ID)
 }

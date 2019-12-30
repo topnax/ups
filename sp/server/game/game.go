@@ -45,7 +45,10 @@ func (game *Game) AcceptTurn(player Player) bool {
 	if player.ID == game.CurrentPlayer.ID {
 		return false
 	}
-	game.PlayersThatAccepted.Add(player)
+
+	if !player.Disconnected {
+		game.PlayersThatAccepted.Add(player)
+	}
 
 	numberOfPlayersThatMustHaveAccepted := 0
 
@@ -55,7 +58,9 @@ func (game *Game) AcceptTurn(player Player) bool {
 		}
 	}
 
-	return len(game.PlayersThatAccepted.List) >= numberOfPlayersThatMustHaveAccepted
+	logrus.Warnf("numberOfPlayersThatMustHaveAccepted=%d, len(game.Players)=%d", numberOfPlayersThatMustHaveAccepted, len(game.Players), len(game.PlayersThatAccepted.List))
+
+	return len(game.PlayersThatAccepted.List) >= numberOfPlayersThatMustHaveAccepted || game.ActivePlayerCount() < 2
 }
 
 func getLettersFromBag(bag []string, requested int, letterPointsTable map[string][2]int) ([]Letter, []string) {
@@ -69,7 +74,6 @@ func getLettersFromBag(bag []string, requested int, letterPointsTable map[string
 				Points:   letterPointsTable[bag[index]][0],
 				PlayerID: 0,
 			})
-			fmt.Println("From index", index, "letter:", bag[index])
 			bag = append(bag[:i], bag[i+1:]...)
 		}
 	}
@@ -157,15 +161,19 @@ func (game *Game) Next() {
 	// TODO what to do when all players leave.
 
 	for {
-		if game.CurrentPlayerIndex < 0 || game.CurrentPlayerIndex == len(game.Players)-1 {
+		if game.CurrentPlayerIndex < 0 || game.CurrentPlayerIndex >= len(game.Players)-1 {
 			game.CurrentPlayerIndex = 0
 			game.Round++
 		} else {
 			game.CurrentPlayerIndex++
 		}
-		game.CurrentPlayer = game.Players[game.CurrentPlayerIndex]
-		if !game.CurrentPlayer.Disconnected {
-			break
+		logrus.Warnf("currentPlayerIndex %d", game.CurrentPlayerIndex)
+		if game.CurrentPlayerIndex < len(game.Players) {
+			game.CurrentPlayer = game.Players[game.CurrentPlayerIndex]
+			if !game.CurrentPlayer.Disconnected {
+				logrus.Warnf("currentPlayerIndex %d breaking", game.CurrentPlayerIndex)
+				break
+			}
 		}
 
 	}

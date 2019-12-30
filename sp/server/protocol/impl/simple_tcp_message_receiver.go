@@ -60,7 +60,6 @@ func (s *SimpleTcpMessageReceiver) Receive(UID int, bytes []byte, length int) {
 
 	// check whether headerBuffer map was created
 	if s.buffers == nil {
-		log.Debugln("Buffer map not created yet, creating new...")
 		s.buffers = make(map[int]*SimpleTcpMessageBuffer)
 	}
 
@@ -75,7 +74,7 @@ func (s *SimpleTcpMessageReceiver) Receive(UID int, bytes []byte, length int) {
 	}
 	message := string(bytes)
 	buffer := s.buffers[UID]
-	log.Debugf("Received message content is '%s'\n", message)
+	log.Debugf("TCP receiver received '%s'\n", message)
 
 	for index, b := range bytes {
 
@@ -179,6 +178,10 @@ func (s *SimpleTcpMessageReceiver) Receive(UID int, bytes []byte, length int) {
 }
 
 func (s *SimpleTcpMessageReceiver) clearBuffer(buffer *SimpleTcpMessageBuffer) {
+	logLevel := log.GetLevel()
+	if buffer.MessageType == 15 {
+		log.SetLevel(log.ErrorLevel)
+	}
 	var response def.Response
 	log.Infof("[#%d] %d - '%s'", buffer.ClientUID, buffer.MessageType, buffer.contentBuffer)
 	if s.messageReader != nil {
@@ -200,6 +203,10 @@ func (s *SimpleTcpMessageReceiver) clearBuffer(buffer *SimpleTcpMessageBuffer) {
 	}
 
 	buffer.State = 1
+
+	if buffer.MessageType == 15 {
+		log.SetLevel(logLevel)
+	}
 }
 
 func IsNextByteEscaped(bytes []byte) bool {

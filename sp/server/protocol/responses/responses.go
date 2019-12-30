@@ -8,26 +8,29 @@ import (
 const (
 	ValidResponseCeiling = 400
 
-	getLobbiesResponse               = 101
-	playerJoinedResponse             = 102
-	lobbyUpdatedResponse             = 103
-	playerLeftLobbyResponse          = 104
-	lobbyDestroyedResponse           = 105
-	lobbyJoinedResponse              = 106
-	userAuthenticatedResponse        = 107
-	lobbyStartedResponse             = 108
-	gameStartedResponse              = 109
-	tileUpdatedResponse              = 110
-	tilesUpdatedResponse             = 111
-	roundFinishedResponse            = 112
-	playerAcceptedRoundResponse      = 113
-	newRoundResponse                 = 114
-	yourNewRoundResponse             = 115
-	playerDeclinedWordsResponse      = 116
-	gameEndedResponse                = 117
-	acceptResultedInNewRoundResponse = 118
-	playerConnectionChangedResponse  = 119
-	gameStateRegenerationResponse    = 120
+	getLobbiesResponse                = 101
+	playerJoinedResponse              = 102
+	lobbyUpdatedResponse              = 103
+	playerLeftLobbyResponse           = 104
+	lobbyDestroyedResponse            = 105
+	lobbyJoinedResponse               = 106
+	userAuthenticatedResponse         = 107
+	lobbyStartedResponse              = 108
+	gameStartedResponse               = 109
+	tileUpdatedResponse               = 110
+	tilesUpdatedResponse              = 111
+	roundFinishedResponse             = 112
+	playerAcceptedRoundResponse       = 113
+	newRoundResponse                  = 114
+	yourNewRoundResponse              = 115
+	playerDeclinedWordsResponse       = 116
+	gameEndedResponse                 = 117
+	acceptResultedInNewRoundResponse  = 118
+	playerConnectionChangedResponse   = 119
+	gameStateRegenerationResponse     = 120
+	keepAliveResponse                 = 121
+	userStateRegenerationResponse     = 122
+	finishResultedInNextRoundResponse = 123
 )
 
 type TypedResponse interface {
@@ -246,4 +249,37 @@ type GameStateRegenerationResponse struct {
 
 func (g GameStateRegenerationResponse) Type() int {
 	return gameStateRegenerationResponse
+}
+
+//////////////////////////////////////
+
+type KeepAliveResponse struct{}
+
+func (g KeepAliveResponse) Type() int {
+	return keepAliveResponse
+}
+
+//////////////////////////////////////
+
+const (
+	SERVER_RESTARTED            = 0
+	SERVER_RESTARTED_NAME_TAKEN = 1
+	GAME                        = 2
+)
+
+type UserStateRegeneration struct {
+	State int        `json:"state"`
+	User  model.User `json:"user"`
+}
+
+func (g UserStateRegeneration) Type() int {
+	return userStateRegenerationResponse
+}
+
+//////////////////////////////////////
+
+type FinishResultedInNextRound struct{}
+
+func (g FinishResultedInNextRound) Type() int {
+	return finishResultedInNextRoundResponse
 }

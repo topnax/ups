@@ -3,6 +3,7 @@ package kris_kros_server
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"sync"
 	"ups/sp/server/model"
 	"ups/sp/server/protocol/def"
 	"ups/sp/server/protocol/impl"
@@ -19,6 +20,7 @@ type KrisKrosRouter struct {
 	SocketToUserID              map[int]int
 	UserIDToSocket              map[int]int
 	IgnoreTransitionStateChange bool
+	RouteMutex                  *sync.Mutex
 }
 
 func (router *KrisKrosRouter) register(handler def.MessageHandler, callback func(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response) {
@@ -27,11 +29,12 @@ func (router *KrisKrosRouter) register(handler def.MessageHandler, callback func
 }
 
 func (router *KrisKrosRouter) registerState(state State) {
+	state.Routes()[messages.KeepAliveMessageType] = state.Id()
 	router.states[state.Id()] = state
 }
 
-func (router *KrisKrosRouter) route(message def.MessageHandler, clientUID int) def.Response {
-	userID, exists := router.SocketToUserID[clientUID]
+func (router *KrisKrosRouter) route(message def.MessageHandler, socket int) def.Response {
+	userID, exists := router.SocketToUserID[socket]
 
 	var userState State
 
@@ -46,6 +49,12 @@ func (router *KrisKrosRouter) route(message def.MessageHandler, clientUID int) d
 		userState = InitialState{}
 	}
 
+	if message.GetType() == messages.KeepAliveMessageType {
+		return keepAliveRoute(message, router.server, model.User{
+			ID: socket,
+		})
+	}
+
 	newStateID, exists := userState.Routes()[message.GetType()]
 
 	if exists {
@@ -57,7 +66,7 @@ func (router *KrisKrosRouter) route(message def.MessageHandler, clientUID int) d
 			user, exists := router.server.usersById[userID]
 			if !exists {
 				user = &model.User{
-					ID:   clientUID,
+					ID:   socket,
 					Name: "NOT_CREATED",
 				}
 			}
@@ -71,7 +80,7 @@ func (router *KrisKrosRouter) route(message def.MessageHandler, clientUID int) d
 						if router.IgnoreTransitionStateChange == false {
 							router.UserStates[userID] = state
 						} else {
-							log.Debugln("Ignored state transition...")
+							log.Info("Ignored state transition...")
 						}
 						log.Infof("Routed message of type %d and switched to type %ď", message.GetType(), state.Id())
 					} else {
@@ -96,5 +105,6 @@ func newKrisKrosRouter(server *KrisKrosServer) *KrisKrosRouter {
 	router.UserStates = make(map[int]State)
 	router.SocketToUserID = make(map[int]int)
 	router.UserIDToSocket = make(map[int]int)
+	router.RouteMutex = &sync.Mutex{}
 	return &router
 }

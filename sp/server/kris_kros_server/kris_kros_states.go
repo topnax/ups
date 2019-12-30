@@ -157,6 +157,7 @@ func (a PlayersTurnState) Routes() map[int]int {
 	m[messages.LetterPlacedMessageType] = PlayersTurnState{}.Id()
 	m[messages.LetterRemovedMessageType] = PlayersTurnState{}.Id()
 	m[messages.FinishRoundMessageType] = PlayerFinishedRoundState{}.Id()
+	m[messages.LeaveGameMessageType] = AuthorizedState{}.Id()
 	return m
 }
 
@@ -170,6 +171,7 @@ func (a PlayerWaitingState) Id() int {
 
 func (a PlayerWaitingState) Routes() map[int]int {
 	m := make(map[int]int)
+	m[messages.LeaveGameMessageType] = AuthorizedState{}.Id()
 	return m
 }
 
@@ -183,6 +185,7 @@ func (a PlayerFinishedRoundState) Id() int {
 
 func (a PlayerFinishedRoundState) Routes() map[int]int {
 	m := make(map[int]int)
+	m[messages.LeaveGameMessageType] = AuthorizedState{}.Id()
 	return m
 }
 
@@ -198,6 +201,7 @@ func (a ApproveWordsState) Routes() map[int]int {
 	m := make(map[int]int)
 	m[messages.ApproveWordsMessageType] = WordsValidityDecidedState{}.Id()
 	m[messages.DeclineWordsMessageType] = WordsValidityDecidedState{}.Id()
+	m[messages.LeaveGameMessageType] = AuthorizedState{}.Id()
 	return m
 }
 
@@ -211,5 +215,6 @@ func (a WordsValidityDecidedState) Id() int {
 
 func (a WordsValidityDecidedState) Routes() map[int]int {
 	m := make(map[int]int)
+	m[messages.LeaveGameMessageType] = AuthorizedState{}.Id()
 	return m
 }
