@@ -1,6 +1,7 @@
 package game
 
-const ( // iota is reset to 0
+// tile types
+const (
 	BASIC             = 0
 	MULTIPLY_WORD_2   = 1
 	MULTIPLY_WORD_3   = 2
@@ -8,6 +9,7 @@ const ( // iota is reset to 0
 	MULTIPLY_LETTER_3 = 4
 )
 
+// points of letters and their occurrence
 func GetLetterPointsTable() map[string][2]int {
 	return map[string][2]int{
 		"a": {1, 6},
@@ -60,6 +62,7 @@ func GetLetterPointsTable() map[string][2]int {
 	}
 }
 
+// returns the kriskros desk represented as types of each tile
 func GetDeskTileTypes() [15][15]int {
 	return [15][15]int{
 		{MULTIPLY_WORD_3, BASIC, BASIC, MULTIPLY_WORD_2, BASIC, BASIC, BASIC, MULTIPLY_WORD_3, BASIC, BASIC, BASIC, MULTIPLY_LETTER_2, BASIC, BASIC, MULTIPLY_WORD_3},

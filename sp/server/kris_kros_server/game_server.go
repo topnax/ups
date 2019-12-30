@@ -17,6 +17,7 @@ type GameServer struct {
 	server          *KrisKrosServer
 }
 
+// creates a new game server
 func NewGameServer(server *KrisKrosServer) *GameServer {
 	return &GameServer{
 		server:          server,
@@ -25,24 +26,26 @@ func NewGameServer(server *KrisKrosServer) *GameServer {
 	}
 }
 
+// creates a new game
 func (server *GameServer) CreateGame(players []game.Player) {
-	log.Infoln("Starting a game...")
+	log.Infoln("Creating a new game")
 
-	game := game.Game{
+	g := game.Game{
 		Players: players,
 	}
-	err := game.Start()
+
+	err := g.Start()
 
 	if err != nil {
 		log.Errorf("Could not start game because of error: '%s'", err)
 		return
 	}
 
-	log.Warnf("Current player name: %d %s", game.CurrentPlayer.ID, game.CurrentPlayer.Name)
+	log.Debugf("Current player on game start name ID=%d, name=%s", g.CurrentPlayer.ID, g.CurrentPlayer.Name)
 
 	for _, player := range players {
-		server.gamesByPlayerID[player.ID] = &game
-		if player.ID != game.CurrentPlayer.ID {
+		server.gamesByPlayerID[player.ID] = &g
+		if player.ID != g.CurrentPlayer.ID {
 			server.server.Router.UserStates[player.ID] = PlayerWaitingState{}
 		} else {
 			server.server.Router.UserStates[player.ID] = PlayersTurnState{}
@@ -50,22 +53,23 @@ func (server *GameServer) CreateGame(players []game.Player) {
 		}
 	}
 
-	for id, letterBag := range game.PlayerIdToPlayerBag {
-		log.Infof("Player %d letterbag:", id)
+	// notify players that the game ha started
+	for id, letterBag := range g.PlayerIdToPlayerBag {
+		log.Debugf("Player's ID=%d letter bag:", id)
 		for _, letter := range letterBag {
-			log.Infof("%s of %d points", letter.Value, letter.Points)
+			log.Debugf("%s of %d points", letter.Value, letter.Points)
 		}
-		log.Infoln()
 		resp := impl.StructMessageResponse(responses.GameStartedResponse{
 			Players:        players,
 			Letters:        letterBag,
-			ActivePlayerID: game.CurrentPlayer.ID,
+			ActivePlayerID: g.CurrentPlayer.ID,
 		})
 
 		server.server.Send(resp, id, 0)
 	}
 }
 
+// handler of letter placed events
 func (server *GameServer) OnLetterPlaced(userId int, message messages.LetterPlacedMessage) def.Response {
 	g, exists := server.gamesByPlayerID[userId]
 
@@ -73,6 +77,8 @@ func (server *GameServer) OnLetterPlaced(userId int, message messages.LetterPlac
 		log.Errorf("Could not find a game by player ID of %d", userId)
 		return impl.ErrorResponse(fmt.Sprintf("Could not find a game by player ID of %d", userId), impl.GameNotFoundByPlayerId)
 	}
+
+	log.Debugf("OnLetterPlaced event by player ID=%d", userId)
 
 	if g.CurrentPlayer.ID != userId {
 		message := fmt.Sprintf("It is not turn of player of ID %d ", userId)
@@ -88,9 +94,9 @@ func (server *GameServer) OnLetterPlaced(userId int, message messages.LetterPlac
 	})
 
 	if err == nil {
-
 		updatedTiles := []game.Tile{}
 
+		// create a list of tiles that were updated
 		for tile, _ := range g.Desk.CurrentLetters.List {
 			updatedTiles = append(updatedTiles, tile)
 		}
@@ -98,6 +104,7 @@ func (server *GameServer) OnLetterPlaced(userId int, message messages.LetterPlac
 		points := g.Desk.GetTotalPoints()
 		playerTotalPoints := g.PointsTable[g.CurrentPlayer.ID] + points
 
+		// notify players about tiles that were updated
 		for _, player := range g.Players {
 			server.server.Send(impl.StructMessageResponse(responses.TilesUpdatedResponse{Tiles: updatedTiles, CurrentPlayerTotalPoints: playerTotalPoints, CurrentPlayerPoints: points}), player.ID, 0)
 		}
@@ -108,16 +115,19 @@ func (server *GameServer) OnLetterPlaced(userId int, message messages.LetterPlac
 	}
 }
 
+// handler of letter removed events
 func (server *GameServer) OnLetterRemoved(userId int, message messages.LetterRemovedMessage) def.Response {
 	g, exists := server.gamesByPlayerID[userId]
 
 	if !exists {
 		log.Errorf("Could not find a game by player ID of %d", userId)
-		return impl.ErrorResponse(fmt.Sprintf("Could not find a game by player ID of %d", userId), impl.GameNotFoundByPlayerId)
+		return impl.ErrorResponse(fmt.Sprintf("Could not find a game by player of ID=%d", userId), impl.GameNotFoundByPlayerId)
 	}
 
+	log.Debugf("OnLetterPlaced event by player ID=%d", userId)
+
 	if g.CurrentPlayer.ID != userId {
-		message := fmt.Sprintf("It is not turn of player of ID %d ", userId)
+		message := fmt.Sprintf("It is not turn of player of ID=%d ", userId)
 		log.Errorln(message)
 		return impl.ErrorResponse(message, impl.NotPlayersTurn)
 	}
@@ -129,8 +139,8 @@ func (server *GameServer) OnLetterRemoved(userId int, message messages.LetterRem
 	})
 
 	if err == nil {
-
-		g.Desk.ClearCurrentWords()
+		// clear current letters so we know which words may have been lost in the process of removing a letter
+		g.Desk.ClearCurrentLetters()
 
 		for tile, _ := range g.Desk.PlacedLetter.List {
 			g.Desk.GetWordsAt(tile.Row, tile.Column)
@@ -142,6 +152,7 @@ func (server *GameServer) OnLetterRemoved(userId int, message messages.LetterRem
 			updatedTiles = append(updatedTiles, tile)
 		}
 
+		// the tile from which the letter was remove was also updated so we append it
 		updatedTiles = append(updatedTiles, g.Desk.Tiles[message.Row][message.Column])
 
 		points := g.Desk.GetTotalPoints()
@@ -157,29 +168,31 @@ func (server *GameServer) OnLetterRemoved(userId int, message messages.LetterRem
 	}
 }
 
+// handler of finish round events
 func (server *GameServer) OnFinishRound(userId int) def.Response {
 	g, exists := server.gamesByPlayerID[userId]
 
 	if !exists {
-		log.Errorf("Could not find a game by player ID of %d", userId)
+		log.Errorf("Could not find a game by player ID=%d", userId)
 		return impl.ErrorResponse(fmt.Sprintf("Could not find a game by player ID of %d", userId), impl.GameNotFoundByPlayerId)
 	}
 
+	log.Debugf("OnFinishRound event by player ID=%d")
+
 	if g.CurrentPlayer.ID != userId {
-		message := fmt.Sprintf("It is not turn of player of ID %d ", userId)
+		message := fmt.Sprintf("It is not turn of player ID=%d ", userId)
 		log.Errorln(message)
 		return impl.ErrorResponse(message, impl.NotPlayersTurn)
 	}
 
 	if len(g.Desk.PlacedLetter.List) <= 0 {
 		g.EmptyRounds++
-		//if g.EmptyRounds == len(g.Players) {
-		log.Warnf("%d and APC=%d", g.CurrentPlayer.Disconnected, g.ActivePlayerCount())
 		if g.EmptyRounds >= g.ActivePlayerCount() && !(g.CurrentPlayer.Disconnected && g.ActivePlayerCount() > 0) {
+			log.Infof("Ending a game by a FinishRoundEvent")
 			return server.EndGame(g, userId)
 		} else {
 			server.NextRound(g)
-			log.Warnf("Active player: %s", g.CurrentPlayer)
+			log.Debugf("Skipped word acceptance, placed letter list is empty, and the current player is ID=%d name=%s", g.CurrentPlayer.ID, g.CurrentPlayer.Name)
 			return impl.StructMessageResponse(responses.NewRoundResponse{ActivePlayerID: g.CurrentPlayer.ID})
 		}
 	} else {

@@ -9,6 +9,7 @@ type Tile struct {
 	Letter      Letter `json:"letter"`
 }
 
+// returns the tile multiplicand based on it's type
 func (tile Tile) getWordMultiplicand() int {
 	wordMultiplicand := 1
 	if tile.Type == MULTIPLY_WORD_2 {
@@ -19,6 +20,7 @@ func (tile Tile) getWordMultiplicand() int {
 	return wordMultiplicand
 }
 
+// gets the tile's points based on it's type
 func (tile Tile) getTilePoints() int {
 	tilePoints := tile.Letter.Points
 	tileMultiplicand := 1

@@ -25,6 +25,7 @@ type Desk struct {
 	LetterPointsTable map[string][2]int
 }
 
+// creates a desk of default desk size
 func (desk *Desk) Create() {
 	letters := [DeskSize][DeskSize]Tile{}
 
@@ -46,6 +47,7 @@ func (desk *Desk) Create() {
 
 	deskTypes := GetDeskTileTypes()
 
+	// sets the type of tiles based on the KrisKros rules
 	for row := 0; row < DeskSize; row++ {
 		for column := 0; column < DeskSize; column++ {
 			desk.Tiles[row][column].Type = deskTypes[row][column]
@@ -53,10 +55,12 @@ func (desk *Desk) Create() {
 	}
 }
 
+// checks whether the given row and column is within desk bounds
 func (desk Desk) isWithinBounds(row int, column int) bool {
 	return row >= 0 && row < DeskSize && column >= 0 && column < DeskSize
 }
 
+// sets the given letter at the given row and column
 func (desk *Desk) SetAt(letter string, row int, column int, playerID int) error {
 	letterPoints, exists := desk.LetterPointsTable[strings.ToLower(letter)]
 	if !exists {
@@ -84,10 +88,12 @@ func (desk *Desk) SetAt(letter string, row int, column int, playerID int) error 
 	desk.CurrentLetters.Add(desk.Tiles[row][column])
 	desk.PlacedLetter.Add(desk.Tiles[row][column])
 
+	// call GetWordsAt so new words are found
 	desk.GetWordsAt(row, column)
 	return nil
 }
 
+// resets the tile at the given row and column
 func (desk *Desk) ResetAt(row int, column int, playerID int) error {
 
 	if !desk.isWithinBounds(row, column) {
@@ -106,30 +112,35 @@ func (desk *Desk) ResetAt(row int, column int, playerID int) error {
 	desk.PlacedLetter.Remove(desk.Tiles[row][column])
 	desk.Tiles[row][column].Set = false
 
-	for tile, _ := range desk.CurrentLetters.List {
+	// all currently highlighted letters are reset
+	for tile := range desk.CurrentLetters.List {
 		tile.Highlighted = false
 	}
 
-	for tile, _ := range desk.PlacedLetter.List {
+	// check which words disappeared after the removal of the letter
+	for tile := range desk.PlacedLetter.List {
 		desk.GetWordsAt(tile.Row, tile.Column)
 	}
 
 	return nil
 }
 
-func (desk *Desk) ClearCurrentWords() {
+// clears the set of current letters, resets it's highlight attribute
+func (desk *Desk) ClearCurrentLetters() {
 	for tile, _ := range desk.CurrentLetters.List {
 		desk.Tiles[tile.Row][tile.Column].Highlighted = false
 	}
 	desk.CurrentLetters.Clear()
 }
 
+// returns the word based on the given word meta
 func (desk *Desk) GetWordAt(wordMeta WordMeta) Word {
 	var content []string
 	wordMultiplicand := 1
 
 	totalPoints := 0
 
+	// check whether the word is horizontal or vertical
 	if wordMeta.RowStart == wordMeta.RowEnd {
 		for column := wordMeta.ColumnStart; column < wordMeta.ColumnEnd+1; column++ {
 			tile := desk.Tiles[wordMeta.RowStart][column]
@@ -155,6 +166,7 @@ func (desk *Desk) GetWordAt(wordMeta WordMeta) Word {
 	}
 }
 
+// finds all word metas at the given row and column
 func (desk *Desk) GetWordsAt(row int, column int) []WordMeta {
 
 	// directions
@@ -171,16 +183,17 @@ func (desk *Desk) GetWordsAt(row int, column int) []WordMeta {
 	minrow := -1
 	maxrow := -1
 
-	for index, c := range a {
-		dx := 0 + c[0]
-		dy := 0 + c[1]
+	// iterate over all directions
+	for index, dir := range a {
+		dx := 0 + dir[0]
+		dy := 0 + dir[1]
 
 		for desk.isWithinBounds(row+dx, column+dy) && desk.Tiles[row+dx][column+dy].Set {
 			desk.Tiles[row+dx][column+dy].Highlighted = true
 			desk.CurrentLetters.Add(desk.Tiles[row+dx][column+dy])
 
-			dx += c[0]
-			dy += c[1]
+			dx += dir[0]
+			dy += dir[1]
 		}
 
 		switch index {
@@ -218,6 +231,7 @@ func (desk *Desk) GetWordsAt(row int, column int) []WordMeta {
 		})
 	}
 
+	// if there are no other letters, highlight the only letter and mark it as a word
 	if desk.isWithinBounds(row, column) && desk.Tiles[row][column].Set {
 		desk.Tiles[row][column].Highlighted = true
 		desk.CurrentLetters.Add(desk.Tiles[row][column])
@@ -234,6 +248,7 @@ func (desk *Desk) GetWordsAt(row int, column int) []WordMeta {
 	return words
 }
 
+// finds all words based on the placed letters and calculates their point sum. Words are saved into a set to prevent duplicates
 func (desk Desk) GetTotalPoints() int {
 	wordMap := NewWordMetaSet()
 
@@ -255,9 +270,9 @@ func (desk Desk) GetTotalPoints() int {
 	}
 
 	return points
-
 }
 
+// debug print
 func (desk Desk) Print() {
 	fmt.Println(" 123456789012345")
 	for row := 0; row < DeskSize; row++ {
@@ -278,6 +293,7 @@ func (desk Desk) Print() {
 	}
 }
 
+// checks whether the given string is a number or not
 func isNumber(s string) bool {
 	for _, c := range s {
 		if !unicode.IsDigit(c) {

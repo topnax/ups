@@ -1,7 +1,7 @@
 package game
 
 type LetterSet struct {
-	List map[Tile]struct{} //empty structs occupy 0 memory
+	List map[Tile]struct{}
 }
 
 func (s *LetterSet) Has(v Tile) bool {
