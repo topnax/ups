@@ -1,5 +1,6 @@
 package screens.initial
 
+import javafx.application.Application
 import javafx.application.Platform
 import javafx.scene.control.*
 import mu.KotlinLogging
@@ -12,6 +13,7 @@ import screens.game.GameStateRegenerationEvent
 import screens.game.GameView
 import screens.mainmenu.MainMenuView
 import tornadofx.*
+import kotlin.system.exitProcess
 
 val logger = KotlinLogging.logger { }
 
@@ -25,9 +27,14 @@ class InitialScreenController : Controller(), ConnectionStatusListener {
     fun init(mainMenuView: InitialScreenView) {
         this.initialScreenView = mainMenuView
         mainMenuView.primaryStage.setOnCloseRequest {
-            alert(Alert.AlertType.INFORMATION, "Primary stage closing")
             logger.debug { "Primary stage closing" }
-            Network.getInstance().send(UserLeavingMessage(), callAfterWrite = { Network.getInstance().stop() })
+            Network.getInstance().send(UserLeavingMessage(), callAfterWrite = {
+                Platform.exit()
+                exitProcess(0)
+            }, timeoutCallback = {
+                Platform.exit()
+                exitProcess(0)
+            })
         }
         Network.getInstance().connectionStatusListeners.add(this)
         connectTo("localhost", 10000)

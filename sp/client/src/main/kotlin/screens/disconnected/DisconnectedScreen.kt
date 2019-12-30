@@ -2,6 +2,7 @@ package screens.disconnected
 
 import javafx.application.Platform
 import javafx.geometry.Pos
+import javafx.scene.control.Alert
 import mu.KotlinLogging
 import screens.GameRegeneratedEvent
 import screens.ServerRestartedEvent
@@ -11,10 +12,7 @@ import screens.game.GameStateRegenerationEvent
 import screens.game.GameView
 import screens.initial.InitialScreenView
 import screens.mainmenu.MainMenuView
-import tornadofx.View
-import tornadofx.borderpane
-import tornadofx.label
-import tornadofx.vbox
+import tornadofx.*
 
 val logger = KotlinLogging.logger { }
 
@@ -22,17 +20,23 @@ class DisconnectedScreenView : View() {
 
     init {
         subscribe<ServerRestartedEvent> {
-            Platform.runLater { replaceWith<MainMenuView>() }
+            Platform.runLater {
+                replaceWith<MainMenuView>()
+                alert(Alert.AlertType.WARNING, "Server restarted and you have been reconnected...")
+            }
         }
 
         subscribe<ServerRestartedUnauthorizedEvent> {
             Platform.runLater { replaceWith<InitialScreenView>() }
+            alert(Alert.AlertType.WARNING, "Server restarted and user of your name is already logged in...")
         }
 
         subscribe<ServerUnreachableEvent> {
-            Platform.runLater { replaceWith<InitialScreenView>() }
+            Platform.runLater {
+                replaceWith<InitialScreenView>()
+                alert(Alert.AlertType.ERROR, "Server is unreachable...")
+            }
         }
-
 
         subscribe<GameRegeneratedEvent> {
             Platform.runLater {
