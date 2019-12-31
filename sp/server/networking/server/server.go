@@ -110,6 +110,7 @@ func (server *Server) addClient(fd int) Client {
 func (server *Server) RemoveFd(fd int) {
 	log.Warnf("Removing FD=%d", fd)
 	delete(server.Clients, fd)
+	_ = syscall.Shutdown(fd, syscall.SHUT_RDWR)
 	_ = syscall.Close(fd)
 }
 

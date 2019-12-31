@@ -78,7 +78,7 @@ func (server *GameServer) OnLetterPlaced(userId int, message messages.LetterPlac
 		return impl.ErrorResponse(fmt.Sprintf("Could not find a game by player ID of %d", userId), impl.GameNotFoundByPlayerId)
 	}
 
-	log.Debugf("OnLetterPlaced event by player ID=%d", userId)
+	log.Infof("OnLetterPlaced event by player ID=%d", userId)
 
 	if g.CurrentPlayer.ID != userId {
 		message := fmt.Sprintf("It is not turn of player of ID %d ", userId)
@@ -124,7 +124,7 @@ func (server *GameServer) OnLetterRemoved(userId int, message messages.LetterRem
 		return impl.ErrorResponse(fmt.Sprintf("Could not find a game by player of ID=%d", userId), impl.GameNotFoundByPlayerId)
 	}
 
-	log.Debugf("OnLetterPlaced event by player ID=%d", userId)
+	log.Infof("OnLetterPlaced event by player ID=%d", userId)
 
 	if g.CurrentPlayer.ID != userId {
 		message := fmt.Sprintf("It is not turn of player of ID=%d ", userId)
@@ -177,7 +177,7 @@ func (server *GameServer) OnFinishRound(userId int) def.Response {
 		return impl.ErrorResponse(fmt.Sprintf("Could not find a game by player ID of %d", userId), impl.GameNotFoundByPlayerId)
 	}
 
-	log.Debugf("OnFinishRound event by player ID=%d")
+	log.Infof("OnFinishRound event by player ID=%d", userId)
 
 	if g.CurrentPlayer.ID != userId {
 		message := fmt.Sprintf("It is not turn of player ID=%d ", userId)
@@ -186,7 +186,9 @@ func (server *GameServer) OnFinishRound(userId int) def.Response {
 	}
 
 	if len(g.Desk.PlacedLetter.List) <= 0 {
+		// when no letters were placed, end the round
 		g.EmptyRounds++
+		// when all players failed to place any letters or the last player disconnected, end the game
 		if g.EmptyRounds >= g.ActivePlayerCount() && !(g.CurrentPlayer.Disconnected && g.ActivePlayerCount() > 0) {
 			log.Infof("Ending a game by a FinishRoundEvent")
 			return server.EndGame(g, userId)
@@ -199,6 +201,7 @@ func (server *GameServer) OnFinishRound(userId int) def.Response {
 		g.RoundFinished = true
 		g.EmptyRounds = 0
 		if (g.CurrentPlayer.Disconnected && g.ActivePlayerCount() > 0) || g.ActivePlayerCount() > 1 {
+			// when there are other players, notify them that they should decide words validity
 			for _, player := range g.Players {
 				if player.ID != userId {
 					server.server.Router.UserStates[player.ID] = ApproveWordsState{}
@@ -206,6 +209,7 @@ func (server *GameServer) OnFinishRound(userId int) def.Response {
 				}
 			}
 		} else {
+			// one player plays alone, no one is there to decide validity of his words
 			server.NextRound(g)
 			return impl.StructMessageResponse(responses.NewRoundResponse{ActivePlayerID: g.CurrentPlayer.ID})
 		}
@@ -214,7 +218,10 @@ func (server *GameServer) OnFinishRound(userId int) def.Response {
 	return impl.SuccessResponse("Finished successfully")
 }
 
+// ends the game by the given player id
 func (server *GameServer) EndGame(g *game.Game, userId int) def.Response {
+	log.Infof("EndGame event by player ID=%d", userId)
+
 	pointsToPlayerMap := make(map[int]game.Player)
 	for _, player := range g.Players {
 		pointsToPlayerMap[g.PointsTable[player.ID]] = player
@@ -231,6 +238,7 @@ func (server *GameServer) EndGame(g *game.Game, userId int) def.Response {
 	return resp
 }
 
+// on approve words event handler
 func (server *GameServer) OnApproveWords(userId int) def.Response {
 	g, exists := server.gamesByPlayerID[userId]
 
@@ -238,6 +246,8 @@ func (server *GameServer) OnApproveWords(userId int) def.Response {
 		log.Errorf("Could not find a game by player ID of %d", userId)
 		return impl.ErrorResponse(fmt.Sprintf("Could not find a game by player ID of %d", userId), impl.GameNotFoundByPlayerId)
 	}
+
+	log.Infof("OnApproveWords event by player ID=%d", userId)
 
 	player, exists := g.PlayersMap[userId]
 
@@ -249,12 +259,14 @@ func (server *GameServer) OnApproveWords(userId int) def.Response {
 		roundAccepted := g.AcceptTurn(player)
 
 		if !roundAccepted {
+			// notify other players that the words got accepted by this player
 			for _, player := range g.Players {
 				if player.ID != userId {
 					server.server.Send(impl.StructMessageResponse(responses.PlayerAcceptedRoundResponse{PlayerID: userId}), player.ID, 0)
 				}
 			}
 		} else {
+			// if the accept of words resulted in a acceptance of around, next round is
 			server.NextRound(g)
 			return impl.StructMessageResponse(responses.AcceptResultedInNewRound{})
 		}
@@ -264,8 +276,10 @@ func (server *GameServer) OnApproveWords(userId int) def.Response {
 	return impl.ErrorResponse(fmt.Sprintf("Could not find a player of ID %d", userId), impl.PlayerNotFound)
 }
 
+// starts a new round of the given game
 func (server *GameServer) NextRound(g *game.Game) {
 	if g.ActivePlayerCount() > 0 {
+		log.Infof("NextRound, current player ID=%d", g.CurrentPlayer.ID)
 		g.Next()
 		server.server.Send(impl.StructMessageResponse(responses.YourNewRoundResponse{Letters: g.PlayerIdToPlayerBag[g.CurrentPlayer.ID]}), g.CurrentPlayer.ID, 0)
 		server.server.Router.IgnoreTransitionStateChange = true
@@ -280,14 +294,16 @@ func (server *GameServer) NextRound(g *game.Game) {
 	}
 }
 
+// on player declined words
 func (server *GameServer) OnDeclineWords(userId int) def.Response {
-
 	g, exists := server.gamesByPlayerID[userId]
 
 	if !exists {
 		log.Errorf("Could not find a game by player ID of %d", userId)
 		return impl.ErrorResponse(fmt.Sprintf("Could not find a game by player ID of %d", userId), impl.GameNotFoundByPlayerId)
 	}
+
+	log.Infof("OnDeclineWords event by player ID=%d", userId)
 
 	playerThatDeclined, exists := g.PlayersMap[userId]
 
@@ -299,6 +315,7 @@ func (server *GameServer) OnDeclineWords(userId int) def.Response {
 		g.WordsDeclined()
 
 		if g.CurrentPlayer.Disconnected {
+			// if the current player disconnected all his letters are removed because he cannot edit his letters after denial
 			updatedTiles := []game.Tile{}
 			for tile, _ := range g.Desk.PlacedLetter.List {
 				g.Desk.Tiles[tile.Row][tile.Column].Set = false
@@ -321,6 +338,7 @@ func (server *GameServer) OnDeclineWords(userId int) def.Response {
 			g.Desk.PlacedLetter.Clear()
 			server.NextRound(g)
 		} else {
+			// users are notified and the current player has to edit his letters
 			for _, player := range g.Players {
 				if player.ID != userId {
 					server.server.Send(impl.StructMessageResponse(responses.PlayerDeclinedWordsResponse{
@@ -340,11 +358,14 @@ func (server *GameServer) OnDeclineWords(userId int) def.Response {
 	return impl.ErrorResponse(fmt.Sprintf("Could not find a player of ID %d", userId), impl.PlayerNotFound)
 }
 
+// a player left the game
 func (server *GameServer) PlayerLeft(playerID int, stateID int, playerLeaving bool) {
+	log.Infof("PlayerLeft event by player ID=%d, leaving=%s", playerID, playerLeaving)
 	g, exists := server.gamesByPlayerID[playerID]
 	if exists {
 		_, exists := g.PlayersMap[playerID]
 		if exists {
+			// notify players that a player left
 			for index, player := range g.Players {
 				if player.ID == playerID {
 					log.Warnf("Marking playerID=%d playerName=%s as disconnected", player.ID, player.Name)
@@ -352,12 +373,12 @@ func (server *GameServer) PlayerLeft(playerID int, stateID int, playerLeaving bo
 					g.PlayersMap[playerID] = g.Players[index]
 					if g.CurrentPlayer.ID == playerID {
 						g.CurrentPlayer = g.Players[index]
-						log.Warnf("Marking CurrentPlayer playerID=%d playerName=%s as disconnected", g.CurrentPlayer.ID, g.CurrentPlayer.Name)
 					}
 					break
 				}
 			}
 			log.Warnf("active player count => %d", g.ActivePlayerCount())
+			// decide what to do based on the player's state
 			if g.ActivePlayerCount() > 0 {
 				switch stateID {
 
@@ -369,12 +390,14 @@ func (server *GameServer) PlayerLeft(playerID int, stateID int, playerLeaving bo
 
 				}
 			} else {
+				// if he was the last player, end the game
 				server.EndGame(g, -1)
 			}
 		}
 	}
 
 	if playerLeaving {
+		// remove the player if he left on his own will
 		leavingPlayerIndex := -1
 		for index, player := range g.Players {
 			if playerID == player.ID {
@@ -392,7 +415,9 @@ func (server *GameServer) PlayerLeft(playerID int, stateID int, playerLeaving bo
 	}
 }
 
+// on player reconnected
 func (server *GameServer) PlayerReconnected(playerID int) def.Response {
+	log.Infof("PlayerReconnected event by player ID=%d", playerID)
 	g, exists := server.gamesByPlayerID[playerID]
 
 	if exists {
@@ -424,6 +449,7 @@ func (server *GameServer) PlayerReconnected(playerID int) def.Response {
 					playerIDsThatAccepted = append(playerIDsThatAccepted, player.ID)
 				}
 
+				// send him the current state of the game
 				resp = impl.StructMessageResponse(responses.GameStateRegenerationResponse{
 					Tiles:                 tiles,
 					ActivePlayerID:        g.CurrentPlayer.ID,
@@ -438,6 +464,7 @@ func (server *GameServer) PlayerReconnected(playerID int) def.Response {
 					},
 				})
 			} else {
+				// notify other players that the player reconnected
 				server.server.Send(impl.StructMessageResponse(responses.PlayerConnectionChanged{
 					PlayerID:     playerID,
 					Disconnected: false,
@@ -453,7 +480,9 @@ func (server *GameServer) PlayerReconnected(playerID int) def.Response {
 	}
 }
 
+// on player willingly leaving the game
 func (server *GameServer) OnPlayerLeavingGame(playerID int) def.Response {
+	log.Infof("OnPlayerLeavingGame event by player ID=%d", playerID)
 	state, exists := server.server.Router.UserStates[playerID]
 	if exists {
 		server.PlayerLeft(playerID, state.Id(), true)
