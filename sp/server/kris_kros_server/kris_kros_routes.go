@@ -1,6 +1,7 @@
 package kris_kros_server
 
 import (
+	"github.com/sirupsen/logrus"
 	"time"
 	"ups/sp/server/model"
 	"ups/sp/server/protocol/def"
@@ -8,8 +9,9 @@ import (
 	"ups/sp/server/protocol/messages"
 )
 
+// registers all routes of the kriskros router
+// each route casts a message to the desired type and passes it to a kriskros server
 func (router *KrisKrosRouter) registerRoutes() {
-	router.register(messages.PlayerJoinedMessage{}, playerJoinedRoute)
 	router.register(messages.CreateLobbyMessage{}, createLobbyRoute)
 	router.register(messages.GetLobbiesMessage{}, getLobbiesRoute)
 	router.register(messages.JoinLobbyMessage{}, joinLobbyRoute)
@@ -25,10 +27,6 @@ func (router *KrisKrosRouter) registerRoutes() {
 	router.register(messages.DeclineWordsMessage{}, declineWordsRoute)
 	router.register(messages.KeepAliveMessage{}, keepAliveRoute)
 	router.register(messages.LeaveGameMessage{}, leaveGameRoute)
-}
-
-func playerJoinedRoute(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response {
-	return server.OnPlayerJoined(user)
 }
 
 func createLobbyRoute(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response {
@@ -133,7 +131,9 @@ func declineWordsRoute(handler def.MessageHandler, server *KrisKrosServer, user 
 }
 
 func keepAliveRoute(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response {
-	server.userLastKeepAlive[user.ID] = time.Now()
+	now := time.Now()
+	server.userLastKeepAlive[user.ID] = now
+	logrus.Debugf("Received KEEP_ALIVE from socket=%d @ %s", user.ID, now)
 	return server.onKeepAlive(user.ID)
 }
 

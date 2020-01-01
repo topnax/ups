@@ -30,8 +30,6 @@ func main() {
 	tcpReceiver.SetMessageReader(&messageReader)
 	tcpReceiver.SetOutput(&tcpServer)
 	tcpReceiver.SetFileDescriptorRemover(&tcpServer)
-	tcpServer.SetOnClientDisconnectedListener(&krisKrosServer)
-	tcpServer.SetOnClientConnectedListener(&krisKrosServer)
 
 	tcpServer.Start(&tcpReceiver)
 

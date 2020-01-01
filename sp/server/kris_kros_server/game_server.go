@@ -334,6 +334,12 @@ func (server *GameServer) OnDeclineWords(userId int) def.Response {
 					}), player.ID, 0)
 				}
 			}
+
+			// add player's placed letters back to his bag
+			for letter, _ := range g.Desk.PlacedLetter.List {
+				g.PlayerIdToPlayerBag[g.CurrentPlayer.ID] = append(g.PlayerIdToPlayerBag[g.CurrentPlayer.ID], letter.Letter)
+			}
+
 			g.Desk.CurrentLetters.Clear()
 			g.Desk.PlacedLetter.Clear()
 			server.NextRound(g)
@@ -427,6 +433,10 @@ func (server *GameServer) PlayerReconnected(playerID int) def.Response {
 				g.Players[index].Disconnected = false
 				g.PlayersMap[playerID] = g.Players[index]
 
+				if player.ID == g.CurrentPlayer.ID {
+					g.CurrentPlayer.Disconnected = false
+				}
+
 				tiles := []game.Tile{}
 
 				for row := 0; row < game.DeskSize; row++ {
@@ -458,6 +468,7 @@ func (server *GameServer) PlayerReconnected(playerID int) def.Response {
 					RoundFinished:         g.RoundFinished,
 					PlayerIDsThatAccepted: playerIDsThatAccepted,
 					Players:               g.Players,
+					Letters:               g.PlayerIdToPlayerBag[player.ID],
 					User: model.User{
 						ID:   playerID,
 						Name: player.Name,

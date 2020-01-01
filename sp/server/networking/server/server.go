@@ -35,12 +35,10 @@ const (
 )
 
 type Server struct {
-	UID                          int
-	Fd                           int
-	Port                         int
-	Clients                      map[int]Client
-	onClientDisconnectedListener OnClientDisconnectedListener
-	onClientConnectedListener    OnClientConnectedListener
+	UID     int
+	Fd      int
+	Port    int
+	Clients map[int]Client
 }
 
 type OnClientDisconnectedListener interface {
@@ -184,9 +182,6 @@ func (server *Server) Start(receiver def.TcpMessageReceiver) {
 
 func (server *Server) removeClient(fd int) {
 	delete(server.Clients, fd)
-	//if server.onClientDisconnectedListener != nil {
-	//	server.onClientDisconnectedListener.ClientDisconnected(fd)
-	//}
 }
 
 func (server *Server) acceptClient() (Client, error) {
@@ -198,14 +193,6 @@ func (server *Server) acceptClient() (Client, error) {
 		log.Debugln("New fd accepted:", clientSocket)
 		return server.addClient(clientSocket), nil
 	}
-}
-
-func (server *Server) SetOnClientDisconnectedListener(listener OnClientDisconnectedListener) {
-	server.onClientDisconnectedListener = listener
-}
-
-func (server *Server) SetOnClientConnectedListener(listener OnClientConnectedListener) {
-	server.onClientConnectedListener = listener
 }
 
 func FD_SET(p *syscall.FdSet, fd int) {

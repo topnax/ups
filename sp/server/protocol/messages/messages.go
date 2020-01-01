@@ -6,7 +6,6 @@ import (
 )
 
 const (
-	PlayerJoinedLobbyType         = 1
 	CreateLobbyType               = 2
 	GetLobbiesType                = 3
 	JoinLobbyMessageType          = 4
@@ -24,23 +23,9 @@ const (
 	LeaveGameMessageType          = 16
 )
 
-type PlayerJoinedMessage struct{}
-
-func (p PlayerJoinedMessage) Handle(message def.Message, amr def.ApplicationMessageReader) def.Response {
-	if parse(message, &p) {
-		return amr.Read(p, message.ClientID())
-	}
-	return failedToParse(message)
-}
-
-func (p PlayerJoinedMessage) GetType() int {
-	return PlayerJoinedLobbyType
-}
-
 ////////////////////////////////////////////
 
-type CreateLobbyMessage struct {
-}
+type CreateLobbyMessage struct{}
 
 func (p CreateLobbyMessage) Handle(message def.Message, amr def.ApplicationMessageReader) def.Response {
 	return amr.Read(p, message.ClientID())
@@ -52,8 +37,7 @@ func (p CreateLobbyMessage) GetType() int {
 
 ////////////////////////////////////////////
 
-type GetLobbiesMessage struct {
-}
+type GetLobbiesMessage struct{}
 
 func (p GetLobbiesMessage) Handle(message def.Message, amr def.ApplicationMessageReader) def.Response {
 	if parse(message, &p) {

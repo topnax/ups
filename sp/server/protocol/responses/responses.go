@@ -245,6 +245,7 @@ type GameStateRegenerationResponse struct {
 	CurrentPlayerPoints   int                 `json:"current_player_points"`
 	RoundFinished         bool                `json:"round_finished"`
 	PlayerIDsThatAccepted []int               `json:"player_ids_that_accepted"`
+	Letters               []game.Letter       `json:"letters"`
 }
 
 func (g GameStateRegenerationResponse) Type() int {
@@ -262,9 +263,10 @@ func (g KeepAliveResponse) Type() int {
 //////////////////////////////////////
 
 const (
-	SERVER_RESTARTED            = 0
-	SERVER_RESTARTED_NAME_TAKEN = 1
-	GAME                        = 2
+	ServerRestarted          = 0
+	ServerRestartedNameTaken = 1
+	MovedToLobbyScreen       = 2
+	Nothing                  = 3
 )
 
 type UserStateRegeneration struct {

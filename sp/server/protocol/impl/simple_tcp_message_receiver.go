@@ -237,7 +237,7 @@ func (s *SimpleTcpMessageReceiver) clearBuffer(buffer *SimpleTcpMessageBuffer) {
 
 	logLevel := log.GetLevel()
 	if buffer.MessageType == 15 {
-		log.SetLevel(log.ErrorLevel)
+		log.SetLevel(log.WarnLevel)
 	}
 	var response def.Response
 	log.Infof("[#%d] %d - '%s'", buffer.ClientUID, buffer.MessageType, buffer.contentBuffer)
