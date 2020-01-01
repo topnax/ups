@@ -115,7 +115,7 @@ func (k KrisKrosServer) Send(response def.Response, userId int, responseId int) 
 	if exists {
 		k.sender.Send(response, socket, responseId)
 	} else {
-		log.Errorf("Could not send to USERID=%d response of type %d and content '%s'", userId, response.Type(), response.Content())
+		log.Warnf("Could not send to USERID=%d response of type %d and content '%s'", userId, response.Type(), response.Content())
 	}
 }
 
