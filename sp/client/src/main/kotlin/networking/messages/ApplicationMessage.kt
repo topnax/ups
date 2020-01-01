@@ -191,7 +191,7 @@ class AcceptResultedInNewRound() : EmptyMessage(ACCEPT_RESULTED_IN_NEW_ROUND_RES
 
 class PlayerConnectionChangedResponse(val playerId: Int, val disconnected: Boolean) : ApplicationMessage(PLAYER_DISCONNECTED_RESPONSE_TYPE)
 
-class GameStateRegenerationResponse(val user: User, val players: List<Player>, val tiles: List<Tile>, val activePlayerId: Int, val playerPoints: Map<String, Player>, val currentPlayerPoints: Int, val roundFinished: Boolean, val playerIdsThatAccepted: List<Int>) : ApplicationMessage(GAME_STATE_REGENERATION_RESPONSE_TYPE)
+class GameStateRegenerationResponse(val user: User, val players: List<Player>, val tiles: List<Tile>, val activePlayerId: Int, val playerPoints: Map<String, Player>, val currentPlayerPoints: Int, val roundFinished: Boolean, val playerIdsThatAccepted: List<Int>, val letters: List<Letter>) : ApplicationMessage(GAME_STATE_REGENERATION_RESPONSE_TYPE)
 
 class KeepAliveResponse() : EmptyMessage(KEEP_ALIVE_RESPONSE_TYPE)
 
@@ -199,11 +199,12 @@ class UserStateRegenerationResponse(var state: Int, val user: User? = null) : Ap
     companion object {
         public const val SERVER_RESTARTED = 0
         public const val SERVER_RESTARTED_NAME_TAKEN = 1
-        public const val GAME = 2
+        public const val MOVED_TO_LOBBY_SCREEN = 2
+        public const val NOTHING = 3
     }
 
     init {
-        if (state !in (SERVER_RESTARTED)..(GAME)) {
+        if (state !in (SERVER_RESTARTED)..(NOTHING)) {
             state = SERVER_RESTARTED
         }
     }

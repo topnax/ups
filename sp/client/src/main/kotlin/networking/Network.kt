@@ -9,7 +9,6 @@ import networking.messages.*
 import networking.reader.SimpleMessageReader
 import networking.receiver.FixedMessageReceiver
 import screens.*
-import screens.game.GameStateRegenerationEvent
 import tornadofx.FX
 import tornadofx.alert
 import java.time.LocalDateTime
@@ -23,8 +22,9 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
     companion object {
         private val MESSAGE_ID_CEILING = 60000
         private val MESSAGE_STARTING_ID = 1
-        private const val RESPONSE_CLEANER_TIMER = 2000L
-        private const val REAUTH_ATTEMPT_CEILING = 3
+        private const val RESPONSE_TIMEOUT_DURATION = 3000L
+        private const val KEEP_ALIVE_PERIOD = 2000L
+        private const val REAUTH_ATTEMPT_CEILING = 4
 
         private var network: Network = Network()
 
@@ -39,14 +39,14 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
 
     }
 
-    private var messageId = MESSAGE_STARTING_ID
-
     var tcpLayer: TCPLayer? = null
+    private var messageId = MESSAGE_STARTING_ID
     private var responseCleanerTimer: Timer? = null
     private var keepAliveTimer: Timer? = null
     private var triedToReconnect = false
     private var connected = false
     private var keepAliveSent = false
+    private var reauthAttempt = 0
 
     var messageListeners = mutableMapOf<Class<out ApplicationMessage>, MutableList<(T: ApplicationMessage) -> Unit>>()
         get() {
@@ -126,11 +126,11 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
 
         responseCleanerTimer?.cancel()
         keepAliveTimer?.cancel()
-        responseCleanerTimer = timer(period = RESPONSE_CLEANER_TIMER) {
+        responseCleanerTimer = timer(period = RESPONSE_TIMEOUT_DURATION) {
             synchronized(responseListeners) {
                 val messageIDsWhosListenersToBeRemoved = mutableListOf<Int>()
                 responseListeners.forEach { listeners ->
-                    logger.info { "There are ${listeners.value.size} listeners for mid ${listeners.key}" }
+                    logger.info { "There are ${listeners.value.size} TIMEOUT listeners for mid ${listeners.key}" }
                     val listenersToBeRemoved = mutableListOf<ResponseCallback>()
                     listeners.value.forEach {
                         if (it.timestamp.plusSeconds(2).isBefore(LocalDateTime.now())) {
@@ -148,28 +148,30 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
         }
 
         keepAliveSent = false
-        keepAliveTimer = timer(period = RESPONSE_CLEANER_TIMER) {
+        keepAliveTimer = timer(period = KEEP_ALIVE_PERIOD) {
             if (!keepAliveSent) {
                 keepAliveSent = true
                 send(KeepAliveMessage(), callback = {
                     keepAliveSent = false
                 }, ignoreErrors = true, timeoutCallback = {
-                    onKeepAliveFailed()
                     keepAliveTimer?.cancel()
+                    onKeepAliveFailed()
                 })
             }
         }
     }
 
-    var reauthAttempt = 0
-
     private fun tryToReauthenticate() {
+        logger.info { "Trying to reauthenticate" }
         if (reauthAttempt < REAUTH_ATTEMPT_CEILING) {
+            logger.info { "Reauthenticating..." }
             reauthAttempt++
             Thread.sleep(2000)
+            logger.info { "Slept..." }
             send(UserAuthenticationMessage(User.name, reconnecting = true), {
                 when (it) {
                     is UserStateRegenerationResponse -> {
+                        logger.info { "Reauthentication response is UserStateRegenerationResponse of state ${it.state}" }
                         when (it.state) {
                             UserStateRegenerationResponse.SERVER_RESTARTED -> {
                                 User = it.user!!
@@ -180,22 +182,28 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
                                 authorized = false
                                 tryToReauthenticate()
                             }
-                            UserStateRegenerationResponse.GAME -> {
+                            UserStateRegenerationResponse.MOVED_TO_LOBBY_SCREEN -> {
+                                User = it.user!!
                                 authorized = true
-                                Platform.runLater {
-                                    alert(Alert.AlertType.ERROR, "This should not have happened")
-                                }
+                                FX.eventbus.fire(MovedToLobbyScreenEvent())
+                            }
+                            UserStateRegenerationResponse.NOTHING -> {
+                                User = it.user!!
+                                authorized = true
+                                FX.eventbus.fire(NothingHappenedEvent())
                             }
                         }
                     }
 
                     is GameStateRegenerationResponse -> {
+                        logger.info { "Reauthentication response is GameStateRegenerationResponse" }
                         authorized = true
                         User = it.user
                         FX.eventbus.fire(GameRegeneratedEvent(it))
                     }
 
                     is ErrorResponseMessage -> {
+                        logger.info { "Reauthentication response is ErrorResponseMessage" }
                         authorized = false
                         tryToReauthenticate()
                     }
@@ -207,6 +215,7 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
                 }
             }, ignoreErrors = true)
         } else {
+            logger.info { "Reauthentication attempt limit reached" }
             Platform.runLater {
                 alert(Alert.AlertType.ERROR, "Failed to reauthenticate after reconnect")
             }

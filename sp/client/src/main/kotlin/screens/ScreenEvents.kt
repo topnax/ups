@@ -6,6 +6,10 @@ import tornadofx.FXEvent
 
 class ServerRestartedEvent : FXEvent(EventBus.RunOn.BackgroundThread)
 
+class MovedToLobbyScreenEvent : FXEvent(EventBus.RunOn.BackgroundThread)
+
+class NothingHappenedEvent : FXEvent(EventBus.RunOn.BackgroundThread)
+
 class ServerRestartedUnauthorizedEvent : FXEvent(EventBus.RunOn.BackgroundThread)
 
 class DisconnectedEvent : FXEvent(EventBus.RunOn.BackgroundThread)

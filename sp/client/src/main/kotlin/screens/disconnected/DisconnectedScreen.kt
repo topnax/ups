@@ -4,10 +4,7 @@ import javafx.application.Platform
 import javafx.geometry.Pos
 import javafx.scene.control.Alert
 import mu.KotlinLogging
-import screens.GameRegeneratedEvent
-import screens.ServerRestartedEvent
-import screens.ServerRestartedUnauthorizedEvent
-import screens.ServerUnreachableEvent
+import screens.*
 import screens.game.GameStateRegenerationEvent
 import screens.game.GameView
 import screens.initial.InitialScreenView
@@ -23,6 +20,20 @@ class DisconnectedScreenView : View() {
             Platform.runLater {
                 replaceWith<MainMenuView>()
                 alert(Alert.AlertType.WARNING, "Server restarted and you have been reconnected...")
+            }
+        }
+
+        subscribe<MovedToLobbyScreenEvent> {
+            Platform.runLater {
+                replaceWith<MainMenuView>()
+                alert(Alert.AlertType.WARNING, "You have been moved out of the lobby...")
+            }
+        }
+
+        subscribe<NothingHappenedEvent> {
+            Platform.runLater {
+                replaceWith<MainMenuView>()
+                alert(Alert.AlertType.INFORMATION, "Nothing happened...")
             }
         }
 
