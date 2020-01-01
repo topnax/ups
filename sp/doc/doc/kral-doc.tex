@@ -109,7 +109,13 @@
     
     \section{Úvod}
     \section{Popis hry Kris Kros}
+    Jedná se o deskovou hru pro 2-4 hráče inspirovanou hrou Scrabble. Základním principem hry je skládat slova na herní desku z písmenek, která byla hráči rozdána. Hráči pokládají písmena na herní desku, kde buď v horizontálním vertikálním směru vznikají slova. Každé písmenko je ohodnoceno počtem bodů, které hráč za jeho položení dostane. Na konci každého kola se sečtou body písmenek všech slov, která v daném kole vznikla. Některá políčka na desce mohou bonifikovat celkové ohodnocení slova.
+
     \section{Analýza}
+    \subsection{Návrh protokolu}
+    	Protokol je třeba navrhnout podle charakteru aplikace, ve které bude použit. V případě hry Kris Kros jsou zprávy ve většině případů relativně jednoduché, ale například při aktualizaci herní desky, kdy je třeba poslat všem hráčům seznam ovlivněných políček, by taková datová část zprávy mohla být složitá a vlastní formát dat komplikovaný. To samé platí pro případ regenerace stavu klienta po výpadku připojení. V tomto případě jsou totiž data v datové části zprávy vrstvená a ideálně i popsaná nějakým identifikátorem. Návrh takového vlastního formátu by byl zbytečný, jelikož v dnešní době existuje mnoho standardizovaných formátů. V úvahu tedy připadá například XML nebo JSON.
+    \subsection{Výběr programovacího jazyku pro server}
+    Při použití standardizovaného formátu dat v datové části zpráv protokolu je třeba vybírat programovací jazyk tak, aby ve standardní knihovně obsahoval parser takového formátu a zároveň byl nízkoúrovňový, jak je stanoveno v zadání této semestrální práce. V úvahu tedy připadá programovací jazyk \textbf{Golang}, který má oproti jiným nízkoúrovňovým jazykům tu výhodu, že při jeho použití není třeba ručně uvolňovat paměť, jelikož pro automatickou správu paměti používá \textit{garbage collector}. Další výhodou tohoto jazyka je jednoduchá paralelizace pomocí konstrukce \textit{goroutine}.
    	    \section{Popis protokolu}
 	    Protokol je \textbf{textový} a jeho zprávy mají speciální formát.
 	    \subsection{Formát zpráv}
@@ -221,6 +227,7 @@
 			\texttt{letter}          &\texttt{struct letter}&Písmeno, které chce hráč položit.\\
 			\hline
 			\texttt{row}          &\texttt{int}&Číslo řádku, na který má být písmenko položené.\\
+			\hline
 			\texttt{column}          &\texttt{int}&Číslo sloupce, na který má být písmenko položené.\\
 			\hline
 		\end{tabularx}
@@ -228,7 +235,6 @@
 \end{center}
 
 
-		
 \begin{center}
 		\begin{table}[!ht]
 		     \caption{Atributy zprávy \texttt{LetterRemoved}}
@@ -237,6 +243,7 @@
 			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
 			\hline
 			\texttt{row}          &\texttt{int}&Číslo řádku, ze kterého má být písmenko odebrané.\\
+			\hline
 			\texttt{column}          &\texttt{int}&Číslo sloupce, ze kterého má být písmenko odebrané.\\
 			\hline
 		\end{tabularx}
@@ -297,9 +304,250 @@
 			\hline
 			123          &FinishResultedInNextRound&Zpráva oznamující, že potvrzení kola uživatele vyústilo v nové kolo.\\
 			\hline
+			701&PlainSuccess&Vznešený požadavek dopadl úspěšně.\\
+			\hline
 		\end{tabularx}
 \end{center}  
 Všechny tyto zprávy se vztahují ke kontextu uživatele, kterému přišly.
+\subsubsection{Atributy zpráv}
+		Níže jsou popsány významy atributů jednotlivých typů zpráv. Pokud se zde nějaká zpráva nevyskytuje znamená to, že nemá žádný atribut.
+		
+				
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Atributy zprávy \texttt{PlainSuccess}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{content}          &\texttt{string}&Popis úspěchu akce.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  
+
+				
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Atributy zprávy \texttt{GetLobbies}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{lobbies}          &\texttt{[] struct Lobby}&Seznam herních místností na serveru.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  
+
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Atributy zprávy \texttt{LobbyUpdated}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{lobby}          &\texttt{struct Lobby}&Aktualizovaná herní místnost.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  
+
+
+
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Atributy zprávy \texttt{LobbyJoined}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{lobby}          &\texttt{struct Lobby}&Aktualizovaná herní místnost.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  
+
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Atributy zprávy \texttt{UserAuthenticated}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{user}          &\texttt{struct User}&Uživatel, který byl vytvořen procesem autentizace.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  	
+
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Atributy zprávy \texttt{GameStarted}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{players}          &\texttt{[] struct Player}&Seznam hráčů ve hře.\\
+			\hline
+			\texttt{letters}          &\texttt{[] struct Letter}&Seznam písmenek, které má hráč k dispozici.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  	
+
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Atributy zprávy \texttt{TilesUpdated}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{tiles}          &\texttt{[] struct Tile}&Seznam aktualizovaných políček herní desky.\\
+			\hline
+			\texttt{current\_player\_points}          &\texttt{int}&Body hráče v aktuálním kole, který je na tahu.\\
+			\hline
+			\texttt{current\_player\_total\_points}          &\texttt{int}&Celkové body hráče, který je na tahu.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  	
+
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Atributy zprávy \texttt{PlayerAcceptedRound}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{player\_id}          &\texttt{int}&ID hráče, který schválil aktuální slova na desce.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  	
+
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Atributy zprávy \texttt{NewRoundResponse}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{active\_player\_id}          &\texttt{int}&ID hráče, který je v novém kole na tahu.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  	
+
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Atributy zprávy \texttt{YourNewRoundResponse}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{letters}          &\texttt{[] struct Letter}&Seznam písmen, která byla hráči v tomto novém kole přidělena.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  	
+
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Atributy zprávy \texttt{PlayerDeclinedWords}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{player\_id}          &\texttt{int}&ID hráče, který zamítl aktuální slova na desce.\\
+			\hline
+			\texttt{player\_name}          &\texttt{string}&Jméno hráče, který zamítl aktuální slova na desce.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  	
+
+
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Atributy zprávy \texttt{GameEndedResponse}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{player\_points}          &\texttt{map int:struct Player}&Mapa, kde klíčem je počet bodů a hodnotou je hráč, který tohoto zisku dosáhl.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  	
+
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Atributy zprávy \texttt{PlayerConnectionChanged}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{player\_id}          &\texttt{int}&ID hráče, jehož stav připojení se změnil.\\
+			\hline
+			\texttt{disconnected}          &\texttt{bool}&Booleanská hodnota, která nabývá hodnoty \texttt{true} pokud se daný hráč odpojil nebo hodnoty \texttt{false} pokud se odpojil.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  	
+
+
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Atributy zprávy \texttt{GameStateRegeneration}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{user}          &\texttt{struct User}&Informaci o uživateli, ke kterému se uživatel znovu připojil.\\
+			\hline
+			\texttt{players}          &\texttt{[] struct Players}&Seznam hráčů ve hře.\\
+			\hline
+			\texttt{tiles}          &\texttt{[] struct Tile}&Seznam políček, které jsou na herní desce obsazené a obsahují nějaké písmeno.\\
+			\hline
+			\texttt{active\_player\_id}          &\texttt{int}&ID hráče, který je v aktuálním kole na tahu.\\
+			\hline
+			\texttt{player\_points}          &\texttt{map int:struct Player}&Mapa, kde klíčem je počet bodů a hodnotou je hráč, který tohoto zisku ve stávající hře dosáhl.\\
+			\hline
+			\texttt{current\_player\_points}          &\texttt{int}&Počet bodů, které hráč, který je nyní na tahu, získal v aktuálním kole.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center} 
+
+
+\begin{center}
+		\begin{table}[!ht]
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\texttt{player\_ids\_that\_accepted}          &\texttt{[] int}&Seznam ID hráčů, kteří schválili aktuální slova na herní desce.\\
+			\hline
+			\texttt{letters}          &\texttt{[] struct Letter}&Seznam písmenek, která má hráč toto kolo k dispozici.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center} 
+
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Atributy zprávy \texttt{UserStateRegeneration}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{state}          &\texttt{int}&Stav uživatele po znovupřipojení, kdy hodnota \texttt{0} znamená, že se server restartoval, hodnota \texttt{1} znamená, že dané uživatelské jméno se již na serveru vyskytuje, hodnota \texttt{2} znamená, že uživatel byl přesunut na výběr místností a hodnota \texttt{3} znamená, že po znovupřipojení nedošlo k žádné změně.\\
+			\hline
+			\texttt{player\_name}          &\texttt{string}&Jméno hráče, který zamítl aktuální slova na desce.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  	
+
 
 	    \subsection{Popis serveru}
 		    \subsubsection{Struktura modulů}
