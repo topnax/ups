@@ -2,6 +2,7 @@ package screens.initial
 
 import javafx.beans.property.SimpleIntegerProperty
 import javafx.beans.property.SimpleStringProperty
+import javafx.geometry.Pos
 import javafx.scene.control.Button
 import javafx.scene.control.MenuItem
 import javafx.scene.control.TextField
@@ -36,16 +37,17 @@ class InitialScreenView : View() {
         center = vbox(spacing = 10.0) {
             padding = insets(10)
             prefWidth = 10.0
+            alignment = Pos.CENTER
             hbox(spacing = 10.0) {
+                alignment = Pos.CENTER
+                label("Username:")
                 nameTextField = textfield {}
-
                 joinButton = button("Join")
                 joinButton.disableProperty().set(false)
 
                 joinButton.action {
                     controller.onJoinButtonPressed()
                 }
-
             }
         }
         controller.init(this@InitialScreenView)
