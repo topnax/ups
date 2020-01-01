@@ -1,21 +1,25 @@
 package networking.receiver
 
 import mu.KotlinLogging
+import networking.Network
 import networking.reader.MessageReader
 
 private val logger = KotlinLogging.logger {}
 
-class FixedMessageReceiver(messageReader: MessageReader) : MessageReceiver(messageReader) {
+class SimpleMessageReceiver(messageReader: MessageReader, val testMode: Boolean = false) : MessageReceiver(messageReader) {
 
     companion object {
         const val START_CHAR = '$'
         const val SEPARATOR = '#'
+        const val INVALID_BYTE_COUNT_CEILING = 5
     }
 
     private var state = 1
+    private var closed = false
     private var type = 0
     private var length = 0
     private var messageId = 0
+    private var invalidByteCount = 0
     private var headerBuffer = mutableListOf<Byte>()
     private var contentBuffer = mutableListOf<Byte>()
 
@@ -32,6 +36,9 @@ class FixedMessageReceiver(messageReader: MessageReader) : MessageReceiver(messa
                 1 -> {
                     if (byte.toChar() == START_CHAR) {
                         state = 2
+                        validByte()
+                    } else {
+                        invalidByte()
                     }
                 }
 
@@ -40,10 +47,17 @@ class FixedMessageReceiver(messageReader: MessageReader) : MessageReceiver(messa
                     state = when {
                         byte.toChar().isDigit() -> {
                             headerBuffer.add(byte)
+                            validByte()
                             3
                         }
-                        byte.toChar() == START_CHAR -> 2
-                        else -> 1
+                        byte.toChar() == START_CHAR -> {
+                            invalidByte()
+                            2
+                        }
+                        else -> {
+                            invalidByte()
+                            1
+                        }
                     }
                 }
 
@@ -51,17 +65,23 @@ class FixedMessageReceiver(messageReader: MessageReader) : MessageReceiver(messa
                     state = when {
                         byte.toChar().isDigit() -> {
                             headerBuffer.add(byte)
+                            validByte()
                             3
                         }
 
                         byte.toChar() == SEPARATOR -> {
                             this.length = String(headerBuffer.toByteArray()).toInt()
+                            validByte()
                             4
                         }
 
-                        byte.toChar() == START_CHAR -> 2
+                        byte.toChar() == START_CHAR -> {
+                            invalidByte()
+                            2
+                        }
 
                         else -> {
+                            invalidByte()
                             1
                         }
                     }
@@ -72,10 +92,17 @@ class FixedMessageReceiver(messageReader: MessageReader) : MessageReceiver(messa
                     state = when {
                         byte.toChar().isDigit() -> {
                             headerBuffer.add(byte)
+                            validByte()
                             5
                         }
-                        byte.toChar() == START_CHAR -> 2
-                        else -> 1
+                        byte.toChar() == START_CHAR -> {
+                            invalidByte()
+                            2
+                        }
+                        else -> {
+                            invalidByte()
+                            1
+                        }
                     }
                 }
 
@@ -83,17 +110,23 @@ class FixedMessageReceiver(messageReader: MessageReader) : MessageReceiver(messa
                     state = when {
                         byte.toChar().isDigit() -> {
                             headerBuffer.add(byte)
+                            validByte()
                             5
                         }
 
                         byte.toChar() == SEPARATOR -> {
                             type = String(headerBuffer.toByteArray()).toInt()
+                            validByte()
                             6
                         }
 
-                        byte.toChar() == START_CHAR -> 2
+                        byte.toChar() == START_CHAR -> {
+                            invalidByte()
+                            2
+                        }
 
                         else -> {
+                            invalidByte()
                             1
                         }
                     }
@@ -104,10 +137,17 @@ class FixedMessageReceiver(messageReader: MessageReader) : MessageReceiver(messa
                     state = when {
                         byte.toChar().isDigit() -> {
                             headerBuffer.add(byte)
+                            validByte()
                             7
                         }
-                        byte.toChar() == START_CHAR -> 2
-                        else -> 1
+                        byte.toChar() == START_CHAR -> {
+                            invalidByte()
+                            2
+                        }
+                        else -> {
+                            invalidByte()
+                            1
+                        }
                     }
                 }
 
@@ -115,38 +155,75 @@ class FixedMessageReceiver(messageReader: MessageReader) : MessageReceiver(messa
                     state = when {
                         byte.toChar().isDigit() -> {
                             headerBuffer.add(byte)
+                            validByte()
                             7
                         }
 
                         byte.toChar() == SEPARATOR -> {
                             messageId = String(headerBuffer.toByteArray()).toInt()
                             contentBuffer.clear()
+                            validByte()
                             8
                         }
 
-                        byte.toChar() == START_CHAR -> 2
+                        byte.toChar() == START_CHAR -> {
+                            invalidByte()
+                            2
+                        }
 
                         else -> {
+                            invalidByte()
                             1
                         }
                     }
                 }
 
                 8 -> {
+                    if (closed) {
+                        return
+                    }
                     state = if (!contentBuffer.isNextByteEscaped() && byte.toChar() == START_CHAR) {
+                        invalidByte()
                         2
                     } else {
                         contentBuffer.add(byte)
-                        if (contentBuffer.size == this.length) {
-                            messageReader.read(Message(this.length, type, String(contentBuffer.toByteArray()), messageId))
-                            1
-                        } else {
-                            8
+                        when {
+                            contentBuffer.size == this.length -> {
+                                validByte()
+                                messageReader.read(Message(this.length, type, String(contentBuffer.toByteArray()), messageId))
+                                1
+                            }
+                            contentBuffer.size > this.length -> {
+                                invalidByte()
+                                8
+                            }
+                            else -> {
+                                validByte()
+                                8
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    private fun invalidByte() {
+        if (!testMode) {
+            if (!closed) {
+                invalidByteCount++
+                logger.warn { "Received an invalid byte, invalidByteCount=$invalidByteCount" }
+                if (invalidByteCount >= INVALID_BYTE_COUNT_CEILING) {
+                    closed = true
+                    logger.error { "Received invalidByteCount=$invalidByteCount, closing the connection." }
+                    Network.getInstance().stop()
+                }
+            }
+        }
+    }
+
+    private fun validByte() {
+        invalidByteCount = 0
     }
 }
 

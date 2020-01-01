@@ -7,7 +7,7 @@ import mu.KotlinLogging
 import networking.applicationmessagereader.ApplicationMessageReader
 import networking.messages.*
 import networking.reader.SimpleMessageReader
-import networking.receiver.FixedMessageReceiver
+import networking.receiver.SimpleMessageReceiver
 import screens.*
 import tornadofx.FX
 import tornadofx.alert
@@ -68,7 +68,7 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
         this.hostname = hostname
         this.port = port
         tcpLayer?.close()
-        tcpLayer = TCPLayer(port, hostname, FixedMessageReceiver(SimpleMessageReader(this)), this)
+        tcpLayer = TCPLayer(port, hostname, SimpleMessageReceiver(SimpleMessageReader(this)), this)
         tcpLayer?.start()
     }
 
@@ -240,7 +240,7 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
         if (!triedToReconnect) {
             triedToReconnect = true
             tcpLayer?.close()
-            tcpLayer = TCPLayer(port, hostname, FixedMessageReceiver(SimpleMessageReader(this)), this)
+            tcpLayer = TCPLayer(port, hostname, SimpleMessageReceiver(SimpleMessageReader(this)), this)
             tcpLayer?.start()
         }
     }
@@ -282,7 +282,7 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
     }
 
     fun send(message: ApplicationMessage, callback: ((ApplicationMessage) -> Unit)? = null, desiredMessageId: Int = 0, callAfterWrite: (() -> Unit)? = null, ignoreErrors: Boolean = false, timeoutCallback: (() -> Unit)? = null) {
-        val json = message.toJson().replace(FixedMessageReceiver.START_CHAR.toString(), "\\" + FixedMessageReceiver.START_CHAR).replace(FixedMessageReceiver.SEPARATOR.toString(), "\\" + FixedMessageReceiver.SEPARATOR)
+        val json = message.toJson().replace(SimpleMessageReceiver.START_CHAR.toString(), "\\" + SimpleMessageReceiver.START_CHAR).replace(SimpleMessageReceiver.SEPARATOR.toString(), "\\" + SimpleMessageReceiver.SEPARATOR)
 
         callback?.let {
             // if callback is set, add a listener
@@ -306,7 +306,7 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
 
         logger.info { "Writing message of type ${message.type} and content '$json' to server" }
 
-        tcpLayer?.write("${FixedMessageReceiver.START_CHAR}${json.toByteArray().size}${FixedMessageReceiver.SEPARATOR}${message.type}${FixedMessageReceiver.SEPARATOR}${messageId}${FixedMessageReceiver.SEPARATOR}$json")
+        tcpLayer?.write("${SimpleMessageReceiver.START_CHAR}${json.toByteArray().size}${SimpleMessageReceiver.SEPARATOR}${message.type}${SimpleMessageReceiver.SEPARATOR}${messageId}${SimpleMessageReceiver.SEPARATOR}$json")
 
         messageId++
 
