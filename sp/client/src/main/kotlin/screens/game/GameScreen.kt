@@ -46,13 +46,6 @@ class GameView : View() {
                 nameLabel.text = it.name
             }
 
-            label("Disconnected from the server") {
-                visibleProperty().set(false)
-                subscribe<ConnectionStateChanged> {
-                    visibleProperty().set(!it.connected)
-                }
-            }
-
             button("Leave the game") {
                 action {
                     controller.leaveGame()
@@ -61,6 +54,7 @@ class GameView : View() {
 
         }
         gridpane {
+            gridLinesVisibleProperty().set(true)
             useMaxWidth = true
             hgrow = Priority.ALWAYS
             controller.desk.tiles.forEachIndexed { index, row ->

@@ -284,6 +284,7 @@ class GameScreenController : Controller(), ConnectionStatusListener {
             activePlayerID = it.response.activePlayerId
             currentRoundPlayerPoints = it.response.currentPlayerPoints
             playerIdsWhoAcceptedWords.addAll(it.response.playerIdsThatAccepted)
+            letters = it.response.letters.toMutableList()
             if (playerIdsWhoAcceptedWords.contains(Network.User.id)) {
                 wordsAccepted = true
             }
@@ -307,6 +308,7 @@ class GameScreenController : Controller(), ConnectionStatusListener {
             }
             previouslyUpdatedTiles.addAll(it.response.tiles)
             fire(PlayerStateChangedEvent())
+            fire(NewLetterSackEvent(letters))
         }
 
         subscribe<TileSelectedEvent> { event ->
