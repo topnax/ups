@@ -1,0 +1,325 @@
+\documentclass[12pt, a4paper]{article}
+
+\usepackage[czech]{babel}
+\usepackage{lmodern}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage[hidelinks,unicode]{hyperref}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{tikz}
+\usepackage{xcolor}
+\usepackage[final]{pdfpages}
+\usepackage{tabularx}
+
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+\usetikzlibrary{shapes,positioning,matrix,arrows}
+
+\newcommand{\img}[1]{(viz obr. \ref{#1})}
+
+\definecolor{pblue}{rgb}{0.13,0.13,1}
+\definecolor{pgreen}{rgb}{0,0.5,0}
+\definecolor{pred}{rgb}{0.9,0,0}
+\definecolor{pgrey}{rgb}{0.46,0.45,0.48}
+
+\lstset{frame=tb,
+  language=C,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+\lstset{language=Java,
+  showspaces=false,
+  showtabs=false,
+  breaklines=true,
+  showstringspaces=false,
+  breakatwhitespace=true,
+  commentstyle=\color{pgreen},
+  keywordstyle=\color{pblue},
+  stringstyle=\color{pred},
+  basicstyle=\ttfamily,
+  moredelim=[il][\textcolor{pgrey}]{$$},
+  moredelim=[is][\textcolor{pgrey}]{\%\%}{\%\%}
+}
+
+\let\oldsection\section
+\renewcommand\section{\clearpage\oldsection}
+
+\begin{document}
+	% this has to be placed here, after document has been created
+	% \counterwithout{lstlisting}{chapter}
+	\renewcommand{\lstlistingname}{Ukázka kódu}
+	\renewcommand{\lstlistlistingname}{Seznam ukázek kódu}
+    \begin{titlepage}
+
+       \centering
+
+       \vspace*{\baselineskip}
+
+       \begin{figure}[H]
+          \centering
+          \includegraphics[width=7cm]{img/fav-logo.jpg}
+       \end{figure}
+
+       \vspace*{1\baselineskip}
+       {\sc Semestrální práce z předmětu KIV/UPS}
+       \vspace*{1\baselineskip}
+
+       \vspace{0.75\baselineskip}
+
+       {\LARGE\sc Tahová multiplayerová hra na způsob Kris Kros\\}
+
+       \vspace{4\baselineskip}
+       
+		\vspace{0.5\baselineskip}
+
+       
+       {\sc\Large Stanislav Král \\}
+
+       \vspace{0.5\baselineskip}
+
+       {A17B0260P}
+
+       \vfill
+
+       {\sc Západočeská univerzita v Plzni\\
+       Fakulta aplikovaných věd}
+
+
+    \end{titlepage}
+
+
+    \tableofcontents
+    \pagebreak
+
+
+    
+    \section{Úvod}
+    \section{Popis hry Kris Kros}
+    \section{Analýza}
+   	    \section{Popis protokolu}
+	    Protokol je \textbf{textový} a jeho zprávy mají speciální formát.
+	    \subsection{Formát zpráv}
+		Každá zpráva musí začínat řídícím znakem \texttt{\$}. Po počátečním znaku následuje délka datové části zprávy v bytech. Délka zprávy je přirozené nenulové číslo. Po délce zprávy následuje oddělovací znak \texttt{\#}, za kterým se nachází přirozené číslo reprezentující typ zprávy. Typ zprávy je opět následován oddělovacím znakem \texttt{\#},\ za kterým je umístěné přirozené číslo reprezentující identifikátor zprávy. Za identifikátorem zprávy se nachází poslední oddělovací znak \texttt{\#}, který odděluje identifikátor a datovou část zprávy. Datová část je ve formátu \textbf{JSON} a nesmí obsahovat neescapovaný řídící znak \texttt{\$}. Escapování tohoto řídícího znaku se realizuje tím, že se před znak umístí znak \texttt{\textbackslash}.
+		
+        \begin{lstlisting}[caption={Zpráva protokolu, která je typu \texttt{7} a je identifikována číslem \texttt{1}. Její datová část je dlouhá 19 bytů.},captionpos=b]
+		$19#7#1#{"name" : "standa"}
+		\end{lstlisting}
+			
+        \begin{lstlisting}[caption={Zpráva protokolu, která je typu \texttt{6} a je identifikována číslem \texttt{4}. Její datová část je dlouhá 16 bytů.},captionpos=b]
+		$16#6#4#{"ready" : true}
+		\end{lstlisting}
+	
+
+    \section{Implementace}
+	    \subsection{Typy příchozích zpráv na serveru}		    
+	    
+\begin{center}
+		\begin{tabular}{| p{1.2cm} | p{3.4cm} | p{7.830cm} |}
+			\hline
+			\textbf{Typ zprávy} & \textbf{Název zprávy} & \textbf{Popis zprávy} \\ 
+			\hline
+			2          &CreateLobby              &Požadavek na vytvoření herní místnosti.\\
+			\hline
+			3          &GetLobbies              &Požadavek na získání aktuálního seznamu herních místností.\\
+			\hline
+			4          &JoinLobby              &Požadavek na vstoupení do herní místnosti. \\
+			\hline
+			5          &LeaveLobby              &Požadavek na opuštění herní místnosti.\\
+			\hline
+			6          &PlayerReady              &Požadavek na změnu připravenosti hráče.\\
+			\hline
+			7          &UserAuthentication              &Požadavek na autentizaci uživatele\\
+			\hline
+			8          &UserLeaving              &Požadavek na odpojení uživatele ze se serveru.\\
+			\hline
+			9          &StartLobby              &Požadavek na spuštění hry.\\
+			\hline
+			10          &LetterPlaced              &Požadavek na položení písmenka na herní desku.\\
+			\hline
+			11          &LetterRemoved              &Požadavek na odebrání písmenka z herní desky.\\
+			\hline
+			12          &FinishRound              &Požadavek na ukončení kola.\\
+			\hline
+			13          &ApproveWords              &Požadavek na potvrzení aktuálních slov na desce.\\
+			\hline
+			14          &DeclineWords             &Požadavek na odmítnutí aktuálních slov na desce.\\
+			\hline
+			15          &KeepAlive              &Požadavek na ověření funkčnosti spojení mezi klientem a serverem.\\
+			\hline
+			16          &LeaveGame              &Požadavek na opuštění hry.\\
+			\hline
+		\end{tabular}
+\end{center}  
+
+		\subsubsection{Atributy zpráv}
+		Níže jsou popsány významy atributů jednotlivých typů zpráv. Pokud se zde nějaká zpráva nevyskytuje znamená to, že nemá žádný atribut.
+		
+		
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Atributy zprávy \texttt{JoinLobby}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{lobby\_id}          &\texttt{int}&ID místnosti, do které se chce hráč připojit\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  		
+		
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Atributy zprávy \texttt{PlayerReadyToggle}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{ready}          &\texttt{bool}&Booleanská hodnota, která nabývá hodnoty \texttt{true} pokud je hráč připravený a \texttt{false} pokud není připravený.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  
+		
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Atributy zprávy \texttt{UserAuthenticated}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{name}          &\texttt{string}&Jméno hráče, který se chce autentizovat.\\
+			\hline
+			\texttt{reconnecting}          &\texttt{bool}&Booleanská hodnota, která nabývá hodnoty \texttt{true} pokud se hráč snaží o znovupřipojení a \texttt{false} pokud ne.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  
+
+		
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Atributy zprávy \texttt{LetterPlaced}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{letter}          &\texttt{struct letter}&Písmeno, které chce hráč položit.\\
+			\hline
+			\texttt{row}          &\texttt{int}&Číslo řádku, na který má být písmenko položené.\\
+			\texttt{column}          &\texttt{int}&Číslo sloupce, na který má být písmenko položené.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}
+
+
+		
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Atributy zprávy \texttt{LetterRemoved}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{row}          &\texttt{int}&Číslo řádku, ze kterého má být písmenko odebrané.\\
+			\texttt{column}          &\texttt{int}&Číslo sloupce, ze kterého má být písmenko odebrané.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  		
+
+   	    \subsection{Typy příchozích zpráv na klientovi}
+\begin{center}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Typ zprávy} & \textbf{Název zprávy} & \textbf{Popis zprávy} \\ 
+			\hline
+			101          &GetLobbies              &Zpráva obsahující seznam herních místností na serveru.\\
+			\hline
+			103          &LobbyUpdated         &Zpráva oznamující změnu herní místnosti, která obsahuje aktuální stav místnosti.\\
+			\hline
+			105          &LobbyDestroyed&Zpráva oznamující zrušení aktuální herní místnosti.\\
+			\hline
+			106          &LobbyJoined        &Zpráva oznamující úspěšné připojení do herní místnosti.\\
+			\hline
+			107          &UserAuthenticated            &Zpráva oznamující výsledek autentizace uživatele.\\
+			\hline
+			108          &LobbyStarted       &Zpráva oznamující spuštění herní místnosti.\\
+			\hline
+			109          &GameStarted              &Zpráva oznamující spuštění hry.\\
+			\hline
+			111          &TilesUpdated              &Zpráva obsahující informace o změněných políčkách herní desky a bodový stav hráče, který je momentálně na tahu.\\
+			\hline
+			112          &RoundFinished              &Zpráva oznamující ukončení aktuálního kola.\\
+			\hline
+			113          &PlayerAcceptedRound             &Zpráva oznamující to, že některý ze hráčů schválil slovíčka na herní desce.\\
+			\hline
+			114          &NewRound           &Zpráva oznamující počátek nového kola.\\
+			\hline
+			115          &YourNewRound&Zpráva oznamující, že začalo nové kolo a uživatel je nyní na tahu\\
+			\hline
+			116          &PlayerDeclined           &Zpráva oznamující to, že některý ze hráčů zamítl slovíčka na herní desce\\
+			\hline
+			117          &GameEnded&Zpráva oznamující konec hry, která obsahuje výslednou tabulku bodů jednotlivých hráčů.\\
+			\hline
+		\end{tabularx}
+\end{center}  
+
+\pagebreak
+
+\begin{center}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			118          &AcceptResultedInNewRound&Zpráva oznamující to, že schválení slovíček uživatelem vyústilo v nové kolo.\\
+			\hline
+			119          &PlayerConnectionChanged  &Zpráva oznamující změnu připojení některého z hráčů.\\
+			\hline
+			120          &GameStateRegeneration              &Zpráva obsahující aktuální stav hry po znovupřipojení k serveru.\\
+			\hline
+			121          &KeepAlive  &Zpráva potvrzující spojení mezi klientem a serverem.\\
+			\hline
+			122          &UserStateRegeneration&Zpráva oznamující aktuální stav uživatele po znovupřipojení k serveru.\\
+			\hline
+			123          &FinishResultedInNextRound&Zpráva oznamující, že potvrzení kola uživatele vyústilo v nové kolo.\\
+			\hline
+		\end{tabularx}
+\end{center}  
+Všechny tyto zprávy se vztahují ke kontextu uživatele, kterému přišly.
+
+	    \subsection{Popis serveru}
+		    \subsubsection{Struktura modulů}
+
+	    \subsection{Popis klienta}
+   		    \subsubsection{Struktura modulů}
+    
+    \section{Závěr}
+    
+
+
+%obrazek
+%\begin{figure}[!ht]
+%\centering
+%{\includegraphics[width=12cm]{img/poly-example.jpeg}}
+%\caption{Zjednodušené UML aplikace (pouze balíčky)}
+%\label{fig:photo}
+%\end{figure}
+
+	
+	
+
+\end{document}    
