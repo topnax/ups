@@ -9,6 +9,7 @@ import (
 	"ups/sp/server/protocol/impl"
 )
 
+// parses a message using a json decoder
 func parse(message def.Message, messageTemplate interface{}) bool {
 	log.Infoln(message.Content())
 	r := strings.NewReader(message.Content())
@@ -24,5 +25,5 @@ func parse(message def.Message, messageTemplate interface{}) bool {
 }
 
 func failedToParse(message def.Message) def.Response {
-	return impl.ErrorResponse(fmt.Sprintf("Failed message of type %d, of content: '%s'", message.Type(), message.Content()), impl.FailedToParse)
+	return impl.ErrorResponse(fmt.Sprintf("Failed to parse a message of type %d, of content: '%s'", message.Type(), message.Content()), impl.FailedToParse)
 }

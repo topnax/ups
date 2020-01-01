@@ -21,7 +21,9 @@ func (s *SimpleOutput) Read(message def.Message) def.Response {
 
 func TestReceive(t *testing.T) {
 	jsonReader := SimpleOutput{}
-	smr := impl.SimpleTcpMessageReceiver{}
+	smr := impl.SimpleTcpMessageReceiver{
+		TestMode: true,
+	}
 	smr.SetMessageReader(&jsonReader)
 	sent := "$10#5#10#Hello guys"
 	bytes := []byte(sent)
@@ -39,7 +41,9 @@ func TestReceive(t *testing.T) {
 
 func TestReceive3(t *testing.T) {
 	jsonReader := SimpleOutput{}
-	smr := impl.SimpleTcpMessageReceiver{}
+	smr := impl.SimpleTcpMessageReceiver{
+		TestMode: true,
+	}
 	smr.SetMessageReader(&jsonReader)
 	sent := "$12#10#hELLO$10#5#10#Hello guys"
 	bytes := []byte(sent)
@@ -57,7 +61,9 @@ func TestReceive3(t *testing.T) {
 
 func TestReceive4(t *testing.T) {
 	jsonReader := SimpleOutput{}
-	smr := impl.SimpleTcpMessageReceiver{}
+	smr := impl.SimpleTcpMessageReceiver{
+		TestMode: true,
+	}
 	smr.SetMessageReader(&jsonReader)
 	sent := "$12#1#11#12345\\$6789X"
 	bytes := []byte(sent)
@@ -75,7 +81,9 @@ func TestReceive4(t *testing.T) {
 
 func TestReceive5(t *testing.T) {
 	jsonReader := SimpleOutput{}
-	smr := impl.SimpleTcpMessageReceiver{}
+	smr := impl.SimpleTcpMessageReceiver{
+		TestMode: true,
+	}
 	smr.SetMessageReader(&jsonReader)
 	sent := "$12#1#11#12345\\\\$12#1#11#12345\\\\\\$678"
 	bytes := []byte(sent)
@@ -93,7 +101,9 @@ func TestReceive5(t *testing.T) {
 
 func TestReceive6(t *testing.T) {
 	jsonReader := SimpleOutput{}
-	smr := impl.SimpleTcpMessageReceiver{}
+	smr := impl.SimpleTcpMessageReceiver{
+		TestMode: true,
+	}
 	smr.SetMessageReader(&jsonReader)
 	sent := "$12#1#11#12345\\\\\\$678"
 	bytes := []byte(sent)
@@ -112,7 +122,9 @@ func TestReceive6(t *testing.T) {
 func TestReceive2(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	jsonReader := SimpleOutput{}
-	smr := impl.SimpleTcpMessageReceiver{}
+	smr := impl.SimpleTcpMessageReceiver{
+		TestMode: true,
+	}
 	smr.SetMessageReader(&jsonReader)
 
 	bytec := len([]byte("{\"player_name\" : \"alzáček\"}"))
@@ -133,7 +145,9 @@ func TestReceive2(t *testing.T) {
 
 func TestReceivePartial(t *testing.T) {
 	jsonReader := SimpleOutput{}
-	smr := impl.SimpleTcpMessageReceiver{}
+	smr := impl.SimpleTcpMessageReceiver{
+		TestMode: true,
+	}
 	smr.SetMessageReader(&jsonReader)
 
 	sent := "$10#5#10#Hello"
@@ -157,7 +171,9 @@ func TestReceivePartial(t *testing.T) {
 
 func TestReceivePartial2(t *testing.T) {
 	jsonReader := SimpleOutput{}
-	smr := impl.SimpleTcpMessageReceiver{}
+	smr := impl.SimpleTcpMessageReceiver{
+		TestMode: true,
+	}
 	smr.SetMessageReader(&jsonReader)
 
 	sent := "$10#5#10#Youre"
@@ -185,7 +201,9 @@ func TestReceivePartial2(t *testing.T) {
 
 func TestReceivePartial3(t *testing.T) {
 	jsonReader := SimpleOutput{}
-	smr := impl.SimpleTcpMessageReceiver{}
+	smr := impl.SimpleTcpMessageReceiver{
+		TestMode: true,
+	}
 	smr.SetMessageReader(&jsonReader)
 
 	sent := "$10#5#10#Hello\\"
@@ -209,7 +227,9 @@ func TestReceivePartial3(t *testing.T) {
 
 func TestReceiveMultiple(t *testing.T) {
 	jsonReader := SimpleOutput{}
-	smr := impl.SimpleTcpMessageReceiver{}
+	smr := impl.SimpleTcpMessageReceiver{
+		TestMode: true,
+	}
 	smr.SetMessageReader(&jsonReader)
 
 	bytec := len([]byte("Pěšák"))
@@ -242,7 +262,9 @@ func TestReceiveMultiple(t *testing.T) {
 
 func TestReceiveMultiple2(t *testing.T) {
 	jsonReader := SimpleOutput{}
-	smr := impl.SimpleTcpMessageReceiver{}
+	smr := impl.SimpleTcpMessageReceiver{
+		TestMode: true,
+	}
 	smr.SetMessageReader(&jsonReader)
 
 	bytec := len([]byte("Pěšáčečíkk"))
@@ -275,7 +297,9 @@ func TestReceiveMultiple2(t *testing.T) {
 
 func TestReceiveMultipleSplit(t *testing.T) {
 	jsonReader := SimpleOutput{}
-	smr := impl.SimpleTcpMessageReceiver{}
+	smr := impl.SimpleTcpMessageReceiver{
+		TestMode: true,
+	}
 	smr.SetMessageReader(&jsonReader)
 
 	bytec := len([]byte("Pěšák"))

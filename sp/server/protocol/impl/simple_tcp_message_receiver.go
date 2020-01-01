@@ -20,7 +20,8 @@ type SimpleTcpMessageReceiver struct {
 	buffers        map[int]*SimpleTcpMessageBuffer
 	messageReader  def.MessageReader
 	responseSender def.MessageSender
-	fdRemover      def.FileDescriptorRemover
+	socketCloser   def.SocketCloser
+	TestMode       bool
 }
 
 type SimpleTcpMessageBuffer struct {
@@ -35,24 +36,30 @@ type SimpleTcpMessageBuffer struct {
 	Closed           bool
 }
 
+// signals that an invalid byte has been receiver. If N invalid bytes are received the connection to the user is closed
 func (buffer *SimpleTcpMessageBuffer) invalidByte(receiver *SimpleTcpMessageReceiver) {
-	if !buffer.Closed {
-		buffer.InvalidByteCount++
-		log.Warnf("Buffer of FD=%d received an invalid byte", buffer.ClientUID)
-		if buffer.InvalidByteCount >= InvalidByteCountCeiling {
-			buffer.Closed = true
-			delete(receiver.buffers, buffer.ClientUID)
-			log.Errorf("Connection to FD=%d is being closed because it's buffer received %d invalid bytes.", buffer.ClientUID, buffer.InvalidByteCount)
-			if receiver.fdRemover != nil {
-				receiver.fdRemover.RemoveFd(buffer.ClientUID)
+	if !receiver.TestMode {
+		if !buffer.Closed {
+			buffer.InvalidByteCount++
+			log.Warnf("Buffer of FD=%d received an invalid byte", buffer.ClientUID)
+			if buffer.InvalidByteCount >= InvalidByteCountCeiling {
+				buffer.Closed = true
+				delete(receiver.buffers, buffer.ClientUID)
+				log.Errorf("Connection to FD=%d is being closed because it's buffer received %d invalid bytes.", buffer.ClientUID, buffer.InvalidByteCount)
+				if receiver.socketCloser != nil {
+					receiver.socketCloser.CloseFd(buffer.ClientUID)
+				}
 			}
 		}
 	}
 }
+
+// signals that a valid byte has been received and that invalid byte count should be reset
 func (buffer *SimpleTcpMessageBuffer) validByte() {
 	buffer.InvalidByteCount = 0
 }
 
+// defines a simple message
 type SimpleMessage struct {
 	clientID    int
 	content     string
@@ -76,28 +83,31 @@ func (s SimpleMessage) Content() string {
 	return s.content
 }
 
-// ADD A MESSAGE STARTING CHAR
-
-func (s *SimpleTcpMessageReceiver) Receive(UID int, bytes []byte, length int) {
+// receives bytes from the given socket
+func (s *SimpleTcpMessageReceiver) Receive(socket int, bytes []byte, length int) {
 
 	// check whether headerBuffer map was created
 	if s.buffers == nil {
 		s.buffers = make(map[int]*SimpleTcpMessageBuffer)
 	}
 
-	_, exists := s.buffers[UID]
+	_, exists := s.buffers[socket]
 
 	if !exists {
-		// no headerBuffer was yet created for the given UID, so create a new one
-		s.buffers[UID] = &SimpleTcpMessageBuffer{
-			ClientUID: UID,
+		// no headerBuffer was yet created for the given socket, so create a new one
+		s.buffers[socket] = &SimpleTcpMessageBuffer{
+			ClientUID: socket,
 			State:     1,
 		}
 	}
 	message := string(bytes)
-	buffer := s.buffers[UID]
+	buffer := s.buffers[socket]
 	log.Debugf("TCP receiver received '%s'\n", message)
 
+	// handling of received bytes is done using an automaton
+	// for each socket an automaton is created
+	// format of accepted messages is as following
+	// {START_CHARACTER}{LENGTH}{SEPARATOR_CHARACTER}{MESSAGE_TYPE}{SEPARATOR_CHARACTER}{MESSAGE_ID}{SEPARATOR_CHARACTER}{CONTENT_OF_LENGTH_<LENGTH>}
 	for index, b := range bytes {
 
 		char := rune(b)
@@ -228,6 +238,7 @@ func (s *SimpleTcpMessageReceiver) Receive(UID int, bytes []byte, length int) {
 	}
 }
 
+// clears a buffer by sending the message to the message receiver and clearing it
 func (s *SimpleTcpMessageReceiver) clearBuffer(buffer *SimpleTcpMessageBuffer) {
 
 	if buffer.Closed {
@@ -237,17 +248,28 @@ func (s *SimpleTcpMessageReceiver) clearBuffer(buffer *SimpleTcpMessageBuffer) {
 
 	logLevel := log.GetLevel()
 	if buffer.MessageType == 15 {
+		// keep alive's logs are ignored
 		log.SetLevel(log.WarnLevel)
 	}
 	var response def.Response
 	log.Infof("[#%d] %d - '%s'", buffer.ClientUID, buffer.MessageType, buffer.contentBuffer)
 	if s.messageReader != nil {
-		response = s.messageReader.Read(SimpleMessage{
-			clientID:    buffer.ClientUID,
-			messageType: buffer.MessageType,
-			content:     strings.Replace(string(buffer.contentBuffer), "\\", "", -1),
-			id:          buffer.MessageId,
-		})
+		// for test purposes do not escape \ character
+		if !s.TestMode {
+			response = s.messageReader.Read(SimpleMessage{
+				clientID:    buffer.ClientUID,
+				messageType: buffer.MessageType,
+				content:     strings.Replace(string(buffer.contentBuffer), "\\", "", -1),
+				id:          buffer.MessageId,
+			})
+		} else {
+			response = s.messageReader.Read(SimpleMessage{
+				clientID:    buffer.ClientUID,
+				messageType: buffer.MessageType,
+				content:     string(buffer.contentBuffer),
+				id:          buffer.MessageId,
+			})
+		}
 	} else {
 		response = ErrorResponseID("Cannot send message to JSON parser because it's null", NoMessageReader, buffer.MessageId)
 	}
@@ -266,6 +288,7 @@ func (s *SimpleTcpMessageReceiver) clearBuffer(buffer *SimpleTcpMessageBuffer) {
 	}
 }
 
+// returns true if the next byte would be escaped or not
 func IsNextByteEscaped(bytes []byte) bool {
 	index := 0
 	escCount := 0
@@ -284,14 +307,15 @@ func (receiver *SimpleTcpMessageReceiver) SetMessageReader(reader def.MessageRea
 	receiver.messageReader = reader
 }
 
-func (receiver *SimpleTcpMessageReceiver) SetFileDescriptorRemover(remover def.FileDescriptorRemover) {
-	receiver.fdRemover = remover
+func (receiver *SimpleTcpMessageReceiver) SetFileDescriptorRemover(remover def.SocketCloser) {
+	receiver.socketCloser = remover
 }
 
 func (receiver *SimpleTcpMessageReceiver) SetOutput(output def.MessageSender) {
 	receiver.responseSender = output
 }
 
+// sends a response in the same format as the one it accepts messages
 func (s *SimpleTcpMessageReceiver) Send(response def.Response, clientUID int, msgID int) {
 
 	if response.ID() != 0 {
@@ -312,6 +336,7 @@ func (s *SimpleTcpMessageReceiver) Send(response def.Response, clientUID int, ms
 	}
 }
 
+// returns the nth index of a string in the given string
 func IndexOfNth(str string, tbf string, n int) int {
 	if n < 1 {
 		return -1

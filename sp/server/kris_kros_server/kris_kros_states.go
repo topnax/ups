@@ -5,18 +5,18 @@ import (
 )
 
 const (
-	INITIAL_STATE_ID                = 1
-	AUTHORIZED_STATE_ID             = 2
-	LOBBY_JOINED_ID                 = 3  // done
-	LOBBY_JOINED_READY_ID           = 4  // done
-	LOBBY_CREATED_ID                = 5  // done
-	LOBBY_CREATED_READY_ID          = 6  // done
-	GAME_STARTED_STATE_ID           = 7  // pouze odebrat ze seznamu hráčů
-	PLAYERS_TURN_STATE_ID           = 8  // ukončí jeho kolo
-	PLAYER_WAITING_ID               = 9  // pouze odebrat ze seznamu hráčů
-	PLAYER_FINISHED_ROUND_ID        = 10 // pouze odebrat ze seznamu hráčů, decline způsobí odebrání písmenek, accept nic nepokazí
-	APPROVE_WORDS_STATE_ID          = 11 // -""-, pošle se accept
-	WORDS_VALIDITY_DECIDED_STATE_ID = 12 // pouze odebrat ze seznamu hráčů
+	INITIAL_STATE_ID                = 1  // a state of unauthorized users
+	AUTHORIZED_STATE_ID             = 2  // state of users that have been authorized and can view available lobbies and create them
+	LOBBY_JOINED_ID                 = 3  // state of players that have joined a lobby and can toggle their ready state
+	LOBBY_JOINED_READY_ID           = 4  // state of players that are ready and have joined a lobby and can toggle their ready state
+	LOBBY_CREATED_ID                = 5  // state of players that have created a lobby and can toggle their ready state
+	LOBBY_CREATED_READY_ID          = 6  // state of players that are ready and have created a lobby and can toggle their ready state
+	GAME_STARTED_STATE_ID           = 7  // state of players that have started a game
+	PLAYERS_TURN_STATE_ID           = 8  // state of players whose turn it is
+	PLAYER_WAITING_ID               = 9  // state of players whose turn it isn't
+	PLAYER_FINISHED_ROUND_ID        = 10 // state of players that have finished their turn
+	APPROVE_WORDS_STATE_ID          = 11 // state of players that should decide words validity
+	WORDS_VALIDITY_DECIDED_STATE_ID = 12 // state of players that have already decided words validity
 )
 
 type State interface {
@@ -24,6 +24,7 @@ type State interface {
 	Routes() map[int]int
 }
 
+// registers the possible states of the users
 func (router *KrisKrosRouter) registerStates() {
 	router.states = make(map[int]State)
 	router.registerState(InitialState{})
@@ -39,6 +40,8 @@ func (router *KrisKrosRouter) registerStates() {
 	router.registerState(ApproveWordsState{})
 	router.registerState(WordsValidityDecidedState{})
 }
+
+////////////////////////////////////////////
 
 type InitialState struct{}
 

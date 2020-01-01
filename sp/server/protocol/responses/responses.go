@@ -5,6 +5,8 @@ import (
 	"ups/sp/server/model"
 )
 
+// DEFINITION OF RESPONSES USED
+
 const (
 	ValidResponseCeiling = 400
 

@@ -5,6 +5,8 @@ import (
 	"ups/sp/server/protocol/def"
 )
 
+// DEFINITION OF MESSAGES USED
+
 const (
 	CreateLobbyType               = 2
 	GetLobbiesType                = 3

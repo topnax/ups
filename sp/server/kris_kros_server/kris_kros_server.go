@@ -288,7 +288,7 @@ func (k *KrisKrosServer) OnLeaveLobby(userID int) def.Response {
 // handler of OnStartLobby events
 func (k *KrisKrosServer) OnStartLobby(userID int) def.Response {
 	lobby, exists := k.lobbiesByOwnerID[userID]
-	if exists && lobby.IsStartable() {
+	if exists && lobby.IsStartPossible() {
 		resp := responses.LobbyStartedResponse{}
 		out := impl.MessageResponse(resp, resp.Type())
 		for _, player := range lobby.Players {
@@ -453,9 +453,6 @@ func (k *KrisKrosServer) OnClientDisconnected(socket int, leaving bool) {
 			if exists {
 				if state.Id() >= LOBBY_JOINED_ID && state.Id() <= LOBBY_CREATED_READY_ID {
 					k.removePlayerFromLobby(user.ID)
-					//delete(k.usersById, userID)
-					//delete(k.usersByName, user.Name)
-					//delete(k.Router.UserStates, user.ID)
 					log.Infof("Deleting a player of name=%s from lobby", user.Name)
 				} else if state.Id() >= GAME_STARTED_STATE_ID && state.Id() <= WORDS_VALIDITY_DECIDED_STATE_ID {
 					k.gameServer.PlayerLeft(userID, state.Id(), leaving)
@@ -467,6 +464,7 @@ func (k *KrisKrosServer) OnClientDisconnected(socket int, leaving bool) {
 	}
 }
 
+// handler of OnUserDisconnecting events, a willful disconnect
 func (k *KrisKrosServer) OnUserDisconnecting(userID int) {
 	user, exists := k.usersById[userID]
 	if exists {
@@ -483,21 +481,3 @@ func (k *KrisKrosServer) OnUserDisconnecting(userID int) {
 func (k *KrisKrosServer) onKeepAlive(userID int) def.Response {
 	return impl.StructMessageResponse(responses.KeepAliveResponse{})
 }
-
-//func (k *KrisKrosServer) OnGetLobbies(mes encoding.Message, clientUID int) encoding.ResponseMessage {
-//	var lobbies []model.Lobby
-//	for _, v := range k.lobbies {
-//		lobbies = append(lobbies, *v)
-//	}
-//	k.SendMessage(LobbiesListMessage{Lobbies: lobbies}, clientUID)
-//
-//	return encoding.SuccessResponse("great")
-//}
-//
-//type LobbiesListMessage struct {
-//	Lobbies []model.Lobby `json:"lobbies"`
-//}
-//
-//func (p LobbiesListMessage) GetType() int {
-//	return 103
-//}

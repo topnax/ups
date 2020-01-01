@@ -6,6 +6,8 @@ import (
 	"ups/sp/server/protocol/responses"
 )
 
+// DEFINES A GENERAL RESPONSES OF THE APPLICATION AS WELL AS ERROR RESPONSE CODES
+
 const (
 	NoID        = 0
 	ErrorPrefix = 400

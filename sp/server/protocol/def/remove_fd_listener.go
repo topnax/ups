@@ -1,5 +1,6 @@
 package def
 
-type FileDescriptorRemover interface {
-	RemoveFd(fd int)
+// defines a socket closer that closes the given socket
+type SocketCloser interface {
+	CloseFd(socket int)
 }

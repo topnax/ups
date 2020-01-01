@@ -8,7 +8,8 @@ type Lobby struct {
 	Owner   game.Player   `json:"owner"`
 }
 
-func (lobby Lobby) IsStartable() bool {
+// a method that returns true when start of the lobby is possible
+func (lobby Lobby) IsStartPossible() bool {
 	playerCount := len(lobby.Players)
 	if playerCount > 1 {
 		readyPlayers := 0

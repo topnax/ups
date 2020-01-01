@@ -11,6 +11,7 @@ type SimpleMessageReader struct {
 	applicationMessageReader def.ApplicationMessageReader
 }
 
+// creates a new message reader based on the slice of handlers passed in
 func NewSimpleMessageReader(reader def.ApplicationMessageReader, handlers []def.MessageHandler) SimpleMessageReader {
 	smr := SimpleMessageReader{}
 	smr.handlers = make(map[int]def.MessageHandler)
@@ -23,10 +24,12 @@ func NewSimpleMessageReader(reader def.ApplicationMessageReader, handlers []def.
 	return smr
 }
 
+// registers a message handler
 func (s *SimpleMessageReader) Register(handler def.MessageHandler) {
 	s.handlers[handler.GetType()] = handler
 }
 
+// reads a parsed message and uses a handler to handle it
 func (s *SimpleMessageReader) Read(message def.Message) def.Response {
 	handler, ok := s.handlers[message.Type()]
 	log.Debugln("MessageReader read message from UID %d of type %d and of content %s", message.ClientID(), message.Type(), message.Content())

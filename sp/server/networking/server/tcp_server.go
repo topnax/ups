@@ -19,7 +19,6 @@ import (
 	"C"
 )
 
-import "C"
 import (
 	"errors"
 	log "github.com/sirupsen/logrus"
@@ -30,28 +29,20 @@ import (
 )
 
 const (
-	MAX_CLIENTS = 20
-	FD_BITS     = int(unsafe.Sizeof(0) * 8)
+	MaxClients = 20
+	FdBits     = int(unsafe.Sizeof(0) * 8)
 )
 
-type Server struct {
+type TcpServer struct {
 	UID     int
 	Fd      int
 	Port    int
 	Clients map[int]Client
 }
 
-type OnClientDisconnectedListener interface {
-	ClientDisconnected(socket int)
-}
-
-type OnClientConnectedListener interface {
-	ClientConnected(socket int)
-}
-
-func NewServer(addr syscall.SockaddrInet4) (Server, error) {
-
-	server := Server{}
+// creates a new server based no the given IP address
+func NewServer(addr syscall.SockaddrInet4) (TcpServer, error) {
+	server := TcpServer{}
 
 	server.Clients = make(map[int]Client)
 
@@ -63,7 +54,7 @@ func NewServer(addr syscall.SockaddrInet4) (Server, error) {
 		return server, errors.New("syscall.Socket has failed")
 	}
 
-	log.Debugln("Server was given FD of", serverFd)
+	log.Debugln("TcpServer was given FD of", serverFd)
 
 	server.Port = addr.Port
 	server.Fd = serverFd
@@ -78,7 +69,7 @@ func NewServer(addr syscall.SockaddrInet4) (Server, error) {
 		return server, errors.New("syscall.Bind has failed")
 	}
 
-	err = syscall.Listen(server.Fd, MAX_CLIENTS)
+	err = syscall.Listen(server.Fd, MaxClients)
 
 	if err != nil {
 		return server, errors.New("syscall.Listen has failed")
@@ -87,15 +78,17 @@ func NewServer(addr syscall.SockaddrInet4) (Server, error) {
 	return server, nil
 }
 
-func (server *Server) Send(content string, clientUID int) {
-	log.Debugf("Server writing to socket=%d '%s'", clientUID, content)
-	_, ok := server.Clients[clientUID]
+// sends the message to the given FD
+func (server *TcpServer) Send(message string, fd int) {
+	log.Debugf("TcpServer writing to socket=%d '%s'", fd, message)
+	_, ok := server.Clients[fd]
 	if ok {
-		server.Clients[clientUID].Send(content)
+		server.Clients[fd].Send(message)
 	}
 }
 
-func (server *Server) addClient(fd int) Client {
+// adds a client
+func (server *TcpServer) addClient(fd int) Client {
 	client := Client{
 		Fd:  fd,
 		UID: server.UID,
@@ -105,15 +98,16 @@ func (server *Server) addClient(fd int) Client {
 	return client
 }
 
-func (server *Server) RemoveFd(fd int) {
+// closes a fd
+func (server *TcpServer) CloseFd(fd int) {
 	log.Warnf("Removing FD=%d", fd)
 	delete(server.Clients, fd)
 	_ = syscall.Shutdown(fd, syscall.SHUT_RDWR)
 	_ = syscall.Close(fd)
 }
 
-func (server *Server) Start(receiver def.TcpMessageReceiver) {
-
+// starts a server. This function is blocking as it starts the select loop
+func (server *TcpServer) Start(receiver def.TcpMessageReceiver) {
 	readfds := syscall.FdSet{}
 
 	buff := make([]byte, 100)
@@ -180,11 +174,13 @@ func (server *Server) Start(receiver def.TcpMessageReceiver) {
 	}
 }
 
-func (server *Server) removeClient(fd int) {
+// removes a client from the server map
+func (server *TcpServer) removeClient(fd int) {
 	delete(server.Clients, fd)
 }
 
-func (server *Server) acceptClient() (Client, error) {
+// accepts a client
+func (server *TcpServer) acceptClient() (Client, error) {
 	clientSocket, _, err := syscall.Accept(server.Fd)
 	if err != nil {
 		log.Errorln("Failed to accept:", err)
@@ -196,18 +192,18 @@ func (server *Server) acceptClient() (Client, error) {
 }
 
 func FD_SET(p *syscall.FdSet, fd int) {
-	C.fdset(C.int(fd), (*C.fd_set)(unsafe.Pointer(p)))
-	//p.Bits[fd/FD_BITS] |= int64(uint(1) << (uint(fd) % uint(FD_BITS)))
+	//C.fdset(C.int(fd), (*C.fd_set)(unsafe.Pointer(p)))
+	p.Bits[fd/FdBits] |= int64(uint(1) << (uint(fd) % uint(FdBits)))
 }
 
 func FD_ISSET(p *syscall.FdSet, fd int) bool {
-	//return (p.Bits[fd/FD_BITS] & int64(uint(1)<<(uint(fd)%uint(FD_BITS)))) != 0
-	return C.fdisset(C.int(fd), (*C.fd_set)(unsafe.Pointer(p))) != 0
+	return (p.Bits[fd/FdBits] & int64(uint(1)<<(uint(fd)%uint(FdBits)))) != 0
+	//return C.fdisset(C.int(fd), (*C.fd_set)(unsafe.Pointer(p))) != 0
 }
 
 func FD_ZERO(p *syscall.FdSet) {
-	//for i := range p.Bits {
-	//	p.Bits[i] = 0
-	//}
-	C.fdzero((*C.fd_set)(unsafe.Pointer(p)))
+	for i := range p.Bits {
+		p.Bits[i] = 0
+	}
+	//C.fdzero((*C.fd_set)(unsafe.Pointer(p)))
 }
