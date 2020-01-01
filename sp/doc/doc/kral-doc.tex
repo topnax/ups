@@ -547,9 +547,154 @@ Všechny tyto zprávy se vztahují ke kontextu uživatele, kterému přišly.
 		\end{tabularx}
 		\end{table}
 \end{center}  	
+\subsection{Přenášené struktury}
 
+\subsubsection{Struktura \texttt{Tile}}
+Tato struktura reprezentuje políčko herní desky, které může obsahovat položené písmenko. Každé políčko je nějakého typu, kdy typ \texttt{0} představuje obyčejné políčko, \texttt{1} představuje políčko, které zdvojnásobí bodové ohodnocení slova, kterého je součástí, \texttt{2} představuje políčko, které ztrojnásobí bodové ohodnocení slova, kterého je součástí, \texttt{3} představuje políčko, které zdvojnásobí hodnotu písmena, které je na tomto políčku položeno, \texttt{4} představuje políčko, které ztrojnásobí hodnotu písmena, které je na tomto políčku položeno. V každém se mění hodnota atributu \texttt{highlighted} dle toho, zdali je políčko součástí nějakého slova, které v tomto kole hráč, jenž je na tahu, vytvořil.
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Struktura \texttt{Tile}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{row}          &\texttt{int}&Řádek, na kterém se políčko vyskytuje. \\
+			\hline
+  			\texttt{column}          &\texttt{int}&Sloupec, na kterém se políčko vyskytuje. \\
+			\hline
+			\texttt{set}          &\texttt{boolean}&Booleanská hodnota, která reprezentuje, zdali se na políčku nachází nějaké písmeno.\\
+			\hline
+			\texttt{higlighted}          &\texttt{boolean}&Booleanská hodnota, která reprezentuje, zdali má být políčko zvýrazněné či nikoliv.\\
+			\hline
+			\texttt{type}          &\texttt{int}&Přirozené číslo, které představuje typ políčka. Nabývá hodnot 0 až 4 včetně.\\
+			\texttt{letter}          &\texttt{struct Letter}&Struktura představující písmeno, které je na políčku položené.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  
+
+\subsubsection{Struktura \texttt{Letter}}
+Tato struktura představuje písmeno, které může být položeno na herní desku. Obsahuje samotné písmeno, bodové ohodnocení písmena a ID hráče, který jej položil.
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Struktura \texttt{Letter}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{value}          &\texttt{string}&Samotné písmeno. \\
+			\hline
+  			\texttt{points}          &\texttt{int}&Bodové ohodnocení písmena.\\
+			\hline
+			\texttt{PlayerID}          &\texttt{boolean}&ID hráče, který písmeno položil na herní desku.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  
+
+
+\subsubsection{Struktura \texttt{Player}}
+Tato struktura představuje hráče hry, který má nějaké jméno a identifikátor. Dále tato struktura obsahuje booleanské hodnoty \texttt{ready} a \texttt{disconnected}.
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Struktura \texttt{Player}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{name}          &\texttt{string}&Jméno hráče. \\
+			\hline
+  			\texttt{id}          &\texttt{int}&Přirozené číslo, které představuje identifikátor hráče.\\
+			\hline
+			\texttt{ready}          &\texttt{boolean}&Booleanská hodnota, která nabývá hodnoty \texttt{true}, pokud je hráč připravený ke startu hry a \texttt{false} pokud připravený není.\\
+			\hline
+			\texttt{disconnected}          &\texttt{boolean}&Booleanská hodnota, která nabývá hodnoty \texttt{true}, pokud je hráč odpojený ze hry a \texttt{false} pokud odpojený není.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  
+
+
+\subsubsection{Struktura \texttt{User}}
+Tato struktura představuje uživatele, který je připojen k serveru. Každý uživatel má nějaké jméno a identifikátor.
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Struktura \texttt{Player}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+			\texttt{name}          &\texttt{string}&Jméno hráče. \\
+			\hline
+  			\texttt{id}          &\texttt{int}&Přirozené číslo, které představuje identifikátor hráče.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  
+
+\pagebreak
+\subsubsection{Struktura \texttt{Lobby}}
+Tato struktura představuje místnost, která slouží pro vytvoření seznamu hráčů, kteří spolu budou hrát hru. Každá místnost má unikátní číslený identifikátor, seznam hráčů a vlastníka místnosti.
+\begin{center}
+		\begin{table}[!ht]
+		     \caption{Struktura \texttt{Letter}}
+		\begin{tabularx}{\textwidth}{|l|l|X|}
+			\hline
+			\textbf{Název atributu} & \textbf{Typ atributu} & \textbf{Význam atributu} \\ 
+			\hline
+  			\texttt{id}          &\texttt{int}&Přirozené číslo, které představuje identifikátor místnosti.\\
+			\hline
+  			\texttt{players}          &\texttt{int}&Seznam hráčů, kteří se momentálně nachází v místnosti.\\
+			\hline
+			\texttt{owner}          &\texttt{boolean}&Hráč, který založil tuto místnost.\\
+			\hline
+		\end{tabularx}
+		\end{table}
+\end{center}  
+		
+		\subsection{Chybové kódy}
+		Pokud nějaký požadavek uživatele skončí chybou, tak server vrátí zprávu o typu některého z následujících kódů. Detailnější popis chyby se nachází v atributu zprávy \texttt{content}.
+		\begin{itemize}
+			\item \textbf{401} - \texttt{MarshalError} - datová část je ve chybném formátu JSON
+			\item \textbf{407} - \texttt{OperationCannotBePerformed} - odeslanou zprávu není možné v daném kontextu uživatele zpracovat
+			
+			\item \textbf{420} - \texttt{PlayerAlreadyCreatedLobby} - hráč se pokusil založit místnost pokud již jednu založil
+
+			\item \textbf{421} - \texttt{LobbyDoesNotExist} - hráč se pokusil připojit do místnosti pomocí neexistujícího ID místnosti
+			
+			\item \textbf{422} - \texttt{CouldNotLeaveLobby} - hráč se pokusil opustit lobby pokud se v žadné momentálně nenachází
+	
+			\item \textbf{423} - \texttt{CouldNotFindSuchUserInLobby} - hráč se pokusil změnit svůj stav v lobby, když se v žádné ve skutečnosti nenachází
+			
+			\item \textbf{424} - \texttt{PlayerNameAlreadyTaken} - nelze se autorizovat dle daného jména, protože je již zabrané
+
+			\item \textbf{425} - \texttt{PlayerNameAlreadyTaken} - nelze se autorizovat dle daného jména, protože je již zabrané
+			
+			\item \textbf{426} - \texttt{GeneralError} - při obsluze požadavku vznikla blíže nespecifikovaná chyba
+			
+			\item \textbf{427} - \texttt{LobbyPlayerLimitExceeded} - místnost byla zcela naplněna, již do ní nelze vstoupit
+			
+			\item \textbf{428} - \texttt{GameNotFoundByPlayerID} - dle hráčovo identifikátoru nebyla nalezena hra
+						
+			\item \textbf{429} - \texttt{NotPlayersTurn} - hráč není na tahu
+			
+			\item \textbf{430} - \texttt{PlayerNotFound} - neexistující hráč se pokusil schválit slova na herní desce
+						
+			\item \textbf{431} - \texttt{PlayerCannotAcceptHisOwnWords} - hráč, který je momentálně na tahu, se pokusil schválit vlastní písmena
+												
+			\item \textbf{432} - \texttt{LetterCannotBePlaced} - písmenko nelze položit na herní desku
+		\end{itemize}
 
 	    \subsection{Popis serveru}
+	  		\subsubsection{Ošetření správné posloupnosti zpráv}
+	  		K dosažení toho, že server reaguje jedině na zprávy uživatelů, které dávají smysl pouze v jeho aktuálním kontextu, server implementuje jednoduchý stavový automat, který pro každý stav akceptuje pouze předem definovaný výčet zpráv. Automat dle typů zpráv přepíná mezi možnými stavy, avšak některé obsluhy zpráv provádí manuálně přechod mezi stavy (např. akce jednoho hráče přesune druhého hráce do jiného stavu). Pokud se uživatel pokusí poslat serveru zprávu mimo jeho kontext, server odpoví zprávou s chybovým typem \texttt{407}.
+	  		%obrazek
+\begin{figure}[!ht]
+\centering
+{\includegraphics[width=12cm]{img/ups_diagram.png}}
+\caption{Zjednodušené UML aplikace (pouze balíčky)}
+\label{fig:photo}
+\end{figure}
 		    \subsubsection{Struktura modulů}
 
 	    \subsection{Popis klienta}
