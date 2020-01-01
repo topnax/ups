@@ -8,7 +8,6 @@ import java.io.OutputStream
 import java.net.ConnectException
 import java.net.InetAddress
 import java.net.Socket
-import java.net.SocketException
 
 private val logger = KotlinLogging.logger {}
 
@@ -31,8 +30,9 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
         connect()
     }
 
-    public fun connect() {
+    fun connect() {
         logger.info { "Opening a socket at $hostname using port $port" }
+        // limited number of attempts before onUnreachable event is raised
         for (i in 0..NUMBER_OF_ATTEMPTS) {
             try {
                 socket = Socket(InetAddress.getByName(hostname), port)
@@ -48,6 +48,7 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
             }
         }
 
+        // start a read loop
         socket?.let {
             logger.info { "Socket successfully created @ ${it.inetAddress} with port ${it.port}" }
             output = it.getOutputStream()
@@ -55,11 +56,11 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
 
             connectionStatusListener.onConnected()
 
-            var serverMessage = ByteArray(100)
+            var messageBytes = ByteArray(100)
 
             try {
                 while (run) {
-                    var len = input?.read(serverMessage)
+                    var len = input?.read(messageBytes)
 
                     if (len == null) {
                         len = 0
@@ -70,19 +71,19 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
                             null
                         }
                         else -> {
-                            String(serverMessage, 0, len)
+                            String(messageBytes, 0, len)
                         }
                     }
 
                     message?.let {
                         logger.info { "received from server str'$it' of length $len" }
-                        messageReceiver.receive(serverMessage, len)
+                        messageReceiver.receive(messageBytes, len)
                     }
-                    serverMessage = ByteArray(100)
+                    messageBytes = ByteArray(100)
                 }
-                logger.info { "read loop stopped" }
+                logger.info { "tcp read loop stopped" }
             } catch (e: IOException) {
-                logger.error(e) { "a socket has raised exception" }
+                logger.error(e) { "a socket has raised an exception" }
             } finally {
                 close()
             }
@@ -96,7 +97,7 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
             logger.info { "Writing to server '$content'" }
             output?.write(content.toByteArray())
         } catch (ex: IOException) {
-            logger.error(ex) { "an exception was thrown during writing to server"}
+            logger.error(ex) { "an exception was thrown during writing to server" }
         }
     }
 

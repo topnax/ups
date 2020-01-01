@@ -9,7 +9,10 @@ import screens.game.GameStateRegenerationEvent
 import screens.game.GameView
 import screens.initial.InitialScreenView
 import screens.mainmenu.MainMenuView
-import tornadofx.*
+import tornadofx.View
+import tornadofx.alert
+import tornadofx.label
+import tornadofx.vbox
 
 val logger = KotlinLogging.logger { }
 
@@ -56,11 +59,10 @@ class DisconnectedScreenView : View() {
                 fire(GameStateRegenerationEvent(it.response))
             }
         }
-
     }
 
     override val root = vbox(spacing = 10.0) {
-        label("Disconnected... Trying to reconnect")
+        label("You have lost connection to the server... Trying to reconnect")
         alignment = Pos.CENTER
     }
 

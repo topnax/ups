@@ -2,7 +2,7 @@ package networking
 
 import javafx.application.Platform
 import javafx.scene.control.Alert
-import model.lobby.User
+import model.User
 import mu.KotlinLogging
 import networking.applicationmessagereader.ApplicationMessageReader
 import networking.messages.*
@@ -24,29 +24,31 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
         private val MESSAGE_STARTING_ID = 1
         private const val RESPONSE_TIMEOUT_DURATION = 3000L
         private const val KEEP_ALIVE_PERIOD = 2000L
+        private const val REAUTHENTICATION_DELAY = 2000L
         private const val REAUTH_ATTEMPT_CEILING = 4
 
         private var network: Network = Network()
 
-        public lateinit var User: User
-        public var authorized = false
+        lateinit var User: User
+        var authorized = false
 
         @Synchronized
         fun getInstance(): Network {
             return network
         }
-
-
     }
 
     var tcpLayer: TCPLayer? = null
     private var messageId = MESSAGE_STARTING_ID
-    private var responseCleanerTimer: Timer? = null
+    private var responseTimeoutTimer: Timer? = null
     private var keepAliveTimer: Timer? = null
     private var triedToReconnect = false
     private var connected = false
     private var keepAliveSent = false
     private var reauthAttempt = 0
+    val connectionStatusListeners = mutableListOf<ConnectionStatusListener>()
+    lateinit var hostname: String
+    var port: Int = 0
 
     var messageListeners = mutableMapOf<Class<out ApplicationMessage>, MutableList<(T: ApplicationMessage) -> Unit>>()
         get() {
@@ -61,11 +63,6 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
                 return field
             }
         }
-
-    val connectionStatusListeners = mutableListOf<ConnectionStatusListener>()
-
-    lateinit var hostname: String
-    var port: Int = 0
 
     fun connectTo(hostname: String, port: Int) {
         this.hostname = hostname
@@ -124,9 +121,10 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
 
         triedToReconnect = false
 
-        responseCleanerTimer?.cancel()
+        responseTimeoutTimer?.cancel()
         keepAliveTimer?.cancel()
-        responseCleanerTimer = timer(period = RESPONSE_TIMEOUT_DURATION) {
+        // a timer looking for messages that did not yet receive a response
+        responseTimeoutTimer = timer(period = RESPONSE_TIMEOUT_DURATION) {
             synchronized(responseListeners) {
                 val messageIDsWhosListenersToBeRemoved = mutableListOf<Int>()
                 responseListeners.forEach { listeners ->
@@ -148,6 +146,7 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
         }
 
         keepAliveSent = false
+        // a timer for keepalive messages, on timeout a connection is reset
         keepAliveTimer = timer(period = KEEP_ALIVE_PERIOD) {
             if (!keepAliveSent) {
                 keepAliveSent = true
@@ -164,12 +163,12 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
     private fun tryToReauthenticate() {
         logger.info { "Trying to reauthenticate" }
         if (reauthAttempt < REAUTH_ATTEMPT_CEILING) {
-            logger.info { "Reauthenticating..." }
             reauthAttempt++
-            Thread.sleep(2000)
-            logger.info { "Slept..." }
+            Thread.sleep(REAUTHENTICATION_DELAY)
+            logger.info { "Reauthenticating..." }
             send(UserAuthenticationMessage(User.name, reconnecting = true), {
                 when (it) {
+                    // process the response
                     is UserStateRegenerationResponse -> {
                         logger.info { "Reauthentication response is UserStateRegenerationResponse of state ${it.state}" }
                         when (it.state) {
@@ -224,9 +223,9 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
     }
 
     override fun onUnreachable() {
-        logger.warn { "onUnreachable" }
+        logger.warn { "onUnreachable called" }
         connected = false
-        responseCleanerTimer?.cancel()
+        responseTimeoutTimer?.cancel()
         keepAliveTimer?.cancel()
         FX.eventbus.fire(ServerUnreachableEvent())
         connectionStatusListeners.forEach {
@@ -260,6 +259,8 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
 
     override fun read(message: ApplicationMessage, mid: Int) {
         logger.info { "Received a message of type ${message.type}" }
+
+        // invoke listeners of the given type of message
         synchronized(messageListeners) {
             val typeMessageListeners = messageListeners.getOrDefault(message.javaClass, listOf<(ApplicationMessage) -> Unit>())
             logger.info { "About to invoke ${typeMessageListeners.size} message listeners of type ${message.type}" }
@@ -268,6 +269,7 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
             }
         }
 
+        // invoke listeners of the given ID of message
         synchronized(responseListeners) {
             val idResponseListeners = responseListeners.getOrDefault(mid, listOf<ResponseCallback>())
             logger.info { "About to invoke ${idResponseListeners.size} response listeners of message ID ${mid} and type ${message.type}" }
@@ -276,20 +278,17 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
             }
             responseListeners[mid]?.clear()
             responseListeners.remove(mid)
-
         }
     }
 
     fun send(message: ApplicationMessage, callback: ((ApplicationMessage) -> Unit)? = null, desiredMessageId: Int = 0, callAfterWrite: (() -> Unit)? = null, ignoreErrors: Boolean = false, timeoutCallback: (() -> Unit)? = null) {
         val json = message.toJson().replace(FixedMessageReceiver.START_CHAR.toString(), "\\" + FixedMessageReceiver.START_CHAR).replace(FixedMessageReceiver.SEPARATOR.toString(), "\\" + FixedMessageReceiver.SEPARATOR)
 
-        if (message is GetLobbiesMessage) {
-            println()
-        }
-
         callback?.let {
+            // if callback is set, add a listener
             addResponseListener(if (desiredMessageId != 0) desiredMessageId else messageId, ResponseCallback(callback, timeoutCallback))
             if (!ignoreErrors) {
+                // if errors should not be ignored, add a lister for the response and if the message failed, show the error
                 addResponseListener(if (desiredMessageId != 0) desiredMessageId else messageId, ResponseCallback({ am: ApplicationMessage ->
                     run {
                         if (am is ErrorResponseMessage)
@@ -305,7 +304,7 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
             }
         }
 
-        logger.info { "Printing message of type ${message.type} and content '$json' to server" }
+        logger.info { "Writing message of type ${message.type} and content '$json' to server" }
 
         tcpLayer?.write("${FixedMessageReceiver.START_CHAR}${json.toByteArray().size}${FixedMessageReceiver.SEPARATOR}${message.type}${FixedMessageReceiver.SEPARATOR}${messageId}${FixedMessageReceiver.SEPARATOR}$json")
 

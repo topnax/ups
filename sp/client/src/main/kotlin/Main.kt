@@ -1,7 +1,6 @@
-import mu.KotlinLogging
+import screens.initial.InitialScreenView
 import tornadofx.App
 import tornadofx.launch
-import screens.initial.InitialScreenView
 
 class KrisKrosApp : App(InitialScreenView::class)
 

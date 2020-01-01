@@ -8,8 +8,8 @@ private val logger = KotlinLogging.logger {}
 class FixedMessageReceiver(messageReader: MessageReader) : MessageReceiver(messageReader) {
 
     companion object {
-        val START_CHAR = '$'
-        val SEPARATOR = '#'
+        const val START_CHAR = '$'
+        const val SEPARATOR = '#'
     }
 
     private var state = 1
@@ -23,11 +23,11 @@ class FixedMessageReceiver(messageReader: MessageReader) : MessageReceiver(messa
         val strMessage = String(bytes)
         logger.info { "Receiving message $strMessage" }
 
+        // messages are parsed using an automaton
         bytes.forEachIndexed { index, byte ->
             if (index >= length) {
                 return
             }
-            val currentChar = byte.toChar()
             when (state) {
                 1 -> {
                     if (byte.toChar() == START_CHAR) {

@@ -3,7 +3,6 @@ package screens.mainmenu
 import javafx.application.Platform
 import javafx.scene.control.Button
 import javafx.scene.control.Label
-import javafx.scene.control.MenuItem
 import javafx.scene.layout.Priority
 import model.lobby.LobbyViewModel
 import networking.Network
@@ -81,13 +80,9 @@ class MainMenuView : View() {
         Network.getInstance().removeMessageListener(::onLobbyUpdated)
     }
 
-
     private fun onLobbyUpdated(message: GetLobbiesResponse) {
         Platform.runLater {
             controller.updateLobbiesTable(message.lobbies)
         }
     }
-
 }
-
-

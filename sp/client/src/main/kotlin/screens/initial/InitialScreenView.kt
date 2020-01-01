@@ -10,7 +10,6 @@ import tornadofx.*
 
 class InitialScreenView : View() {
 
-
     fun setNetworkElementsEnabled(b: Boolean) {
         joinButton.disableProperty().set(!b)
     }
@@ -38,7 +37,6 @@ class InitialScreenView : View() {
             padding = insets(10)
             prefWidth = 10.0
             hbox(spacing = 10.0) {
-
                 nameTextField = textfield {}
 
                 joinButton = button("Join")
@@ -58,7 +56,7 @@ class InitialScreenView : View() {
         controller.onUndock()
     }
 
-    class JoinServerView: View() {
+    class JoinServerView : View() {
         var initialScreenController: InitialScreenController? = null
         val model = ConnectMetaModel(ConnectMeta())
         override val root = vbox(spacing = 10) {
@@ -88,7 +86,6 @@ class InitialScreenView : View() {
 
                 }
             }
-
         }
 
         private fun save() {

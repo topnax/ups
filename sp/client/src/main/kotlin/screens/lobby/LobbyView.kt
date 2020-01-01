@@ -128,7 +128,6 @@ class LobbyView : View() {
         }
 
         startButton.disableProperty().set(lobby.players.filter { it.ready }.count() != lobby.players.size || lobby.players.size < 2)
-
     }
 
     private fun onGameStarted(gameStartedResponse: GameStartedResponse) {

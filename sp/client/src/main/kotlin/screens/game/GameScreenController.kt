@@ -11,12 +11,25 @@ import networking.ConnectionStatusListener
 import networking.Network
 import networking.messages.*
 import screens.DisconnectedEvent
-import screens.ServerRestartedEvent
-import screens.ServerRestartedUnauthorizedEvent
 import screens.disconnected.DisconnectedScreenView
-import screens.initial.InitialScreenView
 import screens.mainmenu.MainMenuView
-import tornadofx.*
+import tornadofx.Controller
+import tornadofx.alert
+import tornadofx.removeFromParent
+import kotlin.collections.List
+import kotlin.collections.MutableList
+import kotlin.collections.contains
+import kotlin.collections.emptyList
+import kotlin.collections.forEach
+import kotlin.collections.joinToString
+import kotlin.collections.map
+import kotlin.collections.max
+import kotlin.collections.mutableListOf
+import kotlin.collections.mutableMapOf
+import kotlin.collections.putAll
+import kotlin.collections.remove
+import kotlin.collections.set
+import kotlin.collections.toMutableList
 
 private val logger = KotlinLogging.logger { }
 
@@ -48,11 +61,12 @@ class GameScreenController : Controller(), ConnectionStatusListener {
 
     val playerPointsMap = mutableMapOf<Int, Int>()
 
-    fun  init(gameView: GameView) {
+    fun init(gameView: GameView) {
         this.gameView = gameView
     }
 
     fun onDock() {
+        // on window dock register message listeners
         Network.getInstance().addMessageListener(::onTileUpdated)
         Network.getInstance().addMessageListener(::onTilesUpdated)
         Network.getInstance().addMessageListener(::onNewRound)
@@ -68,6 +82,7 @@ class GameScreenController : Controller(), ConnectionStatusListener {
     }
 
     fun onUndock() {
+        // on window undock register message listeners
         Network.getInstance().removeMessageListener(::onTileUpdated)
         Network.getInstance().removeMessageListener(::onTilesUpdated)
         Network.getInstance().removeMessageListener(::onNewRound)
@@ -259,6 +274,7 @@ class GameScreenController : Controller(), ConnectionStatusListener {
     init {
         players.forEach { playerPointsMap[it.id] = 0 }
 
+        // subscribe for game events
         subscribe<DisconnectedEvent> {
             Platform.runLater {
                 gameView.replaceWith<DisconnectedScreenView>()
@@ -408,17 +424,6 @@ class GameScreenController : Controller(), ConnectionStatusListener {
         fire(ConnectionStateChanged(true))
     }
 
-    private fun resetDesk() {
-        for (row in desk.tiles) {
-            for (tile in row) {
-                tile.highlighted = false
-                tile.letter = null
-                tile.set = false
-                fire(DeskChange(tile))
-            }
-        }
-    }
-
     fun leaveGame() {
         Network.getInstance().send(LeaveGame(), {
             if (it is SuccessResponseMessage) {
@@ -429,24 +434,3 @@ class GameScreenController : Controller(), ConnectionStatusListener {
         })
     }
 }
-
-class NewLetterSackEvent(val letters: List<Letter>) : FXEvent(EventBus.RunOn.BackgroundThread)
-
-class DeskChange(val tile: Tile) : FXEvent(EventBus.RunOn.BackgroundThread)
-
-class TileWithLetterClicked(val tile: Tile) : FXEvent(EventBus.RunOn.BackgroundThread)
-
-class LetterPlacedEvent(val letter: Letter, val letterView: LetterView) : FXEvent(EventBus.RunOn.BackgroundThread)
-
-class TileSelectedEvent(val tile: Tile) : FXEvent(EventBus.RunOn.BackgroundThread)
-
-class PlayerStateChangedEvent() : FXEvent(EventBus.RunOn.BackgroundThread)
-
-class GameStartedEvent(val message: GameStartedResponse) : FXEvent(EventBus.RunOn.BackgroundThread)
-
-class RoundFinishedEvent() : FXEvent(EventBus.RunOn.BackgroundThread)
-
-class GameStateRegenerationEvent(val response: GameStateRegenerationResponse) : FXEvent(EventBus.RunOn.BackgroundThread)
-
-class ConnectionStateChanged(val connected: Boolean) : FXEvent(EventBus.RunOn.BackgroundThread)
-

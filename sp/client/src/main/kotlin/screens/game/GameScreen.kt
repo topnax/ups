@@ -4,7 +4,6 @@ import javafx.application.Platform
 import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.control.Button
-import javafx.scene.control.Label
 import javafx.scene.layout.GridPane
 import javafx.scene.layout.Priority
 import javafx.scene.paint.Color
@@ -96,7 +95,6 @@ class GameView : View() {
                     acceptWordsButton.visibleProperty().set(controller.activePlayerID != Network.User.id && controller.roundFinished && !controller.wordsAccepted)
                     declineWordsButton.visibleProperty().set(controller.activePlayerID != Network.User.id && controller.roundFinished && !controller.wordsAccepted)
                     finishButton.visibleProperty().set(!controller.roundFinished && controller.activePlayerID == Network.User.id)
-
                 }
             }
         }
@@ -147,7 +145,7 @@ class GameView : View() {
         }
     }
 
-    fun GridPane.refreshTile(tile: Tile) {
+    private fun GridPane.refreshTile(tile: Tile) {
         val tv = TileView(tile)
         Platform.runLater {
             tileViews[tile.column]!![tile.row]?.removeFromParent()
@@ -208,9 +206,9 @@ class LetterView(val letter: Letter) : View() {
 }
 
 class TileView(val tile: Tile) : View() {
-    lateinit var btn: Button
 
     override val root = tile.letter?.let {
+        // letter layout
         hbox {
             usePrefSize = true
             prefHeight(60.0)
@@ -229,18 +227,12 @@ class TileView(val tile: Tile) : View() {
                 alignment = Pos.BOTTOM_RIGHT
                 label(it.value.toUpperCase()) {
                     textFill = Color.WHITE
-//                    setOnMouseClicked {
-//                        fire(TileWithLetterClicked(tile))
-//                    }
                 }
                 label(it.points.toString()) {
                     textFill = Color.WHITE
                     style {
                         fontSize = 10.px
                     }
-//                    setOnMouseClicked {
-//                        fire(TileWithLetterClicked(tile))
-//                    }
                 }
                 style {
                     backgroundColor += if (tile.highlighted) Color.ORANGE else Color.GREEN
@@ -252,24 +244,12 @@ class TileView(val tile: Tile) : View() {
                 }
             }
 
-//            btn = button(it.value.toUpperCase()) {
-//                action {
-//                    fire(TileWithLetterClicked(tile))
-//                }
-//                textFill = Color.WHITE
-//                style {
-//                    backgroundColor += if (tile.highlighted) Color.ORANGE else Color.GREEN
-//
-//                    borderRadius += box(6.px)
-//                }
-//
-//            }
             style {
                 backgroundColor += if (!tile.selected) tile.typeEnum.getTileColor() else Color.PINK
             }
-//            btn
         }
     } ?: run {
+        // empty tile layout
         hbox {
             usePrefSize = true
             prefHeight(60.0)
@@ -282,7 +262,6 @@ class TileView(val tile: Tile) : View() {
             gridpaneConstraints {
                 columnRowIndex(tile.column, tile.row)
             }
-
             hbox {
                 padding = Insets(8.0)
                 alignment = Pos.BOTTOM_RIGHT
@@ -296,65 +275,15 @@ class TileView(val tile: Tile) : View() {
                     }
                 }
 
-
                 setOnMouseClicked {
                     logger.info { "Pressed at ${tile.row}#${tile.column}" }
                     fire(TileSelectedEvent(tile))
                 }
             }
-
-//            btn = button(it.value.toUpperCase()) {
-//                action {
-//                    fire(TileWithLetterClicked(tile))
-//                }
-//                textFill = Color.WHITE
-//                style {
-//                    backgroundColor += if (tile.highlighted) Color.ORANGE else Color.GREEN
-//
-//                    borderRadius += box(6.px)
-//                }
-//
-//            }
             style {
                 backgroundColor += if (!tile.selected) tile.typeEnum.getTileColor() else Color.PINK
             }
-//            btn
         }
-//        hbox {
-//            usePrefSize = true
-//            prefHeight(100.0)
-//            prefWidth(100.0)
-//            prefHeight(150.0)
-//            prefWidth(150.0)
-//            minWidth(100.0)
-//            minHeight(150.0)
-//            gridpaneColumnConstraints {
-//                prefHeight(150.0)
-//                prefWidth(150.0)
-//                prefHeight(200.0)
-//                prefWidth(200.0)
-//                minWidth(100.0)
-//                minHeight(150.0)
-//            }
-//            gridpaneConstraints {
-//                fillHeightWidth = true
-//                useMaxSize = true
-//                columnRowIndex(tile.column, tile.row)
-//            }
-//            setOnMouseClicked {
-//                logger.info { "Pressed at ${tile.row}#${tile.column}" }
-//                fire(TileSelectedEvent(tile))
-//            }
-//            style {
-//                backgroundColor += if (!tile.selected) tile.typeEnum.getTileColor() else Color.PINK
-//            }
-//            label("C") {
-//                textFill = Color.WHITE
-//                style {
-//                    fontSize = 10.px
-//                }
-//            }
-//        }
     }
 }
 

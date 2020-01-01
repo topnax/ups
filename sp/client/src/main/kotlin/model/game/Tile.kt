@@ -2,7 +2,7 @@ package model.game
 
 import com.beust.klaxon.Json
 
-
+// a class representing a KrisKros tile
 class Tile(val row: Int, val column: Int, val type: Int, var selected: Boolean = false, var highlighted: Boolean = false, var letter: Letter? = null, var set: Boolean = false) {
     @Json(ignored = true)
     val typeEnum = if (type < TileType.values().size) TileType.values()[type] else TileType.BASIC

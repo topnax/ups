@@ -18,7 +18,4 @@ class ServerUnreachableEvent : FXEvent(EventBus.RunOn.BackgroundThread)
 
 class GameRegeneratedEvent(val response: GameStateRegenerationResponse) : FXEvent(EventBus.RunOn.BackgroundThread)
 
-
 class UserAuthenticatedEvent(val name: String) : FXEvent(EventBus.RunOn.BackgroundThread)
-
-

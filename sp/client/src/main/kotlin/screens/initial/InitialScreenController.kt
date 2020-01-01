@@ -1,18 +1,16 @@
 package screens.initial
 
-import javafx.application.Application
 import javafx.application.Platform
-import javafx.scene.control.*
+import javafx.scene.control.Alert
 import mu.KotlinLogging
 import networking.ConnectionStatusListener
 import networking.Network
 import networking.messages.*
-import screens.ServerRestartedEvent
-import screens.ServerRestartedUnauthorizedEvent
 import screens.game.GameStateRegenerationEvent
 import screens.game.GameView
 import screens.mainmenu.MainMenuView
-import tornadofx.*
+import tornadofx.Controller
+import tornadofx.alert
 import kotlin.system.exitProcess
 
 val logger = KotlinLogging.logger { }
@@ -21,12 +19,11 @@ class InitialScreenController : Controller(), ConnectionStatusListener {
 
     lateinit var initialScreenView: InitialScreenView
 
-    init {
-    }
-
     fun init(mainMenuView: InitialScreenView) {
         this.initialScreenView = mainMenuView
         mainMenuView.primaryStage.setOnCloseRequest {
+            // on primary stage close kill the whole application, but before doing that, send that we are leaving the game
+            // willingly
             logger.debug { "Primary stage closing" }
             Network.getInstance().send(UserLeavingMessage(), callAfterWrite = {
                 Platform.exit()
@@ -40,7 +37,7 @@ class InitialScreenController : Controller(), ConnectionStatusListener {
         connectTo("localhost", 10000)
     }
 
-    internal fun onGameStateRegeneration(message: GameStateRegenerationResponse) {
+    private fun onGameStateRegeneration(message: GameStateRegenerationResponse) {
         initialScreenView.replaceWith<GameView>()
         fire(GameStateRegenerationEvent(message))
     }
@@ -65,13 +62,11 @@ class InitialScreenController : Controller(), ConnectionStatusListener {
         Platform.runLater {
             initialScreenView.setNetworkElementsEnabled(false)
             initialScreenView.serverMenu.disableProperty().set(true)
-            initialScreenView.serverMenu.text = "${Network.getInstance().tcpLayer?.hostname} did not respond. Attempt $attempt"
+            initialScreenView.serverMenu.text = "${Network.getInstance().tcpLayer?.hostname} did not respond7. Attempt $attempt"
         }
     }
 
-    override fun onReconnected() {
-
-    }
+    override fun onReconnected() {}
 
     fun connectTo(hostname: String, port: Int) {
         initialScreenView.setNetworkElementsEnabled(false)
@@ -109,5 +104,3 @@ class InitialScreenController : Controller(), ConnectionStatusListener {
         Network.getInstance().removeMessageListener(::onGameStateRegeneration)
     }
 }
-
-

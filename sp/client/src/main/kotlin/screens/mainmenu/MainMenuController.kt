@@ -10,10 +10,7 @@ import networking.ConnectionStatusListener
 import networking.Network
 import networking.messages.*
 import screens.DisconnectedEvent
-import screens.ServerRestartedEvent
-import screens.ServerRestartedUnauthorizedEvent
 import screens.disconnected.DisconnectedScreenView
-import screens.initial.InitialScreenView
 import screens.lobby.LobbyView
 import tornadofx.Controller
 import tornadofx.observableList
@@ -22,7 +19,7 @@ private val logger = KotlinLogging.logger { }
 
 class MainMenuController : Controller(), ConnectionStatusListener {
 
-    lateinit var mainMenuView: MainMenuView
+    private lateinit var mainMenuView: MainMenuView
 
     var lobbyViewModels: ObservableList<LobbyViewModel> = observableList()
 
@@ -38,12 +35,9 @@ class MainMenuController : Controller(), ConnectionStatusListener {
         this.mainMenuView = mainMenuView
 
         Network.getInstance().connectionStatusListeners.add(this)
-
     }
 
-    override fun onReconnected() {
-
-    }
+    override fun onReconnected() {}
 
     override fun onConnected() {
         Platform.runLater {
@@ -58,10 +52,7 @@ class MainMenuController : Controller(), ConnectionStatusListener {
         }
     }
 
-    override fun onFailedAttempt(attempt: Int) {
-        Platform.runLater {
-        }
-    }
+    override fun onFailedAttempt(attempt: Int) {}
 
     fun newLobby() {
         Network.getInstance().send(CreateLobbyMessage(), { am: ApplicationMessage ->

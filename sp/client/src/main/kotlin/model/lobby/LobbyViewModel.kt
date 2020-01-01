@@ -5,6 +5,9 @@ import javafx.beans.property.SimpleStringProperty
 import tornadofx.getValue
 import tornadofx.setValue
 
+/**
+ * Loby ViewModel
+ */
 class LobbyViewModel(id: Int, owner: String, playerCount: Int) {
 
     val idProperty = SimpleIntegerProperty(id)
@@ -18,4 +21,7 @@ class LobbyViewModel(id: Int, owner: String, playerCount: Int) {
 
 }
 
+/**
+ * A class representing a lobby
+ */
 class Lobby(val players: List<Player>, val id: Int, val owner: Player)
