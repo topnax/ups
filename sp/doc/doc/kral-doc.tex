@@ -106,8 +106,6 @@
     \pagebreak
 
 
-    
-    \section{Úvod}
     \section{Popis hry Kris Kros}
     Jedná se o deskovou hru pro 2-4 hráče inspirovanou hrou Scrabble. Základním principem hry je skládat slova na herní desku z písmenek, která byla hráči rozdána. Hráči pokládají písmena na herní desku, kde buď v horizontálním vertikálním směru vznikají slova. Každé písmenko je ohodnoceno počtem bodů, které hráč za jeho položení dostane. Na konci každého kola se sečtou body písmenek všech slov, která v daném kole vznikla. Některá políčka na desce mohou bonifikovat celkové ohodnocení slova.
 
@@ -686,21 +684,61 @@ Tato struktura představuje místnost, která slouží pro vytvoření seznamu h
 		\end{itemize}
 
 	    \subsection{Popis serveru}
+	    Server je napsaný v jazyce \textbf{Golang} a je jednovláknový díky tomu, že z jednotlivých socketů čte pomocí konstrukce \textit{SELECT}. Pro periodické kontrolování stáří \textit{keep alive} zpráv je vytvořena jedna \textit{goroutina}, jenž obsluhuje časovač.
 	  		\subsubsection{Ošetření správné posloupnosti zpráv}
 	  		K dosažení toho, že server reaguje jedině na zprávy uživatelů, které dávají smysl pouze v jeho aktuálním kontextu, server implementuje jednoduchý stavový automat, který pro každý stav akceptuje pouze předem definovaný výčet zpráv. Automat dle typů zpráv přepíná mezi možnými stavy, avšak některé obsluhy zpráv provádí manuálně přechod mezi stavy (např. akce jednoho hráče přesune druhého hráce do jiného stavu). Pokud se uživatel pokusí poslat serveru zprávu mimo jeho kontext, server odpoví zprávou s chybovým typem \texttt{407}.
 	  		%obrazek
 \begin{figure}[!ht]
 \centering
 {\includegraphics[width=12cm]{img/ups_diagram.png}}
-\caption{Zjednodušené UML aplikace (pouze balíčky)}
+\caption{Zjednodušený stavový diagram, který reprezentuje návaznost zpráv}
 \label{fig:photo}
 \end{figure}
+\pagebreak
 		    \subsubsection{Struktura modulů}
-
+			Server je rozdělen do následujícíh modulů:
+			\begin{itemize}
+				\item \texttt{game} - logika samotné hry, definice herních modelů
+				\item \texttt{kris\_kros\_server} - logika pro routování zpráv, obsluhu zpráv a regenerace stavů po výpadku připojení
+				\item \texttt{model} - definice obecných modelů, jako například místnost a uživatel
+				\item \texttt{networking} - v tomto modulu je implementován TCP server využívající konstrukci \textit{SELECT}. Obsah z jednotlivých socketů předává nezávisle další vrstvě.
+				\item \texttt{protocol} - v tomto modulu je implementován navržený protokol. Čtení zpráv je rozděleno do tří nezávislých vrstev, kdy první vrstva čte hlavičky zpráv a druhá parsuje datovou část zprávy. Třetí vrstva jednotlivé zprávy obsluhuje. V tomto modulu jsou definovány i jednotlivé zprávy a odpovědi.
+				\item \texttt{test} - obsahuje testy, které testují funkčnost parserů zpráv protokolu. Dále se zde také testují pomocné funkce, jako například \texttt{IsNextByteEscaped}, která kontroluje, zdali by byl další byte escapovaný.
+			\end{itemize}
+			
+			\subsubsection{\textit{Keepalive} zprávy}
+			Server vyžaduje, aby od každého klienta byly přijímány každé dvě sekundy zprávy typu \texttt{KeepAlive}. Pokud během dvou sekund nepřijde tato zpráva potvrzující funkčnost klienta, tak je spojení mezi klientem a serverem považováno za nevyhovující a klient je odpojen.
+	
+	Pokud se hráč znovu připojí a korektně se autorizuje, tak je jeho stav obnoven a hráč obdrží příslušnou zprávu, pomocí které zrekonstruje aktuální stav hry.
+			
+			\subsubsection{Nedodržování protokolu}
+			Server vyžaduje, aby od každého klienta byly přijímány pouze zprávy splňující definovaný protokol. Pokud po sobě server přijme od nějakého klienta \texttt{5} nevalidných bytů, tak server klienta odpojí.
+			\subsubsection{Použité knihovny}
+			Pro logování byla použita knihovna \texttt{logrus} - \href{https://github.com/Sirupsen/logrus}{https://github.com/Sirupsen/logrus}
 	    \subsection{Popis klienta}
+	    Klient je napsaný v jazyce \textbf{Kotlin} a pro zobrazování GUI používá knihovnu \texttt{TornadoFX}, jenž obaluje knihovnu \texttt{JavaFX}.
+	    Pro čtení ze socketu a periodické odesílání \textit{keepalive} zpráv jsou vytvořena speciální vlákna. Klient je tedy vícevláknový.
    		    \subsubsection{Struktura modulů}
-    
+   			\begin{itemize}
+
+	    	\item \texttt{model} - definice použitých modelů
+	    	\item \texttt{networking} - implementace definovaného protokolu, čtení ze socketů a definice zpráv implementace protokolu. Stejně jako na serveru, je čtení příchozích zpráv rozděleno do tří vrstev. Třída \texttt{Network} se stará o volání připojování k serveru a poskytuje metody, které slouží k registraci reakcí na příchozí zprávy.
+ 	    	\item \texttt{screens} - definice jednotlivých obrazovek aplikace. Ke každé obrazovce je ve zvláštním souboru definován \texttt{Controller} obsluhující události aplikace.
+			\item \texttt{test} - obsahuje testy, které testují funkčnost parserů zpráv protokolu. Dále se zde také testují pomocné metody, jako například \texttt{IsNextByteEscaped}, která kontroluje, zdali by byl další byte escapovaný.
+ 	    	\end{itemize}
+			\subsubsection{Nedodržování protokolu}
+			Klient vyžaduje, aby od serveru byly přijímány pouze zprávy splňující definovaný protokol. Pokud po sobě kleint přijme od serveru \texttt{5} nevalidných bytů, tak klient přeruší se serverem spojení.
+			\subsubsection{Použité knihovny}
+			\begin{itemize}
+				\item Pro logování byla použita knihovna \texttt{kotlin-logging} s využitím knihovny \texttt{logback} - \href{https://github.com/MicroUtils/kotlin-logging}{https://github.com/MicroUtils/kotlin-logging}. 
+
+	\item Pro parsování JSON zpráv byla použita knihovna \texttt{klaxon} -\\ \href{https://github.com/cbeust/klaxon}{https://github.com/cbeust/klaxon}. 
+		\item Pro testování byla využita knihovna \texttt{JUnit 5.5.2}
+			\end{itemize}
+			
+	\section{Překlad a spuštění aplikace}
     \section{Závěr}
+    V rámci této semestrální práce byl vytvořena dvojice programů - server a klient napodující deskovou hru Kris Kros. Důkladný a pečlivý návrh protokolu se osvědčil a v průběhu vývoje neprošel žádnými změnami. Avšak co se několikrát měnilo, byl způsob čtení zpráv, kdy nakonec jsou zprávy čteny spolehlivým automatem. Pokud bych automat navrhl hned na začátku, mohl jsem si ušetřit spoustu času laděním a upravováním parseru zpráv. Aplikace i server jsou však nyní funkční a hra je hratelná. Pokud je spojení s některým hráčem dočasně nedostupné nebo je klient násilně vypnut, tak po autorizaci je hráčovo stav korektně obnoven.
     
 
 
