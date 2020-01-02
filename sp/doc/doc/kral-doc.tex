@@ -61,8 +61,8 @@
 \begin{document}
 	% this has to be placed here, after document has been created
 	% \counterwithout{lstlisting}{chapter}
-	\renewcommand{\lstlistingname}{Ukázka kódu}
-	\renewcommand{\lstlistlistingname}{Seznam ukázek kódu}
+	\renewcommand{\lstlistingname}{Ukázka zprávy}
+	\renewcommand{\lstlistlistingname}{Seznam ukázek}
     \begin{titlepage}
 
        \centering
@@ -737,6 +737,20 @@ Tato struktura představuje místnost, která slouží pro vytvoření seznamu h
 			\end{itemize}
 			
 	\section{Překlad a spuštění aplikace}
+	\subsection{Server}
+	Pro překlad a spuštění serveru je vyžadován následující software:
+	\begin{itemize}
+		\item go1.13.1 či novější
+	\end{itemize}
+	V kořenu projektu serveru přeložte server pomocí příkazu \texttt{go build -o kral\_ups}. Poté server spusťte příkazem \texttt{./kral\_ups}.
+	\čsubsection{Klient}
+	Pro překlad a spuštění klienta je vyžadován následující software:
+	\begin{itemize}
+		\item OpenJDK 11.0.2
+		\item Gradle 5.6-rc-1 (wrapper je distribuován spolu s aplikací)
+	\end{itemize}
+	V kořenu projektu klienta přeložte a spusťte klienta pomocí příkazu \texttt{./gradlew run}.
+
     \section{Závěr}
     V rámci této semestrální práce byl vytvořena dvojice programů - server a klient napodující deskovou hru Kris Kros. Důkladný a pečlivý návrh protokolu se osvědčil a v průběhu vývoje neprošel žádnými změnami. Avšak co se několikrát měnilo, byl způsob čtení zpráv, kdy nakonec jsou zprávy čteny spolehlivým automatem. Pokud bych automat navrhl hned na začátku, mohl jsem si ušetřit spoustu času laděním a upravováním parseru zpráv. Aplikace i server jsou však nyní funkční a hra je hratelná. Pokud je spojení s některým hráčem dočasně nedostupné nebo je klient násilně vypnut, tak po autorizaci je hráčovo stav korektně obnoven.
     
