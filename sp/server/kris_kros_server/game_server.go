@@ -231,7 +231,7 @@ func (server *GameServer) EndGame(g *game.Game, userId int) def.Response {
 	for _, player := range g.Players {
 		delete(server.gamesByPlayerID, player.ID)
 		server.server.Router.UserStates[player.ID] = AuthorizedState{}
-		if player.ID != userId {
+		if player.ID != userId && !player.Disconnected {
 			server.server.Send(resp, player.ID, 0)
 		}
 	}

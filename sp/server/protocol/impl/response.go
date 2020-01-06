@@ -33,6 +33,7 @@ const (
 	PlayerNotFound                = 30
 	PlayerCannotAcceptHisOwnWords = 31
 	LetterCannotBePlaced          = 32
+	LobbyLimitExceeded            = 33
 
 	PlainSuccess = 701
 )

@@ -37,11 +37,13 @@ type KrisKrosServer struct {
 	userLastKeepAlive      map[int]time.Time
 	userLastKeepAliveMutex *sync.Mutex
 
+	lobbyLimit int
+
 	gameServer *GameServer
 }
 
 // creates a new kriskros server
-func NewKrisKrosServer(sender def.ResponseSender) KrisKrosServer {
+func NewKrisKrosServer(sender def.ResponseSender, lobbyLimit int) KrisKrosServer {
 	kks := KrisKrosServer{
 		lobbies:                make(map[int]*model.Lobby),
 		lobbiesByOwnerID:       make(map[int]*model.Lobby),
@@ -50,7 +52,9 @@ func NewKrisKrosServer(sender def.ResponseSender) KrisKrosServer {
 		usersByName:            make(map[string]*model.User),
 		userLastKeepAlive:      make(map[int]time.Time),
 		userLastKeepAliveMutex: &sync.Mutex{},
+		lobbyLimit:             lobbyLimit,
 	}
+	log.Infof("Current lobby limit is of %d", lobbyLimit)
 	kks.gameServer = NewGameServer(&kks)
 	kks.Router = newKrisKrosRouter(&kks)
 	kks.sender = sender
@@ -182,6 +186,10 @@ func (k *KrisKrosServer) OnCreateLobby(msg messages.CreateLobbyMessage, user mod
 	log.Infof("OnCreateLobby by user of ID=%d", user.ID)
 	_, exists := k.lobbiesByOwnerID[user.ID]
 	if !exists {
+		if len(k.lobbies) >= k.lobbyLimit {
+			log.Warnln(fmt.Sprintf("Lobby limit exceeded, current lobby count is %d and the limit is %d", len(k.lobbies), k.lobbyLimit))
+			return impl.ErrorResponse(fmt.Sprintf("Lobby limit exceeded, current lobby count is %d and the limit is %d", len(k.lobbies), k.lobbyLimit), impl.LobbyLimitExceeded)
+		}
 		player := game.Player{
 			Name:  user.Name,
 			ID:    user.ID,

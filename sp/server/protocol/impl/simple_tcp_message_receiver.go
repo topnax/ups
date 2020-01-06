@@ -307,7 +307,7 @@ func (receiver *SimpleTcpMessageReceiver) SetMessageReader(reader def.MessageRea
 	receiver.messageReader = reader
 }
 
-func (receiver *SimpleTcpMessageReceiver) SetFileDescriptorRemover(remover def.SocketCloser) {
+func (receiver *SimpleTcpMessageReceiver) SetSocketCloser(remover def.SocketCloser) {
 	receiver.socketCloser = remover
 }
 

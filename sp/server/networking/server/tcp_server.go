@@ -34,15 +34,23 @@ const (
 )
 
 type TcpServer struct {
-	UID     int
-	Fd      int
-	Port    int
-	Clients map[int]Client
+	UID         int
+	Fd          int
+	Port        int
+	clientLimit int
+	Clients     map[int]Client
 }
 
 // creates a new server based no the given IP address
-func NewServer(addr syscall.SockaddrInet4) (TcpServer, error) {
-	server := TcpServer{}
+func NewServer(addr syscall.SockaddrInet4, clientLimit int) (TcpServer, error) {
+	server := TcpServer{
+		clientLimit: clientLimit,
+	}
+
+	if clientLimit < 5 {
+		log.Warnf("Setting client limit to 5, cannot go lower than that")
+		clientLimit = 5
+	}
 
 	server.Clients = make(map[int]Client)
 
@@ -69,7 +77,8 @@ func NewServer(addr syscall.SockaddrInet4) (TcpServer, error) {
 		return server, errors.New("syscall.Bind has failed")
 	}
 
-	err = syscall.Listen(server.Fd, MaxClients)
+	log.Infof("Starting to listen with limit of %d", clientLimit)
+	err = syscall.Listen(server.Fd, clientLimit)
 
 	if err != nil {
 		return server, errors.New("syscall.Listen has failed")
