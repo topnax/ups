@@ -43,7 +43,7 @@ class InitialScreenView : View() {
             hbox {
                 alignment = Pos.CENTER
                 val random = Random()
-                for (char in "KRIS KROS") {
+                for (char in "KRIS KROS 1") {
                     label(char.toString()) {
                         style {
                             textFill = Color(random.nextDouble(), random.nextDouble(), random.nextDouble(), 1.0)

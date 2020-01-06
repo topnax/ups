@@ -46,6 +46,7 @@ class DisconnectedScreenView : View() {
         }
 
         subscribe<ServerUnreachableEvent> {
+            logger.warn { "ServerUnreachableEvent received" }
             Platform.runLater {
                 replaceWith<InitialScreenView>()
                 alert(Alert.AlertType.ERROR, "Server is unreachable...")

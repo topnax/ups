@@ -227,6 +227,7 @@ class Network : ConnectionStatusListener, ApplicationMessageReader {
         connected = false
         responseTimeoutTimer?.cancel()
         keepAliveTimer?.cancel()
+        logger.warn { "Firing ServerUnreachableEvent" }
         FX.eventbus.fire(ServerUnreachableEvent())
         connectionStatusListeners.forEach {
             it.onUnreachable()
