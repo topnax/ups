@@ -11,9 +11,7 @@ const (
 	ValidResponseCeiling = 400
 
 	getLobbiesResponse                = 101
-	playerJoinedResponse              = 102
 	lobbyUpdatedResponse              = 103
-	playerLeftLobbyResponse           = 104
 	lobbyDestroyedResponse            = 105
 	lobbyJoinedResponse               = 106
 	userAuthenticatedResponse         = 107
@@ -57,33 +55,12 @@ func (g GetLobbiesResponse) Type() int {
 
 //////////////////////////////////////
 
-type PlayerJoinedResponse struct {
-	PlayerName string `json:"player_name"`
-	PlayerID   int    `json:"player_id"`
-}
-
-func (g PlayerJoinedResponse) Type() int {
-	return playerJoinedResponse
-}
-
-//////////////////////////////////////
-
 type LobbyUpdatedResponse struct {
 	Lobby model.Lobby `json:"lobby"`
 }
 
 func (g LobbyUpdatedResponse) Type() int {
 	return lobbyUpdatedResponse
-}
-
-//////////////////////////////////////
-
-type PlayerLeftLobbyResponse struct {
-	Player game.Player `json:"player"`
-}
-
-func (g PlayerLeftLobbyResponse) Type() int {
-	return playerLeftLobbyResponse
 }
 
 //////////////////////////////////////

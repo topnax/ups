@@ -18,7 +18,7 @@ const (
 	FailedToParse              = 4
 	FailedToCast               = 5
 	FailedToRoute              = 6
-	OperationCannotBePerformed = 6
+	OperationCannotBePerformed = 7
 
 	PlayerAlreadyCreatedLobby     = 20
 	LobbyDoesNotExist             = 21
