@@ -7,6 +7,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.net.ConnectException
 import java.net.InetAddress
+import java.net.NoRouteToHostException
 import java.net.Socket
 
 private val logger = KotlinLogging.logger {}
@@ -38,6 +39,11 @@ class TCPLayer(private val port: Int = 10000, val hostname: String = "localhost"
                 socket = Socket(InetAddress.getByName(hostname), port)
                 break
             } catch (exception: ConnectException) {
+                connectionStatusListener.onFailedAttempt(i + 1)
+                if (i != NUMBER_OF_ATTEMPTS) {
+                    sleep(DELAY_BETWEEN_ATTEMPTS)
+                }
+            } catch (exception: NoRouteToHostException) {
                 connectionStatusListener.onFailedAttempt(i + 1)
                 if (i != NUMBER_OF_ATTEMPTS) {
                     sleep(DELAY_BETWEEN_ATTEMPTS)
