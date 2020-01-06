@@ -11,6 +11,10 @@ import (
 	"ups/sp/server/protocol/responses"
 )
 
+const (
+	ConsecutiveInvalidMessageCountCeiling = 5
+)
+
 type KrisKrosRouter struct {
 	callbacks                   map[int]func(handler def.MessageHandler, server *KrisKrosServer, user model.User) def.Response
 	server                      *KrisKrosServer
@@ -19,7 +23,9 @@ type KrisKrosRouter struct {
 	UserStates                  map[int]State
 	SocketToUserID              map[int]int
 	UserIDToSocket              map[int]int
+	socketToInvalidMessageCount map[int]int
 	IgnoreTransitionStateChange bool
+	socketCloser                def.SocketCloser
 	RouteMutex                  *sync.Mutex
 }
 
@@ -32,6 +38,7 @@ func newKrisKrosRouter(server *KrisKrosServer) *KrisKrosRouter {
 	router.UserStates = make(map[int]State)
 	router.SocketToUserID = make(map[int]int)
 	router.UserIDToSocket = make(map[int]int)
+	router.socketToInvalidMessageCount = make(map[int]int)
 	router.RouteMutex = &sync.Mutex{}
 	return &router
 }
@@ -51,6 +58,38 @@ func failedToCast(message def.MessageHandler) def.Response {
 func (router *KrisKrosRouter) registerState(state State) {
 	state.Routes()[messages.KeepAliveMessageType] = state.Id()
 	router.states[state.Id()] = state
+}
+
+// signals that an invalid message has been received, when N consecutive messages are received, connection to socket is closed
+func (router *KrisKrosRouter) invalidMessage(socket int) {
+	invalidMessages, exists := router.socketToInvalidMessageCount[socket]
+	if exists {
+		invalidMessages++
+	} else {
+		invalidMessages = 0
+	}
+
+	if invalidMessages >= ConsecutiveInvalidMessageCountCeiling {
+		log.Warnf("Received %d invalid consecutive invalid message from SOCKET=%d, about to close connection to it", invalidMessages, socket)
+		if router.socketCloser != nil {
+			router.socketCloser.CloseFd(socket)
+		} else {
+			log.Errorf("Could not close SOCKET=%d, because socket closer is null", socket)
+		}
+		router.socketToInvalidMessageCount[socket] = 0
+	} else {
+		log.Warnf("Received an invalid message from SOCKET=%d, consecutive invalid message count is %d", socket, invalidMessages)
+		router.socketToInvalidMessageCount[socket] = invalidMessages
+	}
+}
+
+// signals that an valid message has been received,
+func (router *KrisKrosRouter) validMessage(socket int) {
+	invalidMessageCount, exists := router.socketToInvalidMessageCount[socket]
+	if exists && invalidMessageCount > 0 {
+		log.Infof("Resetting consecutive invalid message count of SOCKET=%d to 0", socket)
+	}
+	router.socketToInvalidMessageCount[socket] = 0
 }
 
 // routes a given message
@@ -114,12 +153,19 @@ func (router *KrisKrosRouter) route(message def.MessageHandler, socket int) def.
 						log.Errorf("Could not get state from state map of ID %d", newStateID)
 					}
 				}
+				router.validMessage(socket)
+			} else {
+				router.invalidMessage(socket)
 			}
 			return response
 		}
-
+		router.invalidMessage(socket)
 		return impl.ErrorResponse(fmt.Sprintf("Could not route a message of type %d", message.GetType()), impl.FailedToRoute)
 	}
-
+	router.invalidMessage(socket)
 	return impl.ErrorResponse(fmt.Sprintf("Cannot perform operation of type %d because current state of id %d does not allow it.", message.GetType(), userState.Id()), impl.OperationCannotBePerformed)
+}
+
+func (router *KrisKrosRouter) SetSocketCloser(socketCloser def.SocketCloser) {
+	router.socketCloser = socketCloser
 }
