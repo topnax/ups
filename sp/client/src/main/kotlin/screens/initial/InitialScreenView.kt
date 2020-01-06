@@ -25,7 +25,7 @@ class InitialScreenView : View() {
 
     override val root = borderpane {
         top = menubar {
-            serverMenu = menu("127.0.0.1") {
+            serverMenu = menu("Network settings") {
                 item("Change server") {
                     action {
                         val modal = find<JoinServerView>()
@@ -43,7 +43,7 @@ class InitialScreenView : View() {
             hbox {
                 alignment = Pos.CENTER
                 val random = Random()
-                for (char in "KRIS KROS 1") {
+                for (char in "KRIS KROS 1.02") {
                     label(char.toString()) {
                         style {
                             textFill = Color(random.nextDouble(), random.nextDouble(), random.nextDouble(), 1.0)
@@ -58,7 +58,7 @@ class InitialScreenView : View() {
                 label("Username:")
                 nameTextField = textfield {}
                 joinButton = button("Join")
-                joinButton.disableProperty().set(false)
+                joinButton.disableProperty().set(true)
 
                 joinButton.action {
                     controller.onJoinButtonPressed()

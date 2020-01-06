@@ -54,7 +54,7 @@ class LobbyView : View() {
     override val root = vbox(spacing = 10) {
         alignment = Pos.CENTER
         padding = insets(10)
-        text("Welcome to game lobby") {
+        text("Welcome to game lobby ${if (Network.authorized) Network.User.name else ""}") {
             alignment = Pos.CENTER
         }
         playerListView = listview {}
@@ -78,13 +78,7 @@ class LobbyView : View() {
     }
 
     private fun startLobby() {
-        Network.getInstance().send(StartLobbyMessage(), { applicationMessage ->
-            Platform.runLater {
-                if (applicationMessage is LobbyStartedResponse) {
-                    alert(Alert.AlertType.INFORMATION, "Lobby started")
-                }
-            }
-        })
+        Network.getInstance().send(StartLobbyMessage())
     }
 
     private fun onReadyButtonClicked() {

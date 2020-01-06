@@ -34,7 +34,7 @@ class InitialScreenController : Controller(), ConnectionStatusListener {
             })
         }
         Network.getInstance().connectionStatusListeners.add(this)
-        connectTo("localhost", 10000)
+//        connectTo("localhost", 10000)
     }
 
     private fun onGameStateRegeneration(message: GameStateRegenerationResponse) {

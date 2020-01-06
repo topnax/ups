@@ -317,8 +317,6 @@ class GameScreenController : Controller(), ConnectionStatusListener {
                 desk.tiles[tile.row][tile.column] = tile
                 if (!tile.set) {
                     desk.tiles[tile.row][tile.column].letter = null
-                } else {
-                    logger.warn { "Setting a letter at ${tile.row} and c ${tile.column}" }
                 }
                 fire(DeskChange(desk.tiles[tile.row][tile.column]))
             }

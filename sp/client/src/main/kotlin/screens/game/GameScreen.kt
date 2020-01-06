@@ -37,6 +37,8 @@ class GameView : View() {
     }
 
     override val root = vbox(spacing = 10) {
+        prefWidth = 800.0
+        prefHeight = 600.0
         padding = Insets(10.0)
         hbox(spacing = 10.0) {
             val nameLabel = label(Network.User.name)
@@ -176,6 +178,7 @@ class GameView : View() {
         }
         affectedTileCoordinates.clear()
     }
+
 }
 
 class LetterView(val letter: Letter) : View() {

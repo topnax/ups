@@ -66,11 +66,11 @@ class MainMenuView : View() {
 
     override fun onDock() {
         super.onDock()
-        Timer().schedule(1000) {
-            if (isDocked) {
+//        Timer().schedule(1000) {
+//            if (isDocked) {
                 controller.refreshLobbies()
-            }
-        }
+//            }
+//        }
 
         Network.getInstance().addMessageListener(::onLobbyUpdated)
     }
