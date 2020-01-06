@@ -2,11 +2,14 @@ package screens.initial
 
 import javafx.beans.property.SimpleIntegerProperty
 import javafx.beans.property.SimpleStringProperty
+import javafx.geometry.Pos
 import javafx.scene.control.Button
 import javafx.scene.control.MenuItem
 import javafx.scene.control.TextField
+import javafx.scene.paint.Color
 
 import tornadofx.*
+import java.util.*
 
 class InitialScreenView : View() {
 
@@ -36,16 +39,30 @@ class InitialScreenView : View() {
         center = vbox(spacing = 10.0) {
             padding = insets(10)
             prefWidth = 10.0
-            hbox(spacing = 10.0) {
-                nameTextField = textfield {}
+            alignment = Pos.CENTER
+            hbox {
+                alignment = Pos.CENTER
+                val random = Random()
+                for (char in "KRIS KROS") {
+                    label(char.toString()) {
+                        style {
+                            textFill = Color(random.nextDouble(), random.nextDouble(), random.nextDouble(), 1.0)
+                            fontSize = (28 + random.nextInt(8)).pt
+                        }
+                    }
+                }
+            }
 
+            hbox(spacing = 10.0) {
+                alignment = Pos.CENTER
+                label("Username:")
+                nameTextField = textfield {}
                 joinButton = button("Join")
                 joinButton.disableProperty().set(false)
 
                 joinButton.action {
                     controller.onJoinButtonPressed()
                 }
-
             }
         }
         controller.init(this@InitialScreenView)

@@ -1,23 +1,23 @@
 import networking.reader.MessageReader
-import networking.receiver.FixedMessageReceiver
+import networking.receiver.SimpleMessageReceiver
 import networking.receiver.Message
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
-class FixedMessageReceiverTest {
+class SimpleMessageReceiverTest {
 
     private val received = mutableListOf<Message>()
-    private lateinit var receiver: FixedMessageReceiver
+    private lateinit var receiver: SimpleMessageReceiver
 
     @BeforeEach
     internal fun setUp() {
         received.clear()
-        receiver = FixedMessageReceiver(object : MessageReader {
+        receiver = SimpleMessageReceiver(object : MessageReader {
             override fun read(message: Message) {
                 received.add(message)
             }
-        })
+        }, testMode = true)
     }
 
     @Test
