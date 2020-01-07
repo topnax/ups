@@ -169,6 +169,8 @@
 		\end{tabular}
 \end{center}  
 
+		V případě, že je daný požadavek dopadl úspěšně, tak server odpoví zprávou nechybového typu. Typ zprávy pro obecný úspěch je \texttt{701}.
+
 		\subsubsection{Atributy zpráv}
 		Níže jsou popsány významy atributů jednotlivých typů zpráv. Pokud se zde nějaká zpráva nevyskytuje znamená to, že nemá žádný atribut.
 		
@@ -743,7 +745,15 @@ Tato struktura představuje místnost, která slouží pro vytvoření seznamu h
 		\item go1.13.1 či novější
 	\end{itemize}
 	V kořenu projektu serveru přeložte server pomocí příkazu \texttt{go build -o kral\_ups}. Poté server spusťte příkazem \texttt{./kral\_ups}.
-	\čsubsection{Klient}
+	
+	\noindent V následujícím pořadí lze přidat argumenty při spuštění serveru:
+	\begin{itemize}
+		\item IPv4 adresa
+		\item port
+		\item limit připojených klientů
+		\item limit místností
+	\end{itemize}
+	\subsection{Klient}
 	Pro překlad a spuštění klienta je vyžadován následující software:
 	\begin{itemize}
 		\item OpenJDK 11.0.2
